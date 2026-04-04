@@ -1,0 +1,62 @@
+name: Good First Issue (Maintainers Only)
+description: A well-scoped issue suitable for first-time contributors
+labels: ["good first issue", "help wanted"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Clear, specific description of what needs to be done.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why is this needed? Link to related issues or discussions.
+    validations:
+      required: true
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation Hints
+      description: Point the contributor to the right files and functions.
+      placeholder: |
+        1. Look at `src/tools/file_read.rs` for reference.
+        2. Create `src/tools/my_tool.rs`.
+        3. Register in `ToolRegistry`.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know this is done?
+      placeholder: |
+        - [ ] Tool implements the `Tool` trait
+        - [ ] Unit tests for success and error cases
+    validations:
+      required: true
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: Difficulty
+      options:
+        - "Beginner (knows Rust basics)"
+        - "Intermediate (comfortable with async Rust)"
+        - "Advanced (familiar with the codebase)"
+    validations:
+      required: true
+  - type: input
+    id: time
+    attributes:
+      label: Estimated Time
+      placeholder: "2-4 hours"
+    validations:
+      required: true
+  - type: input
+    id: mentor
+    attributes:
+      label: Mentor
+      description: Who can the contributor reach out to for guidance?
+      placeholder: "@maintainer_username"

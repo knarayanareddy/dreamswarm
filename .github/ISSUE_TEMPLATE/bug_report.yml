@@ -1,0 +1,70 @@
+name: Bug Report
+description: Something isn't working as expected
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill in as much detail as possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: Clear description of what happened vs. what you expected
+      placeholder: |
+        When I run `dreamswarm chat`, the agent...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to reproduce the behavior
+      placeholder: |
+        1. Run `dreamswarm`
+        2. Type "..."
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Error Output
+      description: |
+        Paste relevant log output. Run with `RUST_LOG=dreamswarm=debug` for verbose logs.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: DreamSwarm Version
+      description: Output of `dreamswarm --version`
+      placeholder: "dreamswarm 0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Linux (x86_64)
+        - Linux (ARM64)
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Windows (WSL)
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true

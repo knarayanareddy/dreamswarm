@@ -1,0 +1,60 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this solve? Describe the use case.
+      placeholder: |
+        When I'm working on [task], I need to [action], but currently DreamSwarm doesn't support...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How would you solve this? Be as specific as possible.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Other approaches you've considered and why they don't work.
+  - type: dropdown
+    id: module
+    attributes:
+      label: Which module would this affect?
+      options:
+        - Agent Loop (runtime/)
+        - Tools (tools/)
+        - Memory System (memory/)
+        - Context Compression (context/)
+        - Multi-Agent (swarm/)
+        - KAIROS Daemon (daemon/)
+        - autoDream (dream/)
+        - Query Engine (query/)
+        - CLI / TUI
+        - Other / Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Estimated Complexity
+      options:
+        - Small (< 200 lines, ~1 day)
+        - Medium (200-500 lines, ~1 week)
+        - Large (500+ lines, needs RFC)
+        - Not sure
+    validations:
+      required: true
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to implement this feature
+        - label: I would be willing to help test this feature

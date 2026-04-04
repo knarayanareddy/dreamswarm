@@ -1,0 +1,27 @@
+[package]
+name = "dreamswarm-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[lib]
+crate-type = ["rlib"]
+
+[[bin]]
+name = "fuzz_bash_security"
+path = "fuzz_targets/fuzz_bash_security.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_json_parsing"
+path = "fuzz_targets/fuzz_json_parsing.rs"
+test = false
+doc = false
+
+[dependencies]
+libfuzzer-sys = "0.4"
+dreamswarm = { path = ".." }

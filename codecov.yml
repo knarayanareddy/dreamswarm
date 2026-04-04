@@ -1,0 +1,73 @@
+codecov:
+  require_ci_to_pass: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "60...90"
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+        if_ci_failed: error
+    patch:
+      default:
+        target: 70%
+        threshold: 5%
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no
+
+comment:
+  layout: "header, diff, flags, components"
+  behavior: default
+  require_changes: no
+  require_base: no
+  require_head: yes
+
+flags:
+  unit:
+    paths:
+      - src/
+    carryforward: true
+  integration:
+    paths:
+      - tests/
+    carryforward: true
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: auto
+  individual_components:
+    - component_id: core
+      name: Core Runtime
+      paths:
+        - src/runtime/**
+    - component_id: tools
+      name: Tool System
+      paths:
+        - src/tools/**
+    - component_id: memory
+      name: Memory System
+      paths:
+        - src/memory/**
+    - component_id: swarm
+      name: Multi-Agent
+      paths:
+        - src/swarm/**
+    - component_id: daemon
+      name: KAIROS Daemon
+      paths:
+        - src/daemon/**
+    - component_id: dream
+      name: autoDream
+      paths:
+        - src/dream/**

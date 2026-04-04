@@ -1,0 +1,30 @@
+name: Setup Rust
+description: "Setup Rust toolchain with caching"
+inputs:
+  toolchain:
+    description: "Rust toolchain to use"
+    required: false
+    default: "stable"
+  targets:
+    description: "Comma-separated list of targets to install"
+    required: false
+    default: ""
+  components:
+    description: "Comma-separated list of components to install"
+    required: false
+    default: "rustfmt, clippy"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ inputs.toolchain }}
+        targets: ${{ inputs.targets }}
+        components: ${{ inputs.components }}
+
+    - name: Rust cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: "${{ runner.os }}-${{ inputs.toolchain }}"

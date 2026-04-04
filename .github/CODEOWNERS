@@ -1,1 +1,21 @@
+# Default owners for everything
 * @dreamswarm/maintainers
+
+# Security-sensitive modules require security review
+src/runtime/permissions.rs @dreamswarm/security
+src/tools/bash_tool.rs @dreamswarm/security
+src/daemon/trust.rs @dreamswarm/security
+src/dream/sandbox.rs @dreamswarm/security
+SECURITY.md @dreamswarm/security
+
+# Architecture changes require core team review
+src/runtime/agent_loop.rs @dreamswarm/core
+src/runtime/session.rs @dreamswarm/core
+ARCHITECTURE.md @dreamswarm/core
+
+# CI/CD changes
+.github/ @dreamswarm/infra
+Dockerfile* @dreamswarm/infra
+docker-compose.yml @dreamswarm/infra
+Makefile @dreamswarm/infra
+install.sh @dreamswarm/infra

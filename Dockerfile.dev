@@ -1,0 +1,17 @@
+FROM rust:1.77-bookworm
+
+RUN apt-get update && apt-get install -y \
+    tmux \
+    ripgrep \
+    git \
+    curl \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust tools
+RUN cargo binstall cargo-watch cargo-nextest cargo-llvm-cov --no-confirm --force
+
+WORKDIR /workspace
+COPY . .
+
+CMD ["cargo", "watch", "-x", "run"]

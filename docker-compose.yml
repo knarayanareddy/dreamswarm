@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  dreamswarm:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/workspace
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/workspace/target
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RUST_LOG=dreamswarm=debug
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+
+volumes:
+  cargo-cache:
+  target-cache:

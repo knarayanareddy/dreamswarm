@@ -1,10 +1,14 @@
 use crate::daemon::brief_mode::BriefFormatter;
-use crate::daemon::daily_log::{DailyLog, LogEntryKind};
+use crate::daemon::daily_log::{DailyLog, LogEntry, LogEntryKind};
 use crate::daemon::heartbeat::{Heartbeat, HeartbeatConfig};
 use crate::daemon::initiative::InitiativeEngine;
 use crate::daemon::schedule::Scheduler;
 use crate::daemon::signals::SignalGatherer;
 use crate::daemon::{DaemonConfig, Initiative, ProactiveAction, Urgency};
+use crate::dream::engine::DreamEngine;
+use crate::dream::report::DreamReporter;
+use crate::dream::DreamConfig;
+use crate::memory::MemorySystem;
 use crate::query::engine::QueryEngine;
 use crate::runtime::config::AppConfig;
 use chrono::Utc;
@@ -20,6 +24,7 @@ pub struct KairosDaemon {
     scheduler: Scheduler,
     daily_log: DailyLog,
     query_engine: Option<Arc<QueryEngine>>,
+    memory: Arc<RwLock<MemorySystem>>,
     running: Arc<RwLock<bool>>,
     working_dir: PathBuf,
 }
@@ -29,6 +34,7 @@ impl KairosDaemon {
         config: DaemonConfig,
         app_config: &AppConfig,
         query_engine: Option<Arc<QueryEngine>>,
+        memory: Arc<RwLock<MemorySystem>>,
     ) -> anyhow::Result<Self> {
         std::fs::create_dir_all(&config.state_dir)?;
         let heartbeat = Heartbeat::new(HeartbeatConfig {
@@ -48,6 +54,7 @@ impl KairosDaemon {
             scheduler,
             daily_log,
             query_engine,
+            memory,
             running: Arc::new(RwLock::new(true)),
             working_dir: app_config.working_dir.clone(),
         })
@@ -55,10 +62,10 @@ impl KairosDaemon {
 
     pub async fn run(&mut self) -> anyhow::Result<()> {
         tracing::info!("KAIROS daemon starting...");
-        self.daily_log.append(&crate::daemon::daily_log::LogEntry {
+        self.daily_log.append(&LogEntry {
             timestamp: Utc::now(),
             kind: LogEntryKind::Startup,
-            content: format!("Daemon started. Heartbeat: {}s, Budget: {}s, Working dir: {}", self.config.heartbeat_interval.as_secs(), self.config.blocking_budget.as_secs(), self.working_dir.display()),
+            content: format!("Daemon started. Heartbeat: {}s, Working dir: {}", self.config.heartbeat_interval.as_secs(), self.working_dir.display()),
             tools_used: vec![],
             tokens_consumed: 0,
             cost_usd: 0.0,
@@ -81,7 +88,6 @@ impl KairosDaemon {
             if current_date != last_date {
                 self.initiative_engine.reset_daily();
                 last_date = current_date;
-                tracing::info!("New day - daily counters reset");
             }
 
             let signals = self.signal_gatherer.gather();
@@ -91,6 +97,9 @@ impl KairosDaemon {
             let due_jobs = self.scheduler.check_due(idle_minutes);
             for job in &due_jobs {
                 tracing::info!("Scheduled job due: {} ({})", job.name, job.action);
+                if job.action == "dream" {
+                    self.run_auto_dream().await.ok();
+                }
             }
 
             let qe_ref = self.query_engine.as_ref().map(|arc| arc.as_ref());
@@ -101,51 +110,40 @@ impl KairosDaemon {
                 Initiative::Observe(observation) => {
                     let signal_names: Vec<String> = signals.iter().map(|s| format!("{:?}", s.kind)).collect();
                     self.daily_log.log_observation(&observation, signal_names, self.initiative_engine.trust().current_level)?;
-                    if self.config.brief_mode {
-                        tracing::debug!("{}", BriefFormatter::format_observation(&observation));
-                    }
                 }
                 Initiative::Sleep => {}
             }
         }
-        tracing::info!("KAIROS daemon shutting down...");
-        self.daily_log.append(&crate::daemon::daily_log::LogEntry {
-            timestamp: Utc::now(),
-            kind: LogEntryKind::Shutdown,
-            content: format!("Daemon stopped after {} ticks", self.heartbeat.tick_count()),
-            tools_used: vec![],
-            tokens_consumed: 0,
-            cost_usd: 0.0,
-            trust_level: self.initiative_engine.trust().current_level,
-            signals_present: vec![],
-        })?;
         Ok(())
+    }
+
+    pub async fn run_auto_dream(&self) -> anyhow::Result<()> {
+        tracing::info!("autoDream triggered by scheduler");
+        if let Some(ref qe) = self.query_engine {
+            let engine = DreamEngine::new(DreamConfig::default(), self.working_dir.clone(), self.config.state_dir.clone());
+            let mem = self.memory.read().await;
+            let report = engine.dream(&mem, qe).await?;
+            tracing::info!("{}", DreamReporter::format_brief(&report));
+            Ok(())
+        } else {
+            anyhow::bail!("No query engine available for autoDream")
+        }
     }
 
     async fn handle_action(&mut self, action: ProactiveAction) -> anyhow::Result<()> {
         let action_description = format!("{:?}", action);
         let trust = self.initiative_engine.trust().current_level;
-        tracing::info!("Executing proactive action: {}", &action_description[..action_description.len().min(100)]);
-        self.daily_log.log_decision(&format!("Decided to act: {}", &action_description[..action_description.len().min(200)]), trust)?;
+        self.daily_log.log_decision(&format!("Decided to act: {}", action_description), trust)?;
 
         let budget = self.config.blocking_budget;
         let result = tokio::time::timeout(budget, self.execute_action(&action)).await;
         match result {
             Ok(Ok(outcome)) => {
-                tracing::info!("Action completed: {}", &outcome[..outcome.len().min(100)]);
                 self.daily_log.log_action(&format!("Action completed: {}", outcome), vec![], 0, 0.0, trust)?;
-                if self.config.brief_mode {
-                    println!("{}", BriefFormatter::format_action("action", &action_description, &outcome));
-                }
+                if self.config.brief_mode { println!("{}", BriefFormatter::format_action("action", &action_description, &outcome)); }
             }
-            Ok(Err(e)) => {
-                tracing::warn!("Action failed: {}", e);
-                self.daily_log.log_error(&format!("Action failed: {}", e), trust)?;
-            }
-            Err(_) => {
-                tracing::warn!("Action timed out after {}s: {}", budget.as_secs(), &action_description[..action_description.len().min(80)]);
-                self.daily_log.log_timeout(&format!("Action timed out after {}s: {}", budget.as_secs(), action_description), trust)?;
-            }
+            Ok(Err(e)) => { self.daily_log.log_error(&format!("Action failed: {}", e), trust)?; }
+            Err(_) => { self.daily_log.log_timeout(&format!("Action timed out: {}", action_description), trust)?; }
         }
         Ok(())
     }
@@ -154,37 +152,19 @@ impl KairosDaemon {
         match action {
             ProactiveAction::RunTests { reason, .. } => {
                 let output = tokio::process::Command::new("cargo").args(["test", "--quiet"]).current_dir(&self.working_dir).output().await?;
-                if output.status.success() {
-                    Ok(format!("Tests passed. Reason: {}", reason))
-                } else {
-                    let stdout = String::from_utf8_lossy(&output.stdout);
-                    Ok(format!("Tests failed. Reason: {}. Output: {}", reason, &stdout[..stdout.len().min(200)]))
-                }
+                Ok(if output.status.success() { format!("Tests passed: {}", reason) } else { format!("Tests failed: {}", reason) })
             }
             ProactiveAction::SendNotification { message, urgency } => {
-                let result = self.send_system_notification(message, urgency).await;
-                Ok(format!("Notification status: {:?}", result))
+                self.send_system_notification(message, urgency).await?;
+                Ok("Notification sent".into())
             }
-            ProactiveAction::CustomAction { description, .. } => {
-                Ok(format!("Custom action executed: {}", description))
-            }
-            _ => Ok(format!("Action {:?} not fully implemented in mock", action))
+            _ => Ok("Action partially implemented".into()),
         }
     }
 
     async fn send_system_notification(&self, message: &str, _urgency: &Urgency) -> anyhow::Result<()> {
-        if !self.config.notifications_enabled { return Ok(()); }
         #[cfg(target_os = "macos")]
-        {
-            let _ = tokio::process::Command::new("osascript").args(["-e", &format!("display notification \"{}\" with title \"DreamSwarm KAIROS\"", message.replace('"', "\\\""))]).output().await;
-        }
-        #[cfg(target_os = "linux")]
-        {
-            let _ = tokio::process::Command::new("notify-send").args(["DreamSwarm KAIROS", message]).output().await;
-        }
+        { let _ = tokio::process::Command::new("osascript").args(["-e", &format!("display notification \"{}\" with title \"DreamSwarm\"", message)]).output().await; }
         Ok(())
     }
-
-    pub fn trust(&self) -> &crate::daemon::trust::TrustSystem { self.initiative_engine.trust() }
-    pub fn daily_log(&self) -> &DailyLog { &self.daily_log }
 }

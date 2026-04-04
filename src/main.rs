@@ -1,12 +1,13 @@
 use clap::{Parser, Subcommand};
 use dreamswarm::runtime::config::AppConfig;
-use dreamswarm::daemon::{DaemonConfig, DaemonStatus};
+use dreamswarm::daemon::DaemonConfig;
 use dreamswarm::daemon::process::DaemonProcess;
 use dreamswarm::daemon::kairos::KairosDaemon;
 use dreamswarm::daemon::daily_log::DailyLog;
 use dreamswarm::query::engine::QueryEngine;
-use std::path::PathBuf;
+use dreamswarm::memory::MemorySystem;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 #[derive(Parser)]
 #[command(name = "dreamswarm")]
@@ -73,6 +74,10 @@ async fn main() -> anyhow::Result<()> {
     let config = AppConfig::new(cli.model.clone(), cli.provider.clone(), cli.mode.clone());
     let daemon_config = DaemonConfig::default();
     
+    // Initialize Memory System
+    let memory_dir = config.state_dir.join("memory");
+    let memory = Arc::new(RwLock::new(MemorySystem::new(memory_dir)?));
+
     if cli.bg {
         let process = DaemonProcess::new(daemon_config.state_dir.clone());
         return process.start(&[]).await;
@@ -102,7 +107,7 @@ async fn main() -> anyhow::Result<()> {
                 }
                 DaemonAction::Run => {
                     let query_engine = Arc::new(QueryEngine::new(config.model.clone(), config.provider.clone())?);
-                    let mut daemon = KairosDaemon::new(daemon_config, &config, Some(query_engine))?;
+                    let mut daemon = KairosDaemon::new(daemon_config, &config, Some(query_engine), memory)?;
                     daemon.run().await?;
                 }
                 DaemonAction::Log { count } => {
@@ -124,7 +129,6 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(Commands::Sessions) => {
             println!("Listing active sessions...");
-            // Sessions logic
         }
     }
     

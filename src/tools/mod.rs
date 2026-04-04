@@ -2,12 +2,16 @@ use crate::runtime::permissions::RiskLevel;
 use async_trait::async_trait;
 use serde_json::Value;
 
-// Submodules for Phase 1 tools
+// Submodules for all phases
 pub mod file_read;
 pub mod file_write;
 pub mod bash_tool;
 pub mod grep_tool;
 pub mod ask_user;
+pub mod daemon_status;
+pub mod push_notification;
+pub mod monitor_tool;
+pub mod dream_trigger;
 
 #[derive(Debug, Clone)]
 pub struct ToolCall {
@@ -32,7 +36,7 @@ pub trait Tool: Send + Sync {
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput>;
     
     fn command_signature(&self, _input: &Value) -> String {
-        format!("{}", self.name())
+        self.name().to_lowercase().replace(' ', ":")
     }
     
     fn describe_call(&self, input: &Value) -> String {
@@ -41,7 +45,7 @@ pub trait Tool: Send + Sync {
 }
 
 pub struct ToolRegistry {
-    tools: Vec<Box<dyn Tool>>,
+    pub tools: Vec<Box<dyn Tool>>,
 }
 
 impl ToolRegistry {
@@ -60,6 +64,30 @@ impl ToolRegistry {
         registry.register(Box::new(bash_tool::BashTool));
         registry.register(Box::new(grep_tool::GrepTool));
         registry.register(Box::new(ask_user::AskUserTool));
+        registry
+    }
+
+    pub fn default_phase5(
+        memory: std::sync::Arc<tokio::sync::RwLock<crate::memory::MemorySystem>>,
+        query_engine: std::sync::Arc<crate::query::engine::QueryEngine>,
+        working_dir: &str,
+    ) -> Self {
+        let mut registry = Self::default_phase1();
+        
+        // Phase 4 Tools
+        let daemon_state_dir = dirs::home_dir().unwrap_or_default().join(".dreamswarm").join("daemon");
+        registry.register(Box::new(daemon_status::DaemonStatusTool::new(daemon_state_dir.clone())));
+        registry.register(Box::new(push_notification::PushNotificationTool));
+        registry.register(Box::new(monitor_tool::MonitorTool));
+        
+        // Phase 5 Tool
+        registry.register(Box::new(dream_trigger::DreamTriggerTool::new(
+            memory,
+            query_engine,
+            working_dir,
+            daemon_state_dir,
+        )));
+        
         registry
     }
 }

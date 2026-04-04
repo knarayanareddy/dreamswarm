@@ -1,7 +1,6 @@
 //! SSE stream parser for real-time token streaming from LLM providers.
 
 use serde_json::Value;
-use tokio::io::{AsyncBufReadExt, BufReader};
 
 /// A single chunk of data from a streaming response.
 #[derive(Debug, Clone)]

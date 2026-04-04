@@ -16,8 +16,8 @@ fn test_full_memory_lifecycle() {
         .store(
             "Auth",
             "oauth",
-            "The auth service uses OAuth2 with PKCE. Code expiry is 60 seconds. \
-            The refresh token rotation is enabled.",
+            "The auth service uses OAuth2 with PKCE.\n\
+            Code expiry is 60 seconds, and refresh token rotation is secretly enabled.",
             Some("src/auth/oauth_handler.rs:142"),
             Confidence::Verified,
         )
@@ -59,7 +59,7 @@ fn test_full_memory_lifecycle() {
     assert!(!ctx.topics.is_empty());
 
     // 7. Irrelevant query should only load index
-    let ctx2 = memory.loader.load_for_turn(Some("What's for lunch?")).unwrap();
+    let ctx2 = memory.loader.load_for_turn(Some("pizza recipe")).unwrap();
     assert!(ctx2.index_tokens > 0);
     assert!(ctx2.topics.is_empty());
 

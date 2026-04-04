@@ -2,10 +2,9 @@ use crate::db::Database;
 use crate::prompts::system::SystemPromptBuilder;
 use crate::query::engine::QueryEngine;
 use crate::runtime::config::AppConfig;
-use crate::runtime::permissions::{PermissionGate, RiskLevel};
-use crate::runtime::session::{MessageContent, Session};
+use crate::runtime::permissions::PermissionGate;
+use crate::runtime::session::Session;
 use crate::tools::ToolRegistry;
-use serde_json::Value;
 
 pub struct TurnResult {
     pub final_text: String,
@@ -115,5 +114,22 @@ impl AgentRuntime {
             cost_usd: self.session.total_cost_usd,
             stop_reason: StopReason::EndTurn,
         })
+    }
+
+    /// Handle built-in slash commands (e.g. /help, /cost, /memory).
+    /// Returns `Some(response)` if the command was handled, `None` if unknown.
+    pub fn handle_slash_command(&self, input: &str) -> Option<String> {
+        match input {
+            "/help" => Some(
+                "  Commands:\n  /help    — show this message\n  /cost    — show session cost\n  /memory  — show memory index\n  /clear   — clear session\n  /quit    — exit".to_string()
+            ),
+            "/cost" => Some(format!(
+                "  Session cost: ${:.4} ({} tokens)",
+                self.session.total_cost_usd, self.session.total_tokens
+            )),
+            "/memory" => Some("  Memory index: use MemoryRead tool to inspect.".to_string()),
+            "/clear" => Some("  Session context cleared (restart to apply).".to_string()),
+            _ => None,
+        }
     }
 }

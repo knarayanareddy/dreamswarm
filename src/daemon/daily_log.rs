@@ -149,4 +149,17 @@ impl DailyLog {
         let entries = self.read_today()?;
         Ok(entries.iter().filter(|e| e.kind == LogEntryKind::Action).count() as u64)
     }
+
+    /// Read log entries from the last `days` calendar days (inclusive of today).
+    pub fn read_recent_days(&self, days: usize) -> anyhow::Result<Vec<LogEntry>> {
+        let mut all = Vec::new();
+        for offset in 0..days {
+            let date = (Utc::now() - chrono::Duration::days(offset as i64))
+                .format("%Y-%m-%d")
+                .to_string();
+            all.extend(self.read_date(&date)?);
+        }
+        all.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+        Ok(all)
+    }
 }

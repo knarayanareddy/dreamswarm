@@ -69,9 +69,11 @@ impl ObservationCollector {
         let index_entries = memory.index.parse()?;
         for entry in index_entries {
             if let Some(content) = memory.topics.read(&entry.file_path)? {
+                let content: String = content;
+                let preview_len = content.len().min(500);
                 observations.push(RawObservation {
                     source: ObservationSource::AgentInference,
-                    content: format!("[EXISTING MEMORY] {}/{}: {}", entry.topic, entry.subtopic, &content[..content.len().min(500)]),
+                    content: format!("[EXISTING MEMORY] {}/{}: {}", entry.topic, entry.subtopic, &content[..preview_len]),
                     timestamp: Utc::now(),
                     session_id: None,
                     tools_involved: vec![],

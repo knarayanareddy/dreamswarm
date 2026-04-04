@@ -16,27 +16,31 @@ impl MemoryPruner {
         let mut prune_ops = Vec::new();
         let index_entries = memory.index.parse()?;
         for entry in index_entries {
-            if let Some(content) = memory.topics.read(&entry.file_path)? {
-                if self.is_derivable_content(&content) {
-                    prune_ops.push(MemoryOperation {
-                        kind: OperationKind::Prune { reason: PruneReason::Derivable },
-                        topic: entry.topic.clone(), subtopic: entry.subtopic.clone(), content: String::new(),
-                        reasoning: "Describes code structure that can be re-derived from source".to_string(),
-                        confidence: 0.0,
-                    });
-                    continue;
-                }
-                if let Some(source_ref) = self.extract_source_reference(&content) {
-                    let source_path = self.working_dir.join(&source_ref);
-                    if !source_path.exists() {
+            match memory.topics.read(&entry.file_path)? {
+                Some(content) => {
+                    let content: String = content;
+                    if self.is_derivable_content(&content) {
                         prune_ops.push(MemoryOperation {
-                            kind: OperationKind::Prune { reason: PruneReason::Stale },
+                            kind: OperationKind::Prune { reason: PruneReason::Derivable },
                             topic: entry.topic.clone(), subtopic: entry.subtopic.clone(), content: String::new(),
-                            reasoning: format!("Referenced source file '{}' no longer exists", source_ref),
+                            reasoning: "Describes code structure that can be re-derived from source".to_string(),
                             confidence: 0.0,
                         });
+                        continue;
+                    }
+                    if let Some(source_ref) = self.extract_source_reference(&content) {
+                        let source_path = self.working_dir.join(&source_ref);
+                        if !source_path.exists() {
+                            prune_ops.push(MemoryOperation {
+                                kind: OperationKind::Prune { reason: PruneReason::Stale },
+                                topic: entry.topic.clone(), subtopic: entry.subtopic.clone(), content: String::new(),
+                                reasoning: format!("Referenced source file '{}' no longer exists", source_ref),
+                                confidence: 0.0,
+                            });
+                        }
                     }
                 }
+                None => {}
             }
         }
         tracing::info!("Pruner found {} entries to prune", prune_ops.len());

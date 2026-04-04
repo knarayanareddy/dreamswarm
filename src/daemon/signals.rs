@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::sync::mpsc;
+use std::sync::{mpsc, Mutex};
 use std::time::Duration;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -87,7 +87,7 @@ impl SignalGatherer {
 
 pub struct FileWatcher {
     working_dir: PathBuf,
-    receiver: Option<mpsc::Receiver<notify::Result<Event>>>,
+    receiver: Option<Mutex<mpsc::Receiver<notify::Result<Event>>>>,
     _watcher: Option<RecommendedWatcher>,
 }
 
@@ -101,7 +101,7 @@ impl FileWatcher {
 
         let mut fw = Self {
             working_dir: working_dir.clone(),
-            receiver: Some(rx),
+            receiver: Some(Mutex::new(rx)),
             _watcher: watcher,
         };
 
@@ -129,26 +129,28 @@ impl FileWatcher {
 impl SignalSource for FileWatcher {
     fn poll(&mut self) -> Vec<Signal> {
         let mut signals = Vec::new();
-        if let Some(ref rx) = self.receiver {
-            while let Ok(event_result) = rx.try_recv() {
-                if let Ok(event) = event_result {
-                    for path in &event.paths {
-                        if self.should_ignore(path) { continue; }
-                        let relative = path.strip_prefix(&self.working_dir).unwrap_or(path).to_string_lossy().to_string();
-                        let (kind, description) = match event.kind {
-                            EventKind::Create(_) => (SignalKind::FileCreated, format!("File created: {}", relative)),
-                            EventKind::Modify(_) => (SignalKind::FileChanged, format!("File modified: {}", relative)),
-                            EventKind::Remove(_) => (SignalKind::FileDeleted, format!("File deleted: {}", relative)),
-                            _ => continue,
-                        };
-                        signals.push(Signal {
-                            kind,
-                            source: "file_watcher".to_string(),
-                            description,
-                            timestamp: Utc::now(),
-                            severity: SignalSeverity::Info,
-                            metadata: serde_json::json!({ "path": relative }),
-                        });
+        if let Some(ref rx_mutex) = self.receiver {
+            if let Ok(rx) = rx_mutex.lock() {
+                while let Ok(event_result) = rx.try_recv() {
+                    if let Ok(event) = event_result {
+                        for path in &event.paths {
+                            if self.should_ignore(path) { continue; }
+                            let relative = path.strip_prefix(&self.working_dir).unwrap_or(path).to_string_lossy().to_string();
+                            let (kind, description) = match event.kind {
+                                EventKind::Create(_) => (SignalKind::FileCreated, format!("File created: {}", relative)),
+                                EventKind::Modify(_) => (SignalKind::FileChanged, format!("File modified: {}", relative)),
+                                EventKind::Remove(_) => (SignalKind::FileDeleted, format!("File deleted: {}", relative)),
+                                _ => continue,
+                            };
+                            signals.push(Signal {
+                                kind,
+                                source: "file_watcher".to_string(),
+                                description,
+                                timestamp: Utc::now(),
+                                severity: SignalSeverity::Info,
+                                metadata: serde_json::json!({ "path": relative }),
+                            });
+                        }
                     }
                 }
             }

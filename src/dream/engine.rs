@@ -178,9 +178,12 @@ impl DreamEngine {
 
     fn hash_memory_state(&self, memory: &MemorySystem) -> anyhow::Result<String> {
         let mut hasher = Sha256::new();
-        hasher.update(memory.index.load_raw()?.as_bytes());
+        let index_raw: String = memory.index.load_raw()?;
+        hasher.update(index_raw.as_bytes());
         for path in memory.topics.list_all()? {
+            let path: String = path;
             if let Some(c) = memory.topics.read(&path)? {
+                let c: String = c;
                 hasher.update(path.as_bytes());
                 hasher.update(c.as_bytes());
             }

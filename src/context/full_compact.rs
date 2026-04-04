@@ -1,4 +1,4 @@
-use crate::query::engine::{CompletionResponse, LLMProvider};
+use crate::query::engine::LLMProvider;
 use serde_json::Value;
 use std::collections::HashSet;
 use std::path::Path;

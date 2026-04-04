@@ -33,7 +33,7 @@ impl MemorySystem {
         let transcripts = transcripts::TranscriptStore::new(memory_dir.join("transcripts"));
         let search = search::MemorySearch::new(memory_dir.clone());
         let loader = loader::MemoryLoader::new(memory_dir.clone());
-        let writer = writer::MemoryWriter::new(memory_dir.clone());
+        let writer = writer::MemoryWriter::new(memory_dir.clone(), memory_dir.join("topics"));
 
         Ok(Self { index, topics, transcripts, writer, search, loader, memory_dir })
     }

@@ -1,5 +1,4 @@
 use crate::query::engine::QueryEngine;
-use serde_json::Value;
 
 pub struct DreamSandbox {
     allowed_operations: Vec<SandboxOperation>,

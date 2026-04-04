@@ -27,7 +27,7 @@ impl ObservationCollector {
 
     fn collect_from_daemon_logs(&self) -> anyhow::Result<Vec<RawObservation>> {
         let daily_log = DailyLog::new(&self.daemon_state_dir)?;
-        let entries = daily_log.read_recent_days(self.config.lookback_days)?;
+        let entries = daily_log.read_recent_days(self.config.lookback_days as usize)?;
         let observations: Vec<RawObservation> = entries.iter()
             .filter(|e| self.is_relevant_log_entry(e))
             .map(|e| RawObservation {

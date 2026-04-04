@@ -1,7 +1,7 @@
 use chrono::Utc;
 use std::path::PathBuf;
 use crate::swarm::{
-    MergeStrategy, MessageContent, SpawnStrategy, TeamConfig, TeamState, TeamStatus, WorkerInfo, WorkerStatus,
+    MessageContent, SpawnStrategy, TeamConfig, TeamState, TeamStatus, WorkerInfo, WorkerStatus,
 };
 use crate::swarm::executors::{TeammateExecutor, WorkerConfig, in_process::InProcessExecutor, tmux::TmuxExecutor, worktree::WorktreeExecutor};
 use crate::swarm::mailbox::Mailbox;

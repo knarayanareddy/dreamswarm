@@ -54,7 +54,7 @@ impl AgentRuntime {
         self.session.add_user_message(user_input);
 
         let mut iterations: u32 = 0;
-        let mut all_tool_calls: Vec<String> = Vec::new();
+        let all_tool_calls: Vec<String> = Vec::new();
         let mut final_text = String::new();
 
         loop {

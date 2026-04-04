@@ -1,5 +1,4 @@
 use crate::swarm::{MergeStrategy, WorkerInfo};
-use std::collections::HashSet;
 use tokio::process::Command;
 
 pub struct ResultMerger {

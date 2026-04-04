@@ -1,4 +1,4 @@
-use crate::swarm::{AgentMessage, MessageContent, WorkerStatus};
+use crate::swarm::{AgentMessage, MessageContent};
 use chrono::Utc;
 use std::path::PathBuf;
 

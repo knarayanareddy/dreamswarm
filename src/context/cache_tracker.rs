@@ -2,6 +2,7 @@ use sha2::{Sha256, Digest};
 use tracing::info;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Fields are stored for future cache invalidation logic
 pub struct CacheTracker {
     current_mode: String,
     active_tools_hash: u64,

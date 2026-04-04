@@ -106,7 +106,7 @@ async fn main() -> anyhow::Result<()> {
                     println!("Trust: {:.0}%", status.trust_level * 100.0);
                 }
                 DaemonAction::Run => {
-                    let query_engine = Arc::new(QueryEngine::new(config.model.clone(), config.provider.clone())?);
+                    let query_engine = Arc::new(QueryEngine::new(&config.provider, &config.model, &config)?);
                     let mut daemon = KairosDaemon::new(daemon_config, &config, Some(query_engine), memory)?;
                     daemon.run().await?;
                 }

@@ -23,7 +23,9 @@ pub enum StopReason {
 pub struct AgentRuntime {
     pub session: Session,
     query_engine: QueryEngine,
+    #[allow(dead_code)] // Reserved for Phase 2: tool execution wiring
     tool_registry: ToolRegistry,
+    #[allow(dead_code)] // Reserved for Phase 2: permission checking
     permission_gate: PermissionGate,
     config: AppConfig,
     db: Database,
@@ -55,6 +57,7 @@ impl AgentRuntime {
 
         let mut iterations: u32 = 0;
         let all_tool_calls: Vec<String> = Vec::new();
+        #[allow(unused_assignments)]
         let mut final_text = String::new();
 
         loop {

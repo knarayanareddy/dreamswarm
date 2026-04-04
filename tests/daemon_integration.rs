@@ -2,39 +2,41 @@
 //! Integration tests for the KAIROS background daemon components.
 
 use dreamswarm::daemon::trust::TrustSystem;
-use tempfile::TempDir;
 
 #[test]
 fn test_trust_degradation_and_recovery() {
-    let tmp = TempDir::new().unwrap();
-    let mut trust = TrustSystem::new(tmp.path().to_path_buf()).unwrap();
+    let mut trust = TrustSystem::new();
 
-    let initial = trust.level();
+    let initial = trust.current_level;
     assert!(initial > 0.5, "Initial trust should be reasonable");
 
     // Three consecutive denials should degrade trust
-    trust.record_denial();
-    trust.record_denial();
-    trust.record_denial();
+    trust.record_denial("test denial 1");
+    trust.record_denial("test denial 2");
+    trust.record_denial("test denial 3");
 
-    assert!(trust.level() < initial, "Trust should degrade after denials");
+    assert!(trust.current_level < initial, "Trust should degrade after denials");
+
+    let after_denials = trust.current_level;
 
     // Approvals should slowly restore trust
-    for _ in 0..10 {
-        trust.record_approval();
+    for i in 0..10 {
+        trust.record_approval(&format!("test approval {}", i));
     }
 
-    assert!(trust.level() > trust.level_before_approvals());
+    assert!(
+        trust.current_level > after_denials,
+        "Trust should recover after approvals"
+    );
 }
 
 #[test]
 fn test_trust_pause_threshold() {
-    let tmp = TempDir::new().unwrap();
-    let mut trust = TrustSystem::new(tmp.path().to_path_buf()).unwrap();
+    let mut trust = TrustSystem::new();
 
     // Aggressively degrade trust
-    for _ in 0..20 {
-        trust.record_denial();
+    for i in 0..20 {
+        trust.record_denial(&format!("denial {}", i));
     }
 
     assert!(

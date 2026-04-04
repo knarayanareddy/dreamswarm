@@ -1,7 +1,7 @@
 // tests/swarm_integration.rs
 //! Integration tests for the multi-agent swarm orchestration system.
 
-use dreamswarm::swarm::{SharedTaskList, TaskStatus};
+use dreamswarm::swarm::task_list::{SharedTaskList, TaskStatus};
 use tempfile::TempDir;
 
 #[test]

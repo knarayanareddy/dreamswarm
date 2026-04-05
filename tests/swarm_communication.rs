@@ -16,7 +16,11 @@ fn test_request_help_and_check_inbox() {
     // Agent A sends a help request to Agent B
     let request_id = uuid::Uuid::new_v4().to_string();
     agent_a
-        .send_help_request("agent-beta", &request_id, "How do I handle async errors in Rust?")
+        .send_help_request(
+            "agent-beta",
+            &request_id,
+            "How do I handle async errors in Rust?",
+        )
         .unwrap();
 
     // Agent B reads its inbox — should have 1 HelpRequest
@@ -52,7 +56,10 @@ fn test_request_help_and_check_inbox() {
     assert_eq!(responses.len(), 1, "Agent A should receive 1 HelpResponse");
 
     match &responses[0].content {
-        dreamswarm::swarm::MessageContent::HelpResponse { request_id: rid, result } => {
+        dreamswarm::swarm::MessageContent::HelpResponse {
+            request_id: rid,
+            result,
+        } => {
             assert_eq!(rid, &request_id);
             assert!(result.contains("anyhow"));
         }
@@ -102,7 +109,12 @@ fn test_stalled_task_detection() {
     let task_list = SharedTaskList::new(&team).unwrap();
 
     let task = task_list
-        .create_task("Analyse security surface", "Run cargo-audit and review deps", vec![], 1)
+        .create_task(
+            "Analyse security surface",
+            "Run cargo-audit and review deps",
+            vec![],
+            1,
+        )
         .unwrap();
 
     // Claim the task

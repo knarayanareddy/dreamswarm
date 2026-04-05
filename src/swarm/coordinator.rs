@@ -76,7 +76,8 @@ impl SwarmCoordinator {
         let swarm_role = if role == "worker" || role == "default" || role.is_empty() {
             Self::infer_role(instructions)
         } else {
-            role.parse::<SwarmRole>().unwrap_or(SwarmRole::GeneralWorker)
+            role.parse::<SwarmRole>()
+                .unwrap_or(SwarmRole::GeneralWorker)
         };
 
         tracing::info!("Role-aware spawn: '{}' → {:?}", name, swarm_role);

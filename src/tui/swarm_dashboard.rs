@@ -222,7 +222,14 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
     // 3 vertical sections: header | body | footer
     let root = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(10), Constraint::Length(3)].as_ref())
+        .constraints(
+            [
+                Constraint::Length(3),
+                Constraint::Min(10),
+                Constraint::Length(3),
+            ]
+            .as_ref(),
+        )
         .split(f.size());
 
     // ── Header ────────────────────────────────────────────────────────────────
@@ -232,7 +239,11 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
         app.team_name, worker_count
     );
     let header = Paragraph::new(header_text)
-        .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )
         .block(Block::default().borders(Borders::ALL));
     f.render_widget(header, root[0]);
 
@@ -257,7 +268,9 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
                     _ => ("❌", Color::Red),
                 };
                 let style = if i == app.selected_worker_index {
-                    Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD)
                 } else {
                     Style::default().fg(color)
                 };
@@ -316,8 +329,7 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
     f.render_widget(bus_panel, body[1]);
 
     // ── Footer ────────────────────────────────────────────────────────────────
-    let footer =
-        Paragraph::new(" [q] Quit  [↑↓] Select  [k] Force-Kill  [r] Re-assign Task ")
-            .style(Style::default().fg(Color::DarkGray));
+    let footer = Paragraph::new(" [q] Quit  [↑↓] Select  [k] Force-Kill  [r] Re-assign Task ")
+        .style(Style::default().fg(Color::DarkGray));
     f.render_widget(footer, root[2]);
 }

@@ -1,3 +1,4 @@
+use crate::prompts::roles::SwarmRole;
 use crate::swarm::executors::{
     in_process::InProcessExecutor, tmux::TmuxExecutor, worktree::WorktreeExecutor,
     TeammateExecutor, WorkerConfig,
@@ -71,6 +72,15 @@ impl SwarmCoordinator {
             );
         }
 
+        // Auto-select a specialist role if the caller didn't specify one
+        let swarm_role = if role == "worker" || role == "default" || role.is_empty() {
+            Self::infer_role(instructions)
+        } else {
+            role.parse::<SwarmRole>().unwrap_or(SwarmRole::GeneralWorker)
+        };
+
+        tracing::info!("Role-aware spawn: '{}' → {:?}", name, swarm_role);
+
         let worker_id = format!("w-{}", &uuid::Uuid::new_v4().to_string()[..6]);
         let worker_config = WorkerConfig {
             id: worker_id.clone(),
@@ -90,12 +100,44 @@ impl SwarmCoordinator {
         self.persist_state()?;
 
         tracing::info!(
-            "Spawned worker '{}' (id: {}, strategy: {:?})",
+            "Spawned worker '{}' (id: {}, role: {:?}, strategy: {:?})",
             name,
             worker_id,
+            swarm_role,
             self.config.spawn_strategy
         );
         Ok(worker)
+    }
+
+    /// Infers the best swarm role for a worker based on task keyword heuristics.
+    fn infer_role(instructions: &str) -> SwarmRole {
+        let lower = instructions.to_lowercase();
+        if lower.contains("security")
+            || lower.contains("audit")
+            || lower.contains("vulnerability")
+            || lower.contains("cve")
+            || lower.contains("exploit")
+        {
+            SwarmRole::SecurityResearcher
+        } else if lower.contains("frontend")
+            || lower.contains("react")
+            || lower.contains("css")
+            || lower.contains("ui")
+            || lower.contains("html")
+            || lower.contains("accessibility")
+        {
+            SwarmRole::FrontendEngineer
+        } else if lower.contains("memory")
+            || lower.contains("unsafe")
+            || lower.contains("concurren")
+            || lower.contains("performance")
+            || lower.contains("throughput")
+            || lower.contains("low-level")
+        {
+            SwarmRole::SystemsProgrammer
+        } else {
+            SwarmRole::GeneralWorker
+        }
     }
 
     pub async fn assign_task(

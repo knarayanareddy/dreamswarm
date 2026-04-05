@@ -4,6 +4,9 @@ FROM rust:1.77-alpine AS builder
 RUN apk add --no-cache \
     musl-dev \
     gcc \
+    clang \
+    cmake \
+    perl \
     build-base \
     pkgconfig \
     openssl-dev
@@ -12,7 +15,7 @@ WORKDIR /build
 
 # Cache dependency compilation
 COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN mkdir src && echo "fn main() {}" > src/main.rs && touch src/lib.rs
 RUN cargo build --release 2>/dev/null || true
 RUN rm -rf src
 

@@ -1,4 +1,4 @@
-use fastembed::{TextEmbedding, InitOptions, EmbeddingModel};
+use fastembed::{EmbeddingModel, InitOptions, TextEmbedding};
 use ndarray::Array1;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -22,7 +22,7 @@ impl VectorStore {
     pub fn new(path: PathBuf) -> anyhow::Result<Self> {
         info!("Initializing VectorStore with fastembed (BGE-Small)...");
         let model = TextEmbedding::try_new(
-            InitOptions::new(EmbeddingModel::BGESmallENV15).with_show_download_progress(true)
+            InitOptions::new(EmbeddingModel::BGESmallENV15).with_show_download_progress(true),
         )?;
 
         let entries = if path.exists() {
@@ -39,10 +39,15 @@ impl VectorStore {
         })
     }
 
-    pub fn add(&mut self, id: String, text: String, metadata: serde_json::Value) -> anyhow::Result<()> {
+    pub fn add(
+        &mut self,
+        id: String,
+        text: String,
+        metadata: serde_json::Value,
+    ) -> anyhow::Result<()> {
         info!("Generating embedding for entry: {}", id);
         let embeddings = self.model.embed(vec![text.clone()], None)?;
-        
+
         if let Some(embedding) = embeddings.first() {
             self.entries.push(VectorEntry {
                 id,
@@ -52,7 +57,7 @@ impl VectorStore {
             });
             self.save()?;
         }
-        
+
         Ok(())
     }
 
@@ -64,15 +69,19 @@ impl VectorStore {
             None => return Ok(vec![]),
         };
 
-        let mut results: Vec<(VectorEntry, f32)> = self.entries.iter().map(|entry| {
-            let entry_vec = Array1::from_vec(entry.embedding.clone());
-            let similarity = self.cosine_similarity(&query_vec, &entry_vec);
-            (entry.clone(), similarity)
-        }).collect();
+        let mut results: Vec<(VectorEntry, f32)> = self
+            .entries
+            .iter()
+            .map(|entry| {
+                let entry_vec = Array1::from_vec(entry.embedding.clone());
+                let similarity = self.cosine_similarity(&query_vec, &entry_vec);
+                (entry.clone(), similarity)
+            })
+            .collect();
 
         // Sort by similarity descending
         results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         Ok(results.into_iter().take(limit).collect())
     }
 

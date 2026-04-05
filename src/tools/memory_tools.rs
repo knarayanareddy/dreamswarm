@@ -164,8 +164,10 @@ impl Tool for SearchKnowledgeTool {
                 for (entry, score) in semantic_hits {
                     if score > 0.7 {
                         // Similarity threshold
-                        if !results_all.contains_key(&entry.id) {
-                            results_all.insert(entry.id, (entry.metadata, score));
+                        if let std::collections::hash_map::Entry::Vacant(e) =
+                            results_all.entry(entry.id)
+                        {
+                            e.insert((entry.metadata, score));
                         }
                     }
                 }

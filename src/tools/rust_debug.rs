@@ -93,10 +93,10 @@ impl Tool for DebuggerTool {
             .ok_or_else(|| anyhow::anyhow!("Missing command"))?;
         let debugger = input["debugger"].as_str().unwrap_or("lldb");
 
-        let _script = if debugger == "lldb" {
-            format!("run\nbt\nquit")
+        let script = if debugger == "lldb" {
+            "run\nbt\nquit".to_string()
         } else {
-            format!("run\nbacktrace\nquit")
+            "run\nbacktrace\nquit".to_string()
         };
 
         let output = Command::new(debugger)

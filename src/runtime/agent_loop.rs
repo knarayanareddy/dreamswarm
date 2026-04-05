@@ -88,7 +88,7 @@ impl AgentRuntime {
                 });
             }
 
-            let system_prompt = SystemPromptBuilder::build(&self.config);
+            let system_prompt = SystemPromptBuilder::build(&self.config, None);
 
             // Map Session messages to simple JSON for the provider
             let mut messages = Vec::new();

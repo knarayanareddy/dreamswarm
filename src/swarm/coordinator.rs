@@ -145,7 +145,43 @@ impl SwarmCoordinator {
                 _ => {}
             }
         }
+        // Autonomous re-balancing: reclaim stalled tasks every poll cycle
+        self.rebalance_load()?;
         Ok(messages)
+    }
+
+    /// Re-balances the task queue by reclaiming tasks that have been `Claimed`
+    /// for more than 5 minutes without progressing to `InProgress`.
+    fn rebalance_load(&mut self) -> anyhow::Result<()> {
+        let stalled = self.check_stalled_tasks()?;
+        if !stalled.is_empty() {
+            tracing::warn!(
+                "Re-balancer: found {} stalled task(s), returning to pending queue.",
+                stalled.len()
+            );
+        }
+        for task_id in stalled {
+            let _ = self
+                .task_list
+                .update_task(&task_id, TaskStatus::Pending, None);
+        }
+        Ok(())
+    }
+
+    /// Returns the IDs of tasks that have been `Claimed` for > 5 minutes.
+    fn check_stalled_tasks(&self) -> anyhow::Result<Vec<String>> {
+        let stall_threshold = chrono::Duration::minutes(5);
+        let now = Utc::now();
+        let tasks = self.task_list.list_tasks()?;
+        let stalled = tasks
+            .into_iter()
+            .filter(|t| {
+                matches!(&t.status, TaskStatus::Claimed { .. })
+                    && now.signed_duration_since(t.updated_at) > stall_threshold
+            })
+            .map(|t| t.id)
+            .collect();
+        Ok(stalled)
     }
 
     pub fn task_status(&self) -> anyhow::Result<String> {

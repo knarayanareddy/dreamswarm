@@ -12,6 +12,7 @@ pub mod file_write;
 pub mod git;
 pub mod grep_tool;
 pub mod js_tool;
+pub mod memory_tools;
 pub mod monitor_tool;
 pub mod push_notification;
 pub mod python_tool;
@@ -111,6 +112,8 @@ impl ToolRegistry {
         registry.register(Box::new(python_tool::PythonExecuteTool));
         registry.register(Box::new(js_tool::JSExecuteTool));
         registry.register(Box::new(rust_debug::RustCheckTool));
+        registry.register(Box::new(memory_tools::PublishKnowledgeTool));
+        registry.register(Box::new(memory_tools::SearchKnowledgeTool));
 
         registry
     }

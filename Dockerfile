@@ -1,28 +1,25 @@
 # Stage 1: Build
-FROM rust:1.77-slim-bookworm AS builder
+FROM rust:1.77-alpine AS builder
 
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    libssl-dev \
-    musl-tools \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+    musl-dev \
+    gcc \
+    build-base \
+    pkgconfig \
+    openssl-dev
 
 WORKDIR /build
 
 # Cache dependency compilation
 COPY Cargo.toml Cargo.lock ./
-ENV CC_x86_64_unknown_linux_musl=musl-gcc \
-    CXX_x86_64_unknown_linux_musl=g++ \
-    CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc
 RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN rustup target add x86_64-unknown-linux-musl
-RUN cargo build --release --target x86_64-unknown-linux-musl 2>/dev/null || true
+RUN cargo build --release 2>/dev/null || true
 RUN rm -rf src
 
 # Build the actual binary
 COPY . .
-RUN cargo build --release --target x86_64-unknown-linux-musl
-RUN strip target/x86_64-unknown-linux-musl/release/dreamswarm
+RUN cargo build --release
+RUN strip target/release/dreamswarm
 
 # Stage 2: Runtime
 FROM alpine:3.19
@@ -42,7 +39,7 @@ USER dreamswarm
 WORKDIR /home/dreamswarm
 
 # Copy binary
-COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/dreamswarm /usr/local/bin/dreamswarm
+COPY --from=builder /build/target/release/dreamswarm /usr/local/bin/dreamswarm
 
 # Create data directories
 RUN mkdir -p .dreamswarm/memory/topics \

@@ -1,9 +1,14 @@
 use super::{Tool, ToolOutput};
+use crate::memory::MemorySystem;
 use crate::runtime::permissions::RiskLevel;
 use async_trait::async_trait;
 use serde_json::Value;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
-pub struct GrepTool;
+pub struct GrepTool {
+    pub memory: Arc<RwLock<MemorySystem>>,
+}
 
 #[async_trait]
 impl Tool for GrepTool {
@@ -12,7 +17,7 @@ impl Tool for GrepTool {
     }
 
     fn description(&self) -> &str {
-        "Search files using ripgrep."
+        "Search files using ripgrep. Setting 'semantic' to true uses relevant indexed files."
     }
 
     fn input_schema(&self) -> Value {
@@ -20,7 +25,8 @@ impl Tool for GrepTool {
             "type": "object",
             "properties": {
                 "pattern": { "type": "string" },
-                "path": { "type": "string" }
+                "path": { "type": "string" },
+                "semantic": { "type": "boolean", "default": false }
             },
             "required": ["pattern", "path"]
         })
@@ -33,13 +39,26 @@ impl Tool for GrepTool {
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
         let pattern = input["pattern"].as_str().unwrap_or_default();
         let path = input["path"].as_str().unwrap_or_default();
+        let semantic = input["semantic"].as_bool().unwrap_or(false);
 
-        let output = tokio::process::Command::new("rg")
-            .arg("-n")
-            .arg(pattern)
-            .arg(path)
-            .output()
-            .await?;
+        let mut cmd = tokio::process::Command::new("rg");
+        cmd.arg("-n").arg(pattern);
+
+        if semantic {
+            let memory = self.memory.read().await;
+            let entries = memory.index.find_relevant(pattern)?;
+            if !entries.is_empty() {
+                for entry in entries.iter().take(5) {
+                    cmd.arg(&entry.file_path);
+                }
+            } else {
+                cmd.arg(path);
+            }
+        } else {
+            cmd.arg(path);
+        }
+
+        let output = cmd.output().await?;
 
         let is_error = !output.status.success() && output.status.code() != Some(1); // 1 = no matches
         let content = String::from_utf8_lossy(if is_error {

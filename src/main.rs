@@ -9,9 +9,14 @@ use dreamswarm::daemon::daily_log::DailyLog;
 use dreamswarm::daemon::kairos::KairosDaemon;
 use dreamswarm::daemon::process::DaemonProcess;
 use dreamswarm::daemon::DaemonConfig;
+use dreamswarm::db::Database;
 use dreamswarm::memory::MemorySystem;
 use dreamswarm::query::engine::QueryEngine;
+use dreamswarm::runtime::agent_loop::AgentRuntime;
 use dreamswarm::runtime::config::AppConfig;
+use dreamswarm::runtime::session::Session;
+use dreamswarm::tools::ToolRegistry;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -23,16 +28,28 @@ struct Cli {
     command: Option<Commands>,
 
     /// Model to use
-    #[arg(short, long, default_value = "claude-sonnet-4-20250514")]
+    #[arg(short, long, default_value = "claude-sonnet-4-20250514", global = true)]
     model: String,
 
-    /// Provider (anthropic, openai)
-    #[arg(short, long, default_value = "anthropic")]
+    /// Provider (anthropic, openai, mock)
+    #[arg(short, long, default_value = "anthropic", global = true)]
     provider: String,
 
     /// Permission mode
-    #[arg(long, default_value = "default")]
+    #[arg(long, default_value = "default", global = true)]
     mode: String,
+
+    /// Initial system prompt (for workers)
+    #[arg(long, global = true)]
+    prompt: Option<String>,
+
+    /// Working directory context
+    #[arg(long, global = true)]
+    directory: Option<PathBuf>,
+
+    /// Agent role (e.g. "architect", "coder")
+    #[arg(long, global = true)]
+    role: Option<String>,
 
     /// Run in background (daemon mode)
     #[arg(long)]
@@ -50,6 +67,12 @@ enum Commands {
     Chat,
     /// Manage active sessions
     Sessions,
+    /// Launch an autonomous worker agent (non-interactive)
+    Worker {
+        /// Team name this worker belongs to
+        #[arg(short, long)]
+        team: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -141,7 +164,78 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(Commands::Chat) | None => {
             println!("Initializing DreamSwarm chat with model: {}", config.model);
-            // Interactive loop would go here in Phase 6
+
+            // Initialize Database
+            let db = Database::new(&config.state_dir)?;
+            db.migrate()?;
+
+            // Initialize Query Engine
+            let query_engine = QueryEngine::new(&config.provider, &config.model, &config)?;
+
+            // Initialize Tool Registry
+            let tool_registry = ToolRegistry::default_phase1(memory.clone());
+
+            // Initialize Session
+            let session = Session::new();
+
+            // Initialize Runtime
+            let runtime = AgentRuntime::new(
+                session,
+                query_engine,
+                tool_registry,
+                config,
+                db,
+            );
+
+            // Start TUI
+            dreamswarm::tui::app::run_interactive(runtime).await?;
+        }
+        Some(Commands::Worker { team }) => {
+            println!("🐝 Worker: Starting member of team: {}", team);
+
+            let db = Database::new(&config.state_dir)?;
+            db.migrate()?;
+
+            let query_engine = QueryEngine::new(&config.provider, &config.model, &config)?;
+            let tool_registry = ToolRegistry::default_phase1(memory.clone());
+            let mut session = Session::new();
+
+            // Inject role/prompt into session
+            if let Some(ref role) = cli.role {
+                session.add_user_message(&format!("System: Your role is {}.", role));
+            }
+            if let Some(ref prompt) = cli.prompt {
+                session.add_user_message(prompt);
+            }
+
+            let mut runtime = AgentRuntime::new(
+                session,
+                query_engine,
+                tool_registry,
+                config,
+                db,
+            );
+
+            // In worker mode, we assume semi-autonomy or piping
+            // We use an auto-approver for Dangerous tools for now (or until mailbox is ready)
+            let auto_approve = |name: String, _input: serde_json::Value| async move {
+                println!("  [Worker Auto-Approve] Executing Dangerous tool: {}", name);
+                true
+            };
+
+            // Simple line-by-line REPL for the orchestration layer (e.g. Tmux) to drive
+            use std::io::{BufRead, Write};
+            let stdin = std::io::stdin();
+            let mut stdout = std::io::stdout();
+
+            for line in stdin.lock().lines() {
+                let input = line?;
+                if input.trim() == "/quit" { break; }
+                
+                let result = runtime.run_turn(&input, auto_approve).await?;
+                println!("{}", result.final_text);
+                stdout.flush()?;
+            }
         }
         Some(Commands::Sessions) => {
             println!("Listing active sessions...");

@@ -43,18 +43,26 @@ impl TmuxExecutor {
 
     fn build_worker_command(&self, config: &WorkerConfig) -> String {
         let mut cmd = format!(
-            "dreamswarm --mode {} --prompt 'You are worker \"{}\" on team \"{}\". Role: {}. \
-            Instructions: {}' ",
+            "dreamswarm --mode {} --model {} --directory {} ",
             config.permission_mode,
-            config.name,
-            config.team_name,
-            config.role,
-            config.instructions.replace('\'', "'\\''"),
+            config.model.as_deref().unwrap_or("claude-sonnet-4-20250514"),
+            config.working_dir
         );
-        if let Some(ref model) = config.model {
-            cmd.push_str(&format!("--model {} ", model));
+        
+        cmd.push_str(&format!(
+            "worker --team '{}' ",
+            config.team_name
+        ));
+
+        // Note: prompt is passed to the engine as initial context in Worker logic later
+        // For now we use the global prompt flag
+        if !config.instructions.is_empty() {
+             cmd.push_str(&format!("--prompt '{}' ", config.instructions.replace('\'', "'\\''")));
         }
-        cmd.push_str(&format!("--directory {} ", config.working_dir));
+        if !config.role.is_empty() {
+             cmd.push_str(&format!("--role '{}' ", config.role.replace('\'', "'\\''")));
+        }
+        
         cmd
     }
 }

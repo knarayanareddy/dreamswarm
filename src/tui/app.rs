@@ -100,7 +100,18 @@ pub async fn run_interactive(mut runtime: AgentRuntime) -> anyhow::Result<()> {
         println!();
         println!("  {} Thinking...", "⟳".dimmed());
 
-        match runtime.run_turn(input).await {
+        let on_approval = |name: String, input: serde_json::Value| async move {
+            println!("\n  ⚠️  {} requests permission to use: {}", "Bee".bold().yellow(), name.bold().red());
+            println!("  Input: {}", input);
+            print!("  {} Approve this action? (y/N): ", "›".bold().yellow());
+            io::stdout().flush().ok();
+            
+            let mut answer = String::new();
+            io::stdin().read_line(&mut answer).ok();
+            answer.trim().to_lowercase() == "y"
+        };
+
+        match runtime.run_turn(input, on_approval).await {
             Ok(result) => {
                 println!();
                 println!("  {}", "─".repeat(60));

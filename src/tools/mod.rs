@@ -12,6 +12,7 @@ pub mod file_write;
 pub mod grep_tool;
 pub mod monitor_tool;
 pub mod push_notification;
+pub mod git;
 
 #[derive(Debug, Clone)]
 pub struct ToolCall {
@@ -63,13 +64,35 @@ impl ToolRegistry {
         self.tools.push(tool);
     }
 
-    pub fn default_phase1() -> Self {
+    pub fn get_tool(&self, name: &str) -> Option<&dyn Tool> {
+        self.tools
+            .iter()
+            .find(|t| t.name().eq_ignore_ascii_case(name))
+            .map(|t| t.as_ref())
+    }
+
+    pub fn get_all_schemas(&self) -> Vec<Value> {
+        self.tools
+            .iter()
+            .map(|t| {
+                serde_json::json!({
+                    "name": t.name(),
+                    "description": t.description(),
+                    "input_schema": t.input_schema(),
+                })
+            })
+            .collect()
+    }
+
+    pub fn default_phase1(memory: std::sync::Arc<tokio::sync::RwLock<crate::memory::MemorySystem>>) -> Self {
         let mut registry = Self::new();
         registry.register(Box::new(file_read::FileReadTool));
         registry.register(Box::new(file_write::FileWriteTool));
         registry.register(Box::new(bash_tool::BashTool));
-        registry.register(Box::new(grep_tool::GrepTool));
+        registry.register(Box::new(grep_tool::GrepTool { memory }));
         registry.register(Box::new(ask_user::AskUserTool));
+        registry.register(Box::new(git::GitBranchTool));
+        registry.register(Box::new(git::GitCommitTool));
         registry
     }
 
@@ -78,7 +101,7 @@ impl ToolRegistry {
         query_engine: std::sync::Arc<crate::query::engine::QueryEngine>,
         working_dir: &str,
     ) -> Self {
-        let mut registry = Self::default_phase1();
+        let mut registry = Self::default_phase1(memory.clone());
 
         // Phase 4 Tools
         let daemon_state_dir = dirs::home_dir()

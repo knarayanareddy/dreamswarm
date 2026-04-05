@@ -46,4 +46,5 @@ ctrlc = "3.4"
 crossterm = "0.27"
 openssl = { version = "0.10", features = ["vendored"] }
 fastembed = { version = "5.13.0", features = ["ort-download-binaries-rustls-tls"] }
+ort = { version = "=2.0.0-rc.11", features = ["download-binaries-rustls-tls"] }
 ndarray = "0.17.2"

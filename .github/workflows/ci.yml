@@ -101,10 +101,14 @@ jobs:
         run: cargo test --lib --all-features
         env:
           RUST_LOG: dreamswarm=debug
+          LD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
+          DYLD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
       - name: Run integration tests
         run: cargo test --test '*' --all-features
         env:
           RUST_LOG: dreamswarm=info
+          LD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
+          DYLD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
       - name: Run doc tests
         run: cargo test --doc --all-features
 
@@ -132,6 +136,9 @@ jobs:
             --workspace \
             --lcov \
             --output-path lcov.info
+        env:
+          LD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
+          DYLD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
       - name: Upload to Codecov
         uses: codecov/codecov-action@v4
         with:

@@ -93,14 +93,14 @@ impl Tool for DebuggerTool {
             .ok_or_else(|| anyhow::anyhow!("Missing command"))?;
         let debugger = input["debugger"].as_str().unwrap_or("lldb");
 
-        let script = if debugger == "lldb" {
-            "run\nbt\nquit".to_string()
+        let mut command = Command::new(debugger);
+        if debugger == "lldb" {
+            command.args(["--batch", "-o", "run", "-o", "bt", "-o", "quit", "--"]);
         } else {
-            "run\nbacktrace\nquit".to_string()
-        };
+            command.args(["-batch", "-ex", "run", "-ex", "bt", "-ex", "quit", "--args"]);
+        }
 
-        let output = Command::new(debugger)
-            .args(["--batch", "-o", "run", "-o", "bt", "-o", "quit", "--"])
+        let output = command
             .args(cmd_str.split_whitespace())
             .output()
             .await?;

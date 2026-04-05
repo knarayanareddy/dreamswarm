@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM rust:1.77-slim-bookworm AS builder
+FROM rust:slim-bookworm AS builder
 
 # Install build dependencies for C-bindings (like rusqlite)
 RUN apt-get update && apt-get install -y \

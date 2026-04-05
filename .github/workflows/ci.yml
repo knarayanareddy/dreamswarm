@@ -99,17 +99,20 @@ jobs:
         run: brew install tmux ripgrep
       - name: Build tests
         run: cargo test --all-features --no-run
-      - name: Locate ONNX Runtime
+      - name: Sudo Install ONNX Runtime
         run: |
           LIB_PATH=$(find target -name "libonnxruntime.so" -o -name "libonnxruntime.dylib" | head -n 1)
           if [ -n "$LIB_PATH" ]; then
-            LIB_DIR=$(dirname "$LIB_PATH")
-            echo "ORT_DYLIB_PATH=$LIB_PATH" >> $GITHUB_ENV
-            echo "LD_LIBRARY_PATH=$LIB_DIR:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-            echo "DYLD_LIBRARY_PATH=$LIB_DIR:$DYLD_LIBRARY_PATH" >> $GITHUB_ENV
-            echo "Found ONNX Runtime at $LIB_PATH"
+            if [[ "${{ runner.os }}" == "Linux" ]]; then
+              sudo cp "$LIB_PATH" /usr/lib/
+              sudo ldconfig
+            else
+              sudo cp "$LIB_PATH" /usr/local/lib/
+            fi
+            echo "Installed $LIB_PATH to system library path"
           else
             echo "ONNX Runtime not found in target/"
+            exit 1
           fi
       - name: Run unit tests
         run: cargo test --lib --all-features
@@ -138,15 +141,17 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Build coverage tests
         run: cargo llvm-cov --all-features --no-run
-      - name: Locate ONNX Runtime
+      - name: Sudo Install ONNX Runtime
         run: |
           LIB_PATH=$(find target -name "libonnxruntime.so" -o -name "libonnxruntime.dylib" | head -n 1)
           if [ -n "$LIB_PATH" ]; then
-            LIB_DIR=$(dirname "$LIB_PATH")
-            echo "ORT_DYLIB_PATH=$LIB_PATH" >> $GITHUB_ENV
-            echo "LD_LIBRARY_PATH=$LIB_DIR:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-            echo "DYLD_LIBRARY_PATH=$LIB_DIR:$DYLD_LIBRARY_PATH" >> $GITHUB_ENV
-            echo "Found ONNX Runtime at $LIB_PATH"
+            if [[ "${{ runner.os }}" == "Linux" ]]; then
+              sudo cp "$LIB_PATH" /usr/lib/
+              sudo ldconfig
+            else
+              sudo cp "$LIB_PATH" /usr/local/lib/
+            fi
+            echo "Installed $LIB_PATH to system library path"
           fi
       - name: Generate coverage report
         run: |

@@ -52,7 +52,11 @@ impl AgentRuntime {
         }
     }
 
-    pub async fn run_turn<F, Fut>(&mut self, user_input: &str, on_tool_approval: F) -> anyhow::Result<TurnResult>
+    pub async fn run_turn<F, Fut>(
+        &mut self,
+        user_input: &str,
+        on_tool_approval: F,
+    ) -> anyhow::Result<TurnResult>
     where
         F: Fn(String, serde_json::Value) -> Fut + Copy,
         Fut: std::future::Future<Output = bool>,
@@ -75,7 +79,7 @@ impl AgentRuntime {
             }
 
             let system_prompt = SystemPromptBuilder::build(&self.config);
-            
+
             // Map Session messages to simple JSON for the provider
             let mut messages = Vec::new();
             for msg in &self.session.messages {
@@ -85,9 +89,11 @@ impl AgentRuntime {
                     crate::runtime::session::Role::Assistant => "assistant",
                     crate::runtime::session::Role::ToolResult => "user", // Simplified for Phase 1
                 };
-                
+
                 let content_val = match &msg.content {
-                    crate::runtime::session::MessageContent::Text(t) => serde_json::json!([{"type": "text", "text": t}]),
+                    crate::runtime::session::MessageContent::Text(t) => {
+                        serde_json::json!([{"type": "text", "text": t}])
+                    }
                     crate::runtime::session::MessageContent::ToolUse { id, name, input } => {
                         serde_json::json!([{
                             "type": "tool_use",
@@ -96,7 +102,11 @@ impl AgentRuntime {
                             "input": input,
                         }])
                     }
-                    crate::runtime::session::MessageContent::ToolResult { tool_use_id, content, is_error } => {
+                    crate::runtime::session::MessageContent::ToolResult {
+                        tool_use_id,
+                        content,
+                        is_error,
+                    } => {
                         serde_json::json!([{
                             "type": "tool_result",
                             "tool_use_id": tool_use_id,
@@ -106,13 +116,13 @@ impl AgentRuntime {
                     }
                     _ => serde_json::json!([{"type": "text", "text": "[unsupported content]"}]),
                 };
-                
+
                 messages.push(serde_json::json!({
                     "role": role,
                     "content": content_val
                 }));
             }
-            
+
             let tools = self.tool_registry.get_all_schemas();
 
             let response = self
@@ -138,7 +148,7 @@ impl AgentRuntime {
                     let id = content["id"].as_str().unwrap_or_default().to_string();
                     let name = content["name"].as_str().unwrap_or_default().to_string();
                     let input = content["input"].clone();
-                    
+
                     all_tool_calls.push(name.clone());
 
                     // Execute tool
@@ -151,17 +161,41 @@ impl AgentRuntime {
                         if allowed {
                             match tool.execute(&input).await {
                                 Ok(output) => {
-                                    tool_results.push((id, name, input, output.content, output.is_error));
+                                    tool_results.push((
+                                        id,
+                                        name,
+                                        input,
+                                        output.content,
+                                        output.is_error,
+                                    ));
                                 }
                                 Err(e) => {
-                                    tool_results.push((id, name, input, format!("Error: {}", e), true));
+                                    tool_results.push((
+                                        id,
+                                        name,
+                                        input,
+                                        format!("Error: {}", e),
+                                        true,
+                                    ));
                                 }
                             }
                         } else {
-                            tool_results.push((id, name, input, "Permission denied by user.".to_string(), true));
+                            tool_results.push((
+                                id,
+                                name,
+                                input,
+                                "Permission denied by user.".to_string(),
+                                true,
+                            ));
                         }
                     } else {
-                        tool_results.push((id, name.clone(), input, format!("Tool '{}' not found.", name), true));
+                        tool_results.push((
+                            id,
+                            name.clone(),
+                            input,
+                            format!("Tool '{}' not found.", name),
+                            true,
+                        ));
                     }
                 }
             }

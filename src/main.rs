@@ -179,13 +179,7 @@ async fn main() -> anyhow::Result<()> {
             let session = Session::new();
 
             // Initialize Runtime
-            let runtime = AgentRuntime::new(
-                session,
-                query_engine,
-                tool_registry,
-                config,
-                db,
-            );
+            let runtime = AgentRuntime::new(session, query_engine, tool_registry, config, db);
 
             // Start TUI
             dreamswarm::tui::app::run_interactive(runtime).await?;
@@ -208,13 +202,7 @@ async fn main() -> anyhow::Result<()> {
                 session.add_user_message(prompt);
             }
 
-            let mut runtime = AgentRuntime::new(
-                session,
-                query_engine,
-                tool_registry,
-                config,
-                db,
-            );
+            let mut runtime = AgentRuntime::new(session, query_engine, tool_registry, config, db);
 
             // In worker mode, we assume semi-autonomy or piping
             // We use an auto-approver for Dangerous tools for now (or until mailbox is ready)
@@ -230,8 +218,10 @@ async fn main() -> anyhow::Result<()> {
 
             for line in stdin.lock().lines() {
                 let input = line?;
-                if input.trim() == "/quit" { break; }
-                
+                if input.trim() == "/quit" {
+                    break;
+                }
+
                 let result = runtime.run_turn(&input, auto_approve).await?;
                 println!("{}", result.final_text);
                 stdout.flush()?;

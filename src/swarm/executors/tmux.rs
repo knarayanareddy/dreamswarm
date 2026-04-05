@@ -45,24 +45,27 @@ impl TmuxExecutor {
         let mut cmd = format!(
             "dreamswarm --mode {} --model {} --directory {} ",
             config.permission_mode,
-            config.model.as_deref().unwrap_or("claude-sonnet-4-20250514"),
+            config
+                .model
+                .as_deref()
+                .unwrap_or("claude-sonnet-4-20250514"),
             config.working_dir
         );
-        
-        cmd.push_str(&format!(
-            "worker --team '{}' ",
-            config.team_name
-        ));
+
+        cmd.push_str(&format!("worker --team '{}' ", config.team_name));
 
         // Note: prompt is passed to the engine as initial context in Worker logic later
         // For now we use the global prompt flag
         if !config.instructions.is_empty() {
-             cmd.push_str(&format!("--prompt '{}' ", config.instructions.replace('\'', "'\\''")));
+            cmd.push_str(&format!(
+                "--prompt '{}' ",
+                config.instructions.replace('\'', "'\\''")
+            ));
         }
         if !config.role.is_empty() {
-             cmd.push_str(&format!("--role '{}' ", config.role.replace('\'', "'\\''")));
+            cmd.push_str(&format!("--role '{}' ", config.role.replace('\'', "'\\''")));
         }
-        
+
         cmd
     }
 }

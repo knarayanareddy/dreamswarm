@@ -9,10 +9,10 @@ pub mod daemon_status;
 pub mod dream_trigger;
 pub mod file_read;
 pub mod file_write;
+pub mod git;
 pub mod grep_tool;
 pub mod monitor_tool;
 pub mod push_notification;
-pub mod git;
 
 #[derive(Debug, Clone)]
 pub struct ToolCall {
@@ -84,7 +84,9 @@ impl ToolRegistry {
             .collect()
     }
 
-    pub fn default_phase1(memory: std::sync::Arc<tokio::sync::RwLock<crate::memory::MemorySystem>>) -> Self {
+    pub fn default_phase1(
+        memory: std::sync::Arc<tokio::sync::RwLock<crate::memory::MemorySystem>>,
+    ) -> Self {
         let mut registry = Self::new();
         registry.register(Box::new(file_read::FileReadTool));
         registry.register(Box::new(file_write::FileWriteTool));

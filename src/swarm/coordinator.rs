@@ -1,7 +1,7 @@
 use crate::prompts::roles::SwarmRole;
 use crate::swarm::executors::{
-    in_process::InProcessExecutor, ssh::SshExecutor, tmux::TmuxExecutor, worktree::WorktreeExecutor,
-    TeammateExecutor, WorkerConfig,
+    in_process::InProcessExecutor, ssh::SshExecutor, tmux::TmuxExecutor,
+    worktree::WorktreeExecutor, TeammateExecutor, WorkerConfig,
 };
 use crate::swarm::mailbox::Mailbox;
 use crate::swarm::result_merger::{MergeReport, ResultMerger};
@@ -86,7 +86,9 @@ impl SwarmCoordinator {
         let worker_id = format!("w-{}", &uuid::Uuid::new_v4().to_string()[..6]);
 
         // Round-robin host selection for SSH
-        let remote_host = if self.config.spawn_strategy == SpawnStrategy::SSH && !self.config.remote_hosts.is_empty() {
+        let remote_host = if self.config.spawn_strategy == SpawnStrategy::SSH
+            && !self.config.remote_hosts.is_empty()
+        {
             let idx = self.workers.len() % self.config.remote_hosts.len();
             Some(self.config.remote_hosts[idx].clone())
         } else {

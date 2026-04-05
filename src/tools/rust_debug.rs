@@ -88,7 +88,9 @@ impl Tool for DebuggerTool {
     }
 
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
-        let cmd_str = input["command"].as_str().ok_or_else(|| anyhow::anyhow!("Missing command"))?;
+        let cmd_str = input["command"]
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("Missing command"))?;
         let debugger = input["debugger"].as_str().unwrap_or("lldb");
 
         let script = if debugger == "lldb" {
@@ -140,7 +142,9 @@ impl Tool for TraceAnalyzerTool {
     }
 
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
-        let trace = input["trace"].as_str().ok_or_else(|| anyhow::anyhow!("Missing trace"))?;
+        let trace = input["trace"]
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("Missing trace"))?;
         let mut findings = vec![];
 
         // Simple heuristic: look for lines with line numbers and file paths

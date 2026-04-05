@@ -126,19 +126,31 @@ impl Tool for SearchKnowledgeTool {
             });
         }
 
-        let mut results_all: std::collections::HashMap<String, (Value, f32)> = std::collections::HashMap::new();
+        let mut results_all: std::collections::HashMap<String, (Value, f32)> =
+            std::collections::HashMap::new();
 
         // 1. Keyword Search (Legacy)
         for entry in std::fs::read_dir(&dir)? {
             let entry = entry?;
-            if entry.path().extension().and_then(|e| e.to_str()) != Some("json") || entry.path().file_name().unwrap() == "vector_store.json" {
+            if entry.path().extension().and_then(|e| e.to_str()) != Some("json")
+                || entry.path().file_name().unwrap() == "vector_store.json"
+            {
                 continue;
             }
             let raw = std::fs::read_to_string(entry.path())?;
             if let Ok(doc) = serde_json::from_str::<Value>(&raw) {
                 let title = doc["title"].as_str().unwrap_or("").to_lowercase();
                 let content = doc["content"].as_str().unwrap_or("").to_lowercase();
-                let tags = doc["tags"].as_array().map(|a| a.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(" ")).unwrap_or_default().to_lowercase();
+                let tags = doc["tags"]
+                    .as_array()
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|v| v.as_str())
+                            .collect::<Vec<_>>()
+                            .join(" ")
+                    })
+                    .unwrap_or_default()
+                    .to_lowercase();
 
                 if title.contains(&query) || content.contains(&query) || tags.contains(&query) {
                     let id = doc["id"].as_str().unwrap_or("").to_string();
@@ -151,7 +163,8 @@ impl Tool for SearchKnowledgeTool {
         if let Ok(vs) = VectorStore::new(vector_store_path()) {
             if let Ok(semantic_hits) = vs.search(&query, 5) {
                 for (entry, score) in semantic_hits {
-                    if score > 0.7 { // Similarity threshold
+                    if score > 0.7 {
+                        // Similarity threshold
                         if !results_all.contains_key(&entry.id) {
                             results_all.insert(entry.id, (entry.metadata, score));
                         }
@@ -166,15 +179,25 @@ impl Tool for SearchKnowledgeTool {
                 is_error: false,
             })
         } else {
-            let mut formatted: Vec<String> = results_all.values().map(|(doc, _score)| {
-                format!(
-                    "### {}\n*Published: {}*\n{}\n**Tags:** {}\n",
-                    doc["title"].as_str().unwrap_or(""),
-                    doc["published_at"].as_str().unwrap_or(""),
-                    doc["content"].as_str().unwrap_or(""),
-                    doc["tags"].as_array().map(|a| a.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(", ")).unwrap_or_default()
-                )
-            }).collect();
+            let mut formatted: Vec<String> = results_all
+                .values()
+                .map(|(doc, _score)| {
+                    format!(
+                        "### {}\n*Published: {}*\n{}\n**Tags:** {}\n",
+                        doc["title"].as_str().unwrap_or(""),
+                        doc["published_at"].as_str().unwrap_or(""),
+                        doc["content"].as_str().unwrap_or(""),
+                        doc["tags"]
+                            .as_array()
+                            .map(|a| a
+                                .iter()
+                                .filter_map(|v| v.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", "))
+                            .unwrap_or_default()
+                    )
+                })
+                .collect();
 
             Ok(ToolOutput {
                 content: format!(

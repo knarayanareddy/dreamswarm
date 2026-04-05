@@ -34,9 +34,9 @@ pub trait TeammateExecutor: Send + Sync {
 }
 
 pub mod in_process;
+pub mod ssh;
 pub mod tmux;
 pub mod worktree;
-pub mod ssh;
 
 pub fn detect_best_executor() -> SpawnStrategy {
     // Check for tmux

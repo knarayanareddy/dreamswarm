@@ -57,11 +57,7 @@ impl TeammateExecutor for SshExecutor {
             host,
             &format!(
                 "cd {} && cargo run -- agent --team {} --id {} --name '{}' --role '{}'",
-                config.working_dir,
-                config.team_name,
-                config.id,
-                config.name,
-                config.role
+                config.working_dir, config.team_name, config.id, config.name, config.role
             ),
         ]);
 
@@ -71,7 +67,7 @@ impl TeammateExecutor for SshExecutor {
             .stderr(Stdio::null());
 
         let mut child = cmd.spawn()?;
-        
+
         // We don't wait for it to finish, as agents are long-running
         // However, we should check if it started successfully
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
@@ -107,7 +103,10 @@ impl TeammateExecutor for SshExecutor {
         let output = Command::new("ssh")
             .args([
                 host,
-                &format!("ps aux | grep 'dreamswarm' | grep '{}' | grep -v grep", worker.id),
+                &format!(
+                    "ps aux | grep 'dreamswarm' | grep '{}' | grep -v grep",
+                    worker.id
+                ),
             ])
             .output()
             .await;
@@ -129,10 +128,7 @@ impl TeammateExecutor for SshExecutor {
         info!("Shutting down remote worker {} on {}", worker.id, host);
         // We usually send Shutdown via mailbox, but this is a fallback
         let _ = Command::new("ssh")
-            .args([
-                host,
-                &format!("pkill -f 'dreamswarm.*--id {}'", worker.id),
-            ])
+            .args([host, &format!("pkill -f 'dreamswarm.*--id {}'", worker.id)])
             .status()
             .await;
         Ok(())

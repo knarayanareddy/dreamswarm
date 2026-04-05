@@ -100,10 +100,7 @@ impl Tool for DebuggerTool {
             command.args(["-batch", "-ex", "run", "-ex", "bt", "-ex", "quit", "--args"]);
         }
 
-        let output = command
-            .args(cmd_str.split_whitespace())
-            .output()
-            .await?;
+        let output = command.args(cmd_str.split_whitespace()).output().await?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);

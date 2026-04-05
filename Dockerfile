@@ -1,42 +1,35 @@
 # Stage 1: Build
-FROM rust:1.77-alpine AS builder
+FROM rust:1.77-slim-bookworm AS builder
 
-RUN apk add --no-cache \
-    musl-dev \
-    gcc \
-    clang \
+# Install build dependencies for C-bindings (like rusqlite)
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    build-essential \
     cmake \
-    perl \
-    build-base \
-    pkgconfig \
-    openssl-dev
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
-# Cache dependency compilation
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs && touch src/lib.rs
-RUN cargo build --release 2>/dev/null || true
-RUN rm -rf src
-
-# Build the actual binary
+# Build the binary natively! No cross-compiling!
 COPY . .
 RUN cargo build --release
-RUN strip target/release/dreamswarm
+# The binary is at target/release/dreamswarm
 
 # Stage 2: Runtime
-FROM alpine:3.19
+FROM debian:12-slim
 
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     tmux \
     git \
     ripgrep \
     bash \
     ca-certificates \
-    tini
+    tini \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN addgroup -S dreamswarm && adduser -S dreamswarm -G dreamswarm
+RUN useradd -ms /bin/bash dreamswarm
 USER dreamswarm
 
 WORKDIR /home/dreamswarm
@@ -55,3 +48,5 @@ ENV TERM=xterm-256color
 
 ENTRYPOINT ["tini", "--", "dreamswarm"]
 CMD ["--help"]
+
+

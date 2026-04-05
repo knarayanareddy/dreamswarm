@@ -84,6 +84,26 @@ impl Mailbox {
         self.send(to, MessageContent::ShutdownRequest)
     }
 
+    pub fn send_help_request(&self, to: &str, request_id: &str, task: &str) -> anyhow::Result<()> {
+        self.send(
+            to,
+            MessageContent::HelpRequest {
+                request_id: request_id.to_string(),
+                task: task.to_string(),
+            },
+        )
+    }
+
+    pub fn send_help_response(&self, to: &str, request_id: &str, result: &str) -> anyhow::Result<()> {
+        self.send(
+            to,
+            MessageContent::HelpResponse {
+                request_id: request_id.to_string(),
+                result: result.to_string(),
+            },
+        )
+    }
+
     pub fn receive(&mut self) -> anyhow::Result<Vec<AgentMessage>> {
         self.poll_count += 1;
         let inbox_path = self

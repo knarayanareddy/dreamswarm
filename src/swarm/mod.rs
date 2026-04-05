@@ -107,6 +107,14 @@ pub enum MessageContent {
         approved: bool,
         reason: Option<String>,
     },
+    HelpRequest {
+        request_id: String,
+        task: String,
+    },
+    HelpResponse {
+        request_id: String,
+        result: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

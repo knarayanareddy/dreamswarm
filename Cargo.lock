@@ -424,6 +424,7 @@ dependencies = [
  "chrono",
  "clap",
  "colored",
+ "crossterm",
  "ctrlc",
  "dirs",
  "notify",

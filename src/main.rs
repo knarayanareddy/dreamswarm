@@ -15,6 +15,7 @@ use dreamswarm::query::engine::QueryEngine;
 use dreamswarm::runtime::agent_loop::AgentRuntime;
 use dreamswarm::runtime::config::AppConfig;
 use dreamswarm::runtime::session::Session;
+use dreamswarm::swarm::mailbox::Mailbox;
 use dreamswarm::tools::ToolRegistry;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -71,6 +72,12 @@ enum Commands {
     Worker {
         /// Team name this worker belongs to
         #[arg(short, long)]
+        team: String,
+    },
+    /// Launch the visual swarm dashboard for a team
+    Swarm {
+        /// Team name to monitor
+        #[arg(short, long, default_value = "default")]
         team: String,
     },
 }
@@ -172,14 +179,17 @@ async fn main() -> anyhow::Result<()> {
             // Initialize Query Engine
             let query_engine = QueryEngine::new(&config.provider, &config.model, &config)?;
 
+            // Initialize Mailbox
+            let mbox = Arc::new(RwLock::new(Mailbox::new("default", "lead")?));
+
             // Initialize Tool Registry
-            let tool_registry = ToolRegistry::default_phase1(memory.clone());
+            let tool_registry = ToolRegistry::default_phase1(memory.clone(), Some(mbox.clone()));
 
             // Initialize Session
             let session = Session::new();
 
             // Initialize Runtime
-            let runtime = AgentRuntime::new(session, query_engine, tool_registry, config, db);
+            let runtime = AgentRuntime::new(session, query_engine, tool_registry, config, db, Some(mbox));
 
             // Start TUI
             dreamswarm::tui::app::run_interactive(runtime).await?;
@@ -191,7 +201,11 @@ async fn main() -> anyhow::Result<()> {
             db.migrate()?;
 
             let query_engine = QueryEngine::new(&config.provider, &config.model, &config)?;
-            let tool_registry = ToolRegistry::default_phase1(memory.clone());
+            
+            // Initialize Mailbox for worker
+            let mbox = Arc::new(RwLock::new(Mailbox::new(&team, &cli.role.clone().unwrap_or_else(|| "worker".to_string()))?));
+            
+            let tool_registry = ToolRegistry::default_phase1(memory.clone(), Some(mbox.clone()));
             let mut session = Session::new();
 
             // Inject role/prompt into session
@@ -202,7 +216,14 @@ async fn main() -> anyhow::Result<()> {
                 session.add_user_message(prompt);
             }
 
-            let mut runtime = AgentRuntime::new(session, query_engine, tool_registry, config, db);
+            let mut runtime = AgentRuntime::new(
+                session,
+                query_engine,
+                tool_registry,
+                config,
+                db,
+                Some(mbox),
+            );
 
             // In worker mode, we assume semi-autonomy or piping
             // We use an auto-approver for Dangerous tools for now (or until mailbox is ready)
@@ -226,6 +247,10 @@ async fn main() -> anyhow::Result<()> {
                 println!("{}", result.final_text);
                 stdout.flush()?;
             }
+        }
+        Some(Commands::Swarm { team }) => {
+            println!("🐝 Launching Swarm Dashboard for team: {}", team);
+            dreamswarm::tui::swarm_dashboard::run_dashboard(&team).await?;
         }
         Some(Commands::Sessions) => {
             println!("Listing active sessions...");

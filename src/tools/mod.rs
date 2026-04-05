@@ -13,6 +13,10 @@ pub mod git;
 pub mod grep_tool;
 pub mod monitor_tool;
 pub mod push_notification;
+pub mod swarm_tools;
+pub mod python_tool;
+pub mod js_tool;
+pub mod rust_debug;
 
 #[derive(Debug, Clone)]
 pub struct ToolCall {
@@ -86,6 +90,7 @@ impl ToolRegistry {
 
     pub fn default_phase1(
         memory: std::sync::Arc<tokio::sync::RwLock<crate::memory::MemorySystem>>,
+        mailbox: Option<std::sync::Arc<tokio::sync::RwLock<crate::swarm::mailbox::Mailbox>>>,
     ) -> Self {
         let mut registry = Self::new();
         registry.register(Box::new(file_read::FileReadTool));
@@ -95,6 +100,20 @@ impl ToolRegistry {
         registry.register(Box::new(ask_user::AskUserTool));
         registry.register(Box::new(git::GitBranchTool));
         registry.register(Box::new(git::GitCommitTool));
+
+        if let Some(mbox) = mailbox {
+            registry.register(Box::new(swarm_tools::RequestHelpTool {
+                mailbox: mbox.clone(),
+            }));
+            registry.register(Box::new(swarm_tools::CheckInboxTool {
+                mailbox: mbox,
+            }));
+        }
+
+        registry.register(Box::new(python_tool::PythonExecuteTool));
+        registry.register(Box::new(js_tool::JSExecuteTool));
+        registry.register(Box::new(rust_debug::RustCheckTool));
+
         registry
     }
 
@@ -102,8 +121,9 @@ impl ToolRegistry {
         memory: std::sync::Arc<tokio::sync::RwLock<crate::memory::MemorySystem>>,
         query_engine: std::sync::Arc<crate::query::engine::QueryEngine>,
         working_dir: &str,
+        mailbox: Option<std::sync::Arc<tokio::sync::RwLock<crate::swarm::mailbox::Mailbox>>>,
     ) -> Self {
-        let mut registry = Self::default_phase1(memory.clone());
+        let mut registry = Self::default_phase1(memory.clone(), mailbox);
 
         // Phase 4 Tools
         let daemon_state_dir = dirs::home_dir()

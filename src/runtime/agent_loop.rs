@@ -4,7 +4,10 @@ use crate::query::engine::QueryEngine;
 use crate::runtime::config::AppConfig;
 use crate::runtime::permissions::PermissionGate;
 use crate::runtime::session::Session;
+use crate::swarm::mailbox::Mailbox;
 use crate::tools::ToolRegistry;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 pub struct TurnResult {
     pub final_text: String,
@@ -29,6 +32,7 @@ pub struct AgentRuntime {
     permission_gate: PermissionGate,
     config: AppConfig,
     db: Database,
+    mailbox: Option<Arc<RwLock<Mailbox>>>,
     max_iterations: u32,
 }
 
@@ -39,6 +43,7 @@ impl AgentRuntime {
         tool_registry: ToolRegistry,
         config: AppConfig,
         db: Database,
+        mailbox: Option<Arc<RwLock<Mailbox>>>,
     ) -> Self {
         let permission_gate = PermissionGate::new();
         Self {
@@ -48,6 +53,7 @@ impl AgentRuntime {
             permission_gate,
             config,
             db,
+            mailbox,
             max_iterations: 25,
         }
     }

@@ -130,7 +130,7 @@ jobs:
         with:
           components: llvm-tools-preview
       - name: Install cargo-llvm-cov
-        run: cargo binstall cargo-llvm-cov --no-confirm --force
+        uses: taiki-e/install-action@cargo-llvm-cov
       - name: Install test dependencies
         run: |
           sudo apt-get update
@@ -165,7 +165,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-rust
       - name: Install cargo-deny
-        run: cargo binstall cargo-deny --no-confirm --force
+        uses: taiki-e/install-action@cargo-deny
       - name: Check advisories
         run: cargo deny check advisories
       - name: Check licenses
@@ -174,10 +174,10 @@ jobs:
         run: cargo deny check bans
       - name: Check sources
         run: cargo deny check sources
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@cargo-audit
       - name: Audit with cargo-audit
-        run: |
-          cargo binstall cargo-audit --no-confirm --force
-          cargo audit
+        run: cargo audit
 
   # ═══════════════════════════════════════════
   # STAGE 7: Build artifacts (verification)

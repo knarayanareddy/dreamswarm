@@ -6,17 +6,21 @@ pub enum SwarmRole {
     GeneralWorker,
 }
 
-impl SwarmRole {
-    pub fn from_str(role: &str) -> Self {
-        match role.to_lowercase().as_str() {
+impl std::str::FromStr for SwarmRole {
+    type Err = std::convert::Infallible;
+
+    fn from_str(role: &str) -> Result<Self, Self::Err> {
+        Ok(match role.to_lowercase().as_str() {
             "lead" => Self::Lead,
             "frontend" | "frontend-engineer" => Self::FrontendEngineer,
             "systems" | "systems-programmer" | "low-level" => Self::SystemsProgrammer,
             "security" | "security-researcher" | "auditor" => Self::SecurityResearcher,
             _ => Self::GeneralWorker,
-        }
+        })
     }
+}
 
+impl SwarmRole {
     pub fn system_prompt_fragment(&self) -> &str {
         match self {
             Self::Lead => {

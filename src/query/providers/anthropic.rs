@@ -12,11 +12,12 @@ pub struct AnthropicProvider {
 
 impl AnthropicProvider {
     pub fn new(model: &str) -> anyhow::Result<Self> {
-        let api_key = std::env::var("ANTHROPIC_API_KEY")
-            .map_err(|_| anyhow::anyhow!(
+        let api_key = std::env::var("ANTHROPIC_API_KEY").map_err(|_| {
+            anyhow::anyhow!(
                 "ANTHROPIC_API_KEY not set. Export it: export ANTHROPIC_API_KEY=sk-ant-..."
-            ))?;
-            
+            )
+        })?;
+
         Ok(Self {
             client: Client::new(),
             api_key,
@@ -36,7 +37,7 @@ impl AnthropicProvider {
         } else {
             (3.0, 15.0) // Default to sonnet pricing
         };
-        
+
         (input_tokens as f64 * input_price / 1_000_000.0)
             + (output_tokens as f64 * output_price / 1_000_000.0)
     }
@@ -70,22 +71,24 @@ impl LLMProvider for AnthropicProvider {
             .json(&body)
             .send()
             .await?;
-            
+
         let status = response.status();
         let response_text = response.text().await?;
-        
+
         if !status.is_success() {
             anyhow::bail!("Anthropic API error ({}): {}", status, response_text);
         }
 
         let response_json: Value = serde_json::from_str(&response_text)?;
-        
+
         let usage_json = &response_json["usage"];
         let input_tokens = usage_json["input_tokens"].as_u64().unwrap_or(0);
         let output_tokens = usage_json["output_tokens"].as_u64().unwrap_or(0);
         let cache_read = usage_json["cache_read_input_tokens"].as_u64().unwrap_or(0);
-        let cache_creation = usage_json["cache_creation_input_tokens"].as_u64().unwrap_or(0);
-        
+        let cache_creation = usage_json["cache_creation_input_tokens"]
+            .as_u64()
+            .unwrap_or(0);
+
         let usage = Usage {
             input_tokens,
             output_tokens,
@@ -95,9 +98,18 @@ impl LLMProvider for AnthropicProvider {
             cache_creation_tokens: cache_creation,
         };
 
-        let content = response_json["content"].as_array().cloned().unwrap_or_default();
-        let stop_reason = response_json["stop_reason"].as_str().unwrap_or("end_turn").to_string();
-        let model = response_json["model"].as_str().unwrap_or(&self.model).to_string();
+        let content = response_json["content"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        let stop_reason = response_json["stop_reason"]
+            .as_str()
+            .unwrap_or("end_turn")
+            .to_string();
+        let model = response_json["model"]
+            .as_str()
+            .unwrap_or(&self.model)
+            .to_string();
 
         Ok(CompletionResponse {
             content,

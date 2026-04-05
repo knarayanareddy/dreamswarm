@@ -32,7 +32,11 @@ impl TmuxExecutor {
                 .ok()
                 .and_then(|o| {
                     let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
-                    if s.is_empty() { None } else { Some(s) }
+                    if s.is_empty() {
+                        None
+                    } else {
+                        Some(s)
+                    }
                 })
         })
     }
@@ -64,8 +68,11 @@ impl TeammateExecutor for TmuxExecutor {
                 "split-window",
                 "-d",
                 "-h",
-                "-t", &self.session_name,
-                "-P", "-F", "#{pane_id}",
+                "-t",
+                &self.session_name,
+                "-P",
+                "-F",
+                "#{pane_id}",
                 &worker_cmd,
             ])
             .output()
@@ -78,7 +85,13 @@ impl TeammateExecutor for TmuxExecutor {
 
         let pane_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
         Command::new("tmux")
-            .args(["select-pane", "-t", &pane_id, "-T", &format!("Worker: {}", config.name)])
+            .args([
+                "select-pane",
+                "-t",
+                &pane_id,
+                "-T",
+                &format!("Worker: {}", config.name),
+            ])
             .output()
             .await?;
 
@@ -138,7 +151,10 @@ impl TeammateExecutor for TmuxExecutor {
 
     async fn force_kill(&self, worker: &WorkerInfo) -> anyhow::Result<()> {
         if let Some(ref pane_id) = worker.tmux_pane_id {
-            Command::new("tmux").args(["kill-pane", "-t", pane_id]).output().await?;
+            Command::new("tmux")
+                .args(["kill-pane", "-t", pane_id])
+                .output()
+                .await?;
         }
         Ok(())
     }

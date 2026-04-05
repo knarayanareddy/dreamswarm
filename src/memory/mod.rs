@@ -1,9 +1,9 @@
 pub mod index;
+pub mod loader;
+pub mod search;
 pub mod topics;
 pub mod transcripts;
 pub mod writer;
-pub mod search;
-pub mod loader;
 
 use std::path::PathBuf;
 
@@ -33,9 +33,18 @@ impl MemorySystem {
         let transcripts = transcripts::TranscriptStore::new(memory_dir.join("transcripts"));
         let search = search::MemorySearch::new(memory_dir.clone());
         let loader = loader::MemoryLoader::new(memory_dir.clone());
-        let writer = writer::MemoryWriter::new(memory_dir.join("MEMORY.md"), memory_dir.join("topics"));
+        let writer =
+            writer::MemoryWriter::new(memory_dir.join("MEMORY.md"), memory_dir.join("topics"));
 
-        Ok(Self { index, topics, transcripts, writer, search, loader, memory_dir })
+        Ok(Self {
+            index,
+            topics,
+            transcripts,
+            writer,
+            search,
+            loader,
+            memory_dir,
+        })
     }
 
     /// Returns the path to the root memory directory.

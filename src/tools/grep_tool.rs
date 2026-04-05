@@ -33,7 +33,7 @@ impl Tool for GrepTool {
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
         let pattern = input["pattern"].as_str().unwrap_or_default();
         let path = input["path"].as_str().unwrap_or_default();
-        
+
         let output = tokio::process::Command::new("rg")
             .arg("-n")
             .arg(pattern)
@@ -42,8 +42,13 @@ impl Tool for GrepTool {
             .await?;
 
         let is_error = !output.status.success() && output.status.code() != Some(1); // 1 = no matches
-        let content = String::from_utf8_lossy(if is_error { &output.stderr } else { &output.stdout }).to_string();
-        
+        let content = String::from_utf8_lossy(if is_error {
+            &output.stderr
+        } else {
+            &output.stdout
+        })
+        .to_string();
+
         Ok(ToolOutput { content, is_error })
     }
 }

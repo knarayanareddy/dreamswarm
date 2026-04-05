@@ -80,15 +80,33 @@ pub struct AgentMessage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum MessageContent {
-    Chat { text: String },
-    TaskAssignment { task_id: String, instructions: String },
-    TaskResult { task_id: String, result: String },
-    StatusUpdate { status: WorkerStatus },
+    Chat {
+        text: String,
+    },
+    TaskAssignment {
+        task_id: String,
+        instructions: String,
+    },
+    TaskResult {
+        task_id: String,
+        result: String,
+    },
+    StatusUpdate {
+        status: WorkerStatus,
+    },
     ShutdownRequest,
     ShutdownAck,
-    ModeSetRequest { mode: String },
-    ApprovalRequest { action: String, description: String },
-    ApprovalResponse { approved: bool, reason: Option<String> },
+    ModeSetRequest {
+        mode: String,
+    },
+    ApprovalRequest {
+        action: String,
+        description: String,
+    },
+    ApprovalResponse {
+        approved: bool,
+        reason: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,10 +126,10 @@ pub enum TeamStatus {
     Failed(String),
 }
 
-pub mod task_list;
-pub mod mailbox;
-pub mod subagent;
 pub mod coordinator;
 pub mod executors;
 pub mod lifecycle;
+pub mod mailbox;
 pub mod result_merger;
+pub mod subagent;
+pub mod task_list;

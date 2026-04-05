@@ -1,12 +1,15 @@
-use chrono::Utc;
-use std::path::PathBuf;
+use crate::swarm::executors::{
+    in_process::InProcessExecutor, tmux::TmuxExecutor, worktree::WorktreeExecutor,
+    TeammateExecutor, WorkerConfig,
+};
+use crate::swarm::mailbox::Mailbox;
+use crate::swarm::result_merger::{MergeReport, ResultMerger};
+use crate::swarm::task_list::{SharedTaskList, TaskStatus};
 use crate::swarm::{
     MessageContent, SpawnStrategy, TeamConfig, TeamState, TeamStatus, WorkerInfo, WorkerStatus,
 };
-use crate::swarm::executors::{TeammateExecutor, WorkerConfig, in_process::InProcessExecutor, tmux::TmuxExecutor, worktree::WorktreeExecutor};
-use crate::swarm::mailbox::Mailbox;
-use crate::swarm::result_merger::{ResultMerger, MergeReport};
-use crate::swarm::task_list::{SharedTaskList, TaskStatus};
+use chrono::Utc;
+use std::path::PathBuf;
 
 pub struct SwarmCoordinator {
     config: TeamConfig,
@@ -25,12 +28,14 @@ impl SwarmCoordinator {
         let executor: Box<dyn TeammateExecutor> = match config.spawn_strategy {
             SpawnStrategy::InProcess => Box::new(InProcessExecutor::new()),
             SpawnStrategy::TmuxPane => {
-                let session = TmuxExecutor::current_session().unwrap_or_else(|| "dreamswarm".to_string());
+                let session =
+                    TmuxExecutor::current_session().unwrap_or_else(|| "dreamswarm".to_string());
                 Box::new(TmuxExecutor::new(&session))
             }
-            SpawnStrategy::GitWorktree => {
-                Box::new(WorktreeExecutor::new(PathBuf::from(working_dir), "dreamswarm")?)
-            }
+            SpawnStrategy::GitWorktree => Box::new(WorktreeExecutor::new(
+                PathBuf::from(working_dir),
+                "dreamswarm",
+            )?),
         };
 
         let state = TeamState {
@@ -52,9 +57,18 @@ impl SwarmCoordinator {
         })
     }
 
-    pub async fn spawn_worker(&mut self, name: &str, role: &str, instructions: &str) -> anyhow::Result<WorkerInfo> {
+    pub async fn spawn_worker(
+        &mut self,
+        name: &str,
+        role: &str,
+        instructions: &str,
+    ) -> anyhow::Result<WorkerInfo> {
         if self.workers.len() >= self.config.max_workers {
-            anyhow::bail!("Maximum worker limit reached ({}/{})", self.workers.len(), self.config.max_workers);
+            anyhow::bail!(
+                "Maximum worker limit reached ({}/{})",
+                self.workers.len(),
+                self.config.max_workers
+            );
         }
 
         let worker_id = format!("w-{}", &uuid::Uuid::new_v4().to_string()[..6]);
@@ -75,7 +89,12 @@ impl SwarmCoordinator {
         self.state.updated_at = Utc::now();
         self.persist_state()?;
 
-        tracing::info!("Spawned worker '{}' (id: {}, strategy: {:?})", name, worker_id, self.config.spawn_strategy);
+        tracing::info!(
+            "Spawned worker '{}' (id: {}, strategy: {:?})",
+            name,
+            worker_id,
+            self.config.spawn_strategy
+        );
         Ok(worker)
     }
 
@@ -87,10 +106,21 @@ impl SwarmCoordinator {
         dependencies: Vec<String>,
         priority: u32,
     ) -> anyhow::Result<()> {
-        let task = self.task_list.create_task(title, description, dependencies, priority)?;
+        let task = self
+            .task_list
+            .create_task(title, description, dependencies, priority)?;
         self.task_list.claim_task(&task.id, worker_id)?;
-        self.mailbox.send_task_assignment(worker_id, &task.id, &format!("{}\n\n{}", title, description))?;
-        tracing::info!("Assigned task '{}' ({}) to worker '{}'", title, task.id, worker_id);
+        self.mailbox.send_task_assignment(
+            worker_id,
+            &task.id,
+            &format!("{}\n\n{}", title, description),
+        )?;
+        tracing::info!(
+            "Assigned task '{}' ({}) to worker '{}'",
+            title,
+            task.id,
+            worker_id
+        );
         Ok(())
     }
 
@@ -100,7 +130,11 @@ impl SwarmCoordinator {
             match &msg.content {
                 MessageContent::TaskResult { task_id, result } => {
                     tracing::info!("Worker '{}' completed task '{}'", msg.from, task_id);
-                    let _ = self.task_list.update_task(task_id, TaskStatus::Completed, Some(result.clone()));
+                    let _ = self.task_list.update_task(
+                        task_id,
+                        TaskStatus::Completed,
+                        Some(result.clone()),
+                    );
                 }
                 MessageContent::StatusUpdate { status } => {
                     self.update_worker_status(&msg.from, status.clone());
@@ -128,12 +162,18 @@ impl SwarmCoordinator {
                 TaskStatus::Failed { .. } => "❌",
                 TaskStatus::Blocked { .. } => "🚫",
             };
-            output.push_str(&format!("{} [{}] {} — {:?}\n", status_icon, task.id, task.title, task.status));
+            output.push_str(&format!(
+                "{} [{}] {} — {:?}\n",
+                status_icon, task.id, task.title, task.status
+            ));
         }
 
         output.push_str(&format!("\n## Workers ({})\n", self.workers.len()));
         for worker in &self.workers {
-            output.push_str(&format!("🐝 {} ({}) — {:?}\n", worker.name, worker.id, worker.status));
+            output.push_str(&format!(
+                "🐝 {} ({}) — {:?}\n",
+                worker.name, worker.id, worker.status
+            ));
         }
         Ok(output)
     }
@@ -150,7 +190,9 @@ impl SwarmCoordinator {
             .output()
             .await?;
         let target_branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        merger.merge(&self.workers, &self.config.merge_strategy, &target_branch).await
+        merger
+            .merge(&self.workers, &self.config.merge_strategy, &target_branch)
+            .await
     }
 
     pub async fn shutdown_team(&mut self) -> anyhow::Result<()> {

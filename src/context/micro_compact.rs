@@ -28,7 +28,8 @@ impl MicroCompact {
     /// Returns the number of tokens saved (estimated).
     pub fn compact(&self, messages: &mut Vec<Value>, current_turn: u64) -> usize {
         let mut tokens_saved: usize = 0;
-        let mut seen_file_reads: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+        let mut seen_file_reads: std::collections::HashMap<String, usize> =
+            std::collections::HashMap::new();
 
         for (idx, msg) in messages.iter_mut().enumerate() {
             let role = msg.get("role").and_then(|r| r.as_str()).unwrap_or("");
@@ -87,14 +88,13 @@ impl MicroCompact {
         }
 
         // RULE 3: Compress old "no matches" / empty results
-        if content.contains("No matches found") || content.contains("(no output)") {
-            if message_index < (current_turn as usize).saturating_sub(3) {
+        if (content.contains("No matches found") || content.contains("(no output)"))
+            && message_index < (current_turn as usize).saturating_sub(3) {
                 let compressed = "[no results]";
                 block["content"] = Value::String(compressed.to_string());
                 let new_tokens = compressed.len() / 4;
                 return original_tokens.saturating_sub(new_tokens);
             }
-        }
         0
     }
 }

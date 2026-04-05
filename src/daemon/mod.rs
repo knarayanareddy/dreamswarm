@@ -3,15 +3,15 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::Duration;
 
-pub mod kairos;
-pub mod heartbeat;
-pub mod signals;
-pub mod initiative;
-pub mod trust;
-pub mod daily_log;
-pub mod process;
 pub mod brief_mode;
+pub mod daily_log;
+pub mod heartbeat;
+pub mod initiative;
+pub mod kairos;
+pub mod process;
 pub mod schedule;
+pub mod signals;
+pub mod trust;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DaemonConfig {
@@ -53,12 +53,31 @@ pub enum Initiative {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProactiveAction {
-    FixBuildError { file: String, error: String },
-    RespondToPR { repo: String, pr_number: u64, analysis: String },
-    RunTests { reason: String, changed_files: Vec<String> },
-    UpdateDocs { files: Vec<String>, reason: String },
-    SendNotification { message: String, urgency: Urgency },
-    CustomAction { description: String, tool_calls: Vec<String> },
+    FixBuildError {
+        file: String,
+        error: String,
+    },
+    RespondToPR {
+        repo: String,
+        pr_number: u64,
+        analysis: String,
+    },
+    RunTests {
+        reason: String,
+        changed_files: Vec<String>,
+    },
+    UpdateDocs {
+        files: Vec<String>,
+        reason: String,
+    },
+    SendNotification {
+        message: String,
+        urgency: Urgency,
+    },
+    CustomAction {
+        description: String,
+        tool_calls: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]

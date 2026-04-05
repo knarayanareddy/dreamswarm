@@ -63,9 +63,16 @@ Begin executing the task now."#,
         );
 
         let active_tools: Vec<Value> = if let Some(ref allowed) = self.tool_restrictions {
-            tools.iter().filter(|t| {
-                t.get("name").and_then(|n| n.as_str()).map(|name| allowed.contains(&name.to_string())).unwrap_or(false)
-            }).cloned().collect()
+            tools
+                .iter()
+                .filter(|t| {
+                    t.get("name")
+                        .and_then(|n| n.as_str())
+                        .map(|name| allowed.contains(&name.to_string()))
+                        .unwrap_or(false)
+                })
+                .cloned()
+                .collect()
         } else {
             tools.to_vec()
         };
@@ -81,7 +88,9 @@ Begin executing the task now."#,
         let mut final_text = String::new();
 
         for _turn in 0..self.max_turns {
-            let response = query_engine.complete(&system_prompt, &messages, &active_tools).await?;
+            let response = query_engine
+                .complete(&system_prompt, &messages, &active_tools)
+                .await?;
             total_tokens += response.usage.total_tokens;
             total_cost += response.usage.cost_usd;
 
@@ -97,7 +106,10 @@ Begin executing the task now."#,
                     }
                     Some("tool_use") => {
                         has_tool_calls = true;
-                        let name = block.get("name").and_then(|n| n.as_str()).unwrap_or("unknown");
+                        let name = block
+                            .get("name")
+                            .and_then(|n| n.as_str())
+                            .unwrap_or("unknown");
                         all_tool_calls.push(name.to_string());
                     }
                     _ => {}

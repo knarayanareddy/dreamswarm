@@ -1,4 +1,4 @@
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use tracing::info;
 
 #[derive(Debug, Clone)]
@@ -19,6 +19,12 @@ pub struct StickyFlag {
     pub name: String,
     pub active: bool,
     pub sticky: bool,
+}
+
+impl Default for CacheTracker {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl CacheTracker {
@@ -50,7 +56,10 @@ impl CacheTracker {
     pub fn deactivate_flag(&mut self, name: &str) -> bool {
         if let Some(flag) = self.feature_flags.iter_mut().find(|f| f.name == name) {
             if flag.sticky && flag.active {
-                info!("Cannot deactivate sticky flag '{}' - would break prompt cache", name);
+                info!(
+                    "Cannot deactivate sticky flag '{}' - would break prompt cache",
+                    name
+                );
                 return false;
             }
             flag.active = false;
@@ -107,6 +116,10 @@ impl CacheTracker {
     }
 
     pub fn active_flags(&self) -> Vec<String> {
-        self.feature_flags.iter().filter(|f| f.active).map(|f| f.name.clone()).collect()
+        self.feature_flags
+            .iter()
+            .filter(|f| f.active)
+            .map(|f| f.name.clone())
+            .collect()
     }
 }

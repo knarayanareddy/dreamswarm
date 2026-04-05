@@ -33,11 +33,15 @@ fn test_cache_tracker_sticky_flags() {
     let mut tracker = CacheTracker::new();
 
     tracker.activate_flag("memory_system");
-    assert!(tracker.active_flags().contains(&"memory_system".to_string()));
+    assert!(tracker
+        .active_flags()
+        .contains(&"memory_system".to_string()));
 
     // Sticky: once activated, the flag cannot be deactivated
     assert!(!tracker.deactivate_flag("memory_system"));
-    assert!(tracker.active_flags().contains(&"memory_system".to_string()));
+    assert!(tracker
+        .active_flags()
+        .contains(&"memory_system".to_string()));
 }
 
 #[test]
@@ -45,7 +49,7 @@ fn test_token_counter_estimates() {
     // ~44 chars / 4 ≈ 11 tokens
     let text = "The quick brown fox jumps over the lazy dog.";
     let tokens = TokenCounter::estimate(text);
-    assert!(tokens >= 8 && tokens <= 15);
+    assert!((8..=15).contains(&tokens));
 
     // Empty string should be 0
     assert_eq!(TokenCounter::estimate(""), 0);

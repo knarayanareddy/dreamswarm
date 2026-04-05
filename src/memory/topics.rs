@@ -1,6 +1,6 @@
 use chrono::Utc;
-use std::path::PathBuf;
 use std::io::Write;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct TopicStore {
@@ -109,7 +109,7 @@ impl TopicStore {
             let title = topic_path
                 .trim_end_matches(".md")
                 .split('/')
-                .last()
+                .next_back()
                 .unwrap_or("Unknown");
             writeln!(file, "# Memory: {}\n", title)?;
         }
@@ -140,7 +140,7 @@ impl TopicStore {
             let path = entry.path();
             if path.is_dir() {
                 self.walk_dir(&path, base, files)?;
-            } else if path.extension().map_or(false, |e| e == "md") {
+            } else if path.extension().is_some_and(|e| e == "md") {
                 let relative = path
                     .strip_prefix(base)
                     .unwrap_or(&path)

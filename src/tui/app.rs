@@ -7,22 +7,36 @@ use std::io::{self, Write};
 /// Print the startup banner.
 fn print_banner() {
     println!();
-    println!("  {} Autonomous Coding Agent", "DreamSwarm 🐝".bold().yellow());
+    println!(
+        "  {} Autonomous Coding Agent",
+        "DreamSwarm 🐝".bold().yellow()
+    );
     println!("  {}", "─".repeat(40));
 }
 
 /// Detect user frustration signals and log them for telemetry.
 fn detect_frustration_signal(input: &str) {
     let frustration_keywords = ["wrong", "no!", "stop", "undo", "revert", "why did you"];
-    if frustration_keywords.iter().any(|k| input.to_lowercase().contains(k)) {
-        tracing::warn!(signal = "frustration", input = input, "Frustration signal detected");
+    if frustration_keywords
+        .iter()
+        .any(|k| input.to_lowercase().contains(k))
+    {
+        tracing::warn!(
+            signal = "frustration",
+            input = input,
+            "Frustration signal detected"
+        );
     }
 }
 
 /// Detect stall signals — repetitive patterns that may indicate a reasoning loop.
 fn detect_stall_signal(input: &str) {
     if input.len() < 10 {
-        tracing::debug!(signal = "possible_stall", input = input, "Short repeated input");
+        tracing::debug!(
+            signal = "possible_stall",
+            input = input,
+            "Short repeated input"
+        );
     }
 }
 
@@ -33,11 +47,14 @@ fn detect_stall_signal(input: &str) {
 pub async fn run_interactive(mut runtime: AgentRuntime) -> anyhow::Result<()> {
     print_banner();
     println!(
-        "  Session: {} | Model: {}",
-        &runtime.session.id[..8],
-        "configured"
+        "  Session: {} | Model: configured",
+        &runtime.session.id[..8]
     );
-    println!("  Type {} for commands, {} to exit\n", "/help".cyan(), "/quit".cyan());
+    println!(
+        "  Type {} for commands, {} to exit\n",
+        "/help".cyan(),
+        "/quit".cyan()
+    );
 
     loop {
         // Print the prompt

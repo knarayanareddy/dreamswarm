@@ -50,7 +50,8 @@ impl MemoryLoader {
                 if let Some(content) = self.topics.read(&entry.file_path)? {
                     let tokens = content.len() / 4;
                     let (final_content, final_tokens) = if tokens > self.max_topic_tokens {
-                        let (truncated, t) = self.truncate_to_tokens(&content, self.max_topic_tokens);
+                        let (truncated, t) =
+                            self.truncate_to_tokens(&content, self.max_topic_tokens);
                         (truncated, t)
                     } else {
                         (content, tokens)

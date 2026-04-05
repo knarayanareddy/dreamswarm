@@ -53,7 +53,12 @@ impl DailyLog {
         Ok(())
     }
 
-    pub fn log_observation(&self, content: &str, signals: Vec<String>, trust_level: f64) -> anyhow::Result<()> {
+    pub fn log_observation(
+        &self,
+        content: &str,
+        signals: Vec<String>,
+        trust_level: f64,
+    ) -> anyhow::Result<()> {
         self.append(&LogEntry {
             timestamp: Utc::now(),
             kind: LogEntryKind::Observation,
@@ -79,7 +84,14 @@ impl DailyLog {
         })
     }
 
-    pub fn log_action(&self, content: &str, tools_used: Vec<String>, tokens: u64, cost: f64, trust_level: f64) -> anyhow::Result<()> {
+    pub fn log_action(
+        &self,
+        content: &str,
+        tools_used: Vec<String>,
+        tokens: u64,
+        cost: f64,
+        trust_level: f64,
+    ) -> anyhow::Result<()> {
         self.append(&LogEntry {
             timestamp: Utc::now(),
             kind: LogEntryKind::Action,
@@ -147,7 +159,10 @@ impl DailyLog {
 
     pub fn actions_today(&self) -> anyhow::Result<u64> {
         let entries = self.read_today()?;
-        Ok(entries.iter().filter(|e| e.kind == LogEntryKind::Action).count() as u64)
+        Ok(entries
+            .iter()
+            .filter(|e| e.kind == LogEntryKind::Action)
+            .count() as u64)
     }
 
     /// Read log entries from the last `days` calendar days (inclusive of today).

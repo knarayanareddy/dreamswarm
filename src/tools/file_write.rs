@@ -40,8 +40,14 @@ impl Tool for FileWriteTool {
         let path = input["path"].as_str().unwrap_or_default();
         let content = input["content"].as_str().unwrap_or_default();
         match tokio::fs::write(path, content).await {
-            Ok(_) => Ok(ToolOutput { content: "File written successfully".to_string(), is_error: false }),
-            Err(e) => Ok(ToolOutput { content: format!("Failed to write file: {}", e), is_error: true }),
+            Ok(_) => Ok(ToolOutput {
+                content: "File written successfully".to_string(),
+                is_error: false,
+            }),
+            Err(e) => Ok(ToolOutput {
+                content: format!("Failed to write file: {}", e),
+                is_error: true,
+            }),
         }
     }
 }

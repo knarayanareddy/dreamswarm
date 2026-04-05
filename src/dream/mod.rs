@@ -1,13 +1,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-pub mod engine;
-pub mod collector;
 pub mod analyzer;
-pub mod pruner;
-pub mod sandbox;
+pub mod collector;
+pub mod engine;
 pub mod planner;
+pub mod pruner;
 pub mod report;
+pub mod sandbox;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DreamConfig {
@@ -67,11 +67,20 @@ pub struct MemoryOperation {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum OperationKind {
-    Merge { source_entries: Vec<String> },
-    Update { existing_path: String },
+    Merge {
+        source_entries: Vec<String>,
+    },
+    Update {
+        existing_path: String,
+    },
     Create,
-    Prune { reason: PruneReason },
-    Confirm { from_confidence: String, to_confidence: String },
+    Prune {
+        reason: PruneReason,
+    },
+    Confirm {
+        from_confidence: String,
+        to_confidence: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

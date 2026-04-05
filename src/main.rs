@@ -1,11 +1,11 @@
 use clap::{Parser, Subcommand};
-use dreamswarm::runtime::config::AppConfig;
-use dreamswarm::daemon::DaemonConfig;
-use dreamswarm::daemon::process::DaemonProcess;
-use dreamswarm::daemon::kairos::KairosDaemon;
 use dreamswarm::daemon::daily_log::DailyLog;
-use dreamswarm::query::engine::QueryEngine;
+use dreamswarm::daemon::kairos::KairosDaemon;
+use dreamswarm::daemon::process::DaemonProcess;
+use dreamswarm::daemon::DaemonConfig;
 use dreamswarm::memory::MemorySystem;
+use dreamswarm::query::engine::QueryEngine;
+use dreamswarm::runtime::config::AppConfig;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -69,11 +69,11 @@ enum DaemonAction {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
-    
+
     let cli = Cli::parse();
     let config = AppConfig::new(cli.model.clone(), cli.provider.clone(), cli.mode.clone());
     let daemon_config = DaemonConfig::default();
-    
+
     // Initialize Memory System
     let memory_dir = config.state_dir.join("memory");
     let memory = Arc::new(RwLock::new(MemorySystem::new(memory_dir)?));
@@ -96,7 +96,10 @@ async fn main() -> anyhow::Result<()> {
                 DaemonAction::Status => {
                     let status = process.status().await?;
                     println!("\n🌙 KAIROS Daemon Status");
-                    println!("Running: {}", if status.running { "✅ Yes" } else { "❌ No" });
+                    println!(
+                        "Running: {}",
+                        if status.running { "✅ Yes" } else { "❌ No" }
+                    );
                     if let Some(started) = status.started_at {
                         println!("Started: {}", started.format("%Y-%m-%d %H:%M UTC"));
                     }
@@ -106,8 +109,10 @@ async fn main() -> anyhow::Result<()> {
                     println!("Trust: {:.0}%", status.trust_level * 100.0);
                 }
                 DaemonAction::Run => {
-                    let query_engine = Arc::new(QueryEngine::new(&config.provider, &config.model, &config)?);
-                    let mut daemon = KairosDaemon::new(daemon_config, &config, Some(query_engine), memory)?;
+                    let query_engine =
+                        Arc::new(QueryEngine::new(&config.provider, &config.model, &config)?);
+                    let mut daemon =
+                        KairosDaemon::new(daemon_config, &config, Some(query_engine), memory)?;
                     daemon.run().await?;
                 }
                 DaemonAction::Log { count } => {
@@ -115,7 +120,12 @@ async fn main() -> anyhow::Result<()> {
                     let entries = log.read_today()?;
                     println!("\n📋 Today's Daemon Log ({} entries)\n", entries.len());
                     for entry in entries.iter().rev().take(count) {
-                        println!("[{}] {:?}: {}", entry.timestamp.format("%H:%M:%S"), entry.kind, &entry.content[..entry.content.len().min(120)]);
+                        println!(
+                            "[{}] {:?}: {}",
+                            entry.timestamp.format("%H:%M:%S"),
+                            entry.kind,
+                            &entry.content[..entry.content.len().min(120)]
+                        );
                     }
                 }
                 DaemonAction::ResetTrust => {
@@ -131,6 +141,6 @@ async fn main() -> anyhow::Result<()> {
             println!("Listing active sessions...");
         }
     }
-    
+
     Ok(())
 }

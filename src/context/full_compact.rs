@@ -75,7 +75,11 @@ impl FullCompact {
                     let tokens = content.len() / 4;
                     let truncated = if tokens > self.max_file_reinjection_tokens {
                         let max_chars = self.max_file_reinjection_tokens * 4;
-                        format!("{}\n... [truncated at {} tokens]", &content[..max_chars], self.max_file_reinjection_tokens)
+                        format!(
+                            "{}\n... [truncated at {} tokens]",
+                            &content[..max_chars],
+                            self.max_file_reinjection_tokens
+                        )
                     } else {
                         content
                     };
@@ -105,13 +109,21 @@ impl FullCompact {
         })
     }
 
-    async fn generate_full_summary(&self, messages: &[Value], provider: &dyn LLMProvider) -> anyhow::Result<String> {
+    async fn generate_full_summary(
+        &self,
+        messages: &[Value],
+        provider: &dyn LLMProvider,
+    ) -> anyhow::Result<String> {
         let mut condensed = String::new();
         for msg in messages {
             let role = msg.get("role").and_then(|r| r.as_str()).unwrap_or("?");
             match msg.get("content") {
                 Some(Value::String(text)) => {
-                    let preview = if text.len() > 500 { format!("{}...", &text[..500]) } else { text.clone() };
+                    let preview = if text.len() > 500 {
+                        format!("{}...", &text[..500])
+                    } else {
+                        text.clone()
+                    };
                     condensed.push_str(&format!("[{}]: {}\n", role, preview));
                 }
                 Some(Value::Array(blocks)) => {
@@ -120,16 +132,26 @@ impl FullCompact {
                         match type_str {
                             "text" => {
                                 let text = block.get("text").and_then(|t| t.as_str()).unwrap_or("");
-                                let preview = if text.len() > 300 { format!("{}...", &text[..300]) } else { text.to_string() };
+                                let preview = if text.len() > 300 {
+                                    format!("{}...", &text[..300])
+                                } else {
+                                    text.to_string()
+                                };
                                 condensed.push_str(&format!("[{}]: {}\n", role, preview));
                             }
                             "tool_use" => {
-                                let name = block.get("name").and_then(|n| n.as_str()).unwrap_or("?");
+                                let name =
+                                    block.get("name").and_then(|n| n.as_str()).unwrap_or("?");
                                 condensed.push_str(&format!("[tool_call: {}]\n", name));
                             }
                             "tool_result" => {
-                                let content = block.get("content").and_then(|c| c.as_str()).unwrap_or("");
-                                let preview = if content.len() > 100 { format!("{}...", &content[..100]) } else { content.to_string() };
+                                let content =
+                                    block.get("content").and_then(|c| c.as_str()).unwrap_or("");
+                                let preview = if content.len() > 100 {
+                                    format!("{}...", &content[..100])
+                                } else {
+                                    content.to_string()
+                                };
                                 condensed.push_str(&format!("[tool_result]: {}\n", preview));
                             }
                             _ => {}
@@ -155,15 +177,22 @@ Produce the emergency summary now:"#,
         );
 
         let messages = vec![serde_json::json!({ "role": "user", "content": prompt })];
-        let response = provider.complete("Emergency summary mode.", &messages, &[]).await?;
+        let response = provider
+            .complete("Emergency summary mode.", &messages, &[])
+            .await?;
 
-        Ok(response.content.iter().filter_map(|b| {
-            if b.get("type").and_then(|t| t.as_str()) == Some("text") {
-                b.get("text").and_then(|t| t.as_str()).map(String::from)
-            } else {
-                None
-            }
-        }).collect::<Vec<_>>().join("\n"))
+        Ok(response
+            .content
+            .iter()
+            .filter_map(|b| {
+                if b.get("type").and_then(|t| t.as_str()) == Some("text") {
+                    b.get("text").and_then(|t| t.as_str()).map(String::from)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n"))
     }
 
     fn extract_recent_files(&self, messages: &[Value]) -> Vec<String> {
@@ -175,9 +204,14 @@ Produce the emergency summary now:"#,
                 if let Some(blocks) = content.as_array() {
                     for block in blocks {
                         if block.get("type").and_then(|t| t.as_str()) == Some("tool_use") {
-                            let tool_name = block.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                            let tool_name =
+                                block.get("name").and_then(|n| n.as_str()).unwrap_or("");
                             if tool_name == "FileRead" || tool_name == "FileWrite" {
-                                if let Some(path) = block.get("input").and_then(|i| i.get("path")).and_then(|p| p.as_str()) {
+                                if let Some(path) = block
+                                    .get("input")
+                                    .and_then(|i| i.get("path"))
+                                    .and_then(|p| p.as_str())
+                                {
                                     if !seen.contains(path) {
                                         seen.insert(path.to_string());
                                         files.push(path.to_string());

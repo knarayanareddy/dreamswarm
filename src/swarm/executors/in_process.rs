@@ -1,5 +1,5 @@
 use super::{TeammateExecutor, WorkerConfig};
-use crate::swarm::{SpawnStrategy, WorkerInfo, WorkerStatus, MessageContent};
+use crate::swarm::{MessageContent, SpawnStrategy, WorkerInfo, WorkerStatus};
 use async_trait::async_trait;
 use chrono::Utc;
 use std::collections::HashMap;
@@ -17,6 +17,12 @@ struct WorkerHandle {
     _info: WorkerInfo,
 }
 
+impl Default for InProcessExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InProcessExecutor {
     pub fn new() -> Self {
         Self {
@@ -30,7 +36,7 @@ impl TeammateExecutor for InProcessExecutor {
     async fn spawn(&self, config: &WorkerConfig) -> anyhow::Result<WorkerInfo> {
         let cancel_token = CancellationToken::new();
         let token_clone = cancel_token.clone();
-        
+
         let worker_info = WorkerInfo {
             id: config.id.clone(),
             name: config.name.clone(),
@@ -108,7 +114,10 @@ impl TeammateExecutor for InProcessExecutor {
 
     async fn is_alive(&self, worker: &WorkerInfo) -> bool {
         let workers = self.workers.read().await;
-        workers.get(&worker.id).map(|h| !h.join_handle.is_finished()).unwrap_or(false)
+        workers
+            .get(&worker.id)
+            .map(|h| !h.join_handle.is_finished())
+            .unwrap_or(false)
     }
 
     async fn send_input(&self, _worker: &WorkerInfo, _input: &str) -> anyhow::Result<()> {

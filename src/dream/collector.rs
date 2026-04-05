@@ -11,7 +11,10 @@ pub struct ObservationCollector {
 
 impl ObservationCollector {
     pub fn new(config: DreamConfig, daemon_state_dir: PathBuf) -> Self {
-        Self { config, daemon_state_dir }
+        Self {
+            config,
+            daemon_state_dir,
+        }
     }
 
     pub fn collect(&self, memory: &MemorySystem) -> anyhow::Result<Vec<RawObservation>> {
@@ -28,7 +31,8 @@ impl ObservationCollector {
     fn collect_from_daemon_logs(&self) -> anyhow::Result<Vec<RawObservation>> {
         let daily_log = DailyLog::new(&self.daemon_state_dir)?;
         let entries = daily_log.read_recent_days(self.config.lookback_days as usize)?;
-        let observations: Vec<RawObservation> = entries.iter()
+        let observations: Vec<RawObservation> = entries
+            .iter()
             .filter(|e| self.is_relevant_log_entry(e))
             .map(|e| RawObservation {
                 source: ObservationSource::DaemonLog,
@@ -42,9 +46,15 @@ impl ObservationCollector {
         Ok(observations)
     }
 
-    fn collect_from_transcripts(&self, memory: &MemorySystem) -> anyhow::Result<Vec<RawObservation>> {
-        let entries = memory.transcripts.recent_transcripts(self.config.lookback_days)?;
-        let observations: Vec<RawObservation> = entries.iter()
+    fn collect_from_transcripts(
+        &self,
+        memory: &MemorySystem,
+    ) -> anyhow::Result<Vec<RawObservation>> {
+        let entries = memory
+            .transcripts
+            .recent_transcripts(self.config.lookback_days)?;
+        let observations: Vec<RawObservation> = entries
+            .iter()
             .filter(|e| self.is_significant_transcript(e))
             .map(|e| RawObservation {
                 source: match e.role.as_str() {
@@ -64,7 +74,10 @@ impl ObservationCollector {
         Ok(observations)
     }
 
-    fn collect_from_current_memory(&self, memory: &MemorySystem) -> anyhow::Result<Vec<RawObservation>> {
+    fn collect_from_current_memory(
+        &self,
+        memory: &MemorySystem,
+    ) -> anyhow::Result<Vec<RawObservation>> {
         let mut observations = Vec::new();
         let index_entries = memory.index.parse()?;
         for entry in index_entries {
@@ -73,7 +86,12 @@ impl ObservationCollector {
                 let preview_len = content.len().min(500);
                 observations.push(RawObservation {
                     source: ObservationSource::AgentInference,
-                    content: format!("[EXISTING MEMORY] {}/{}: {}", entry.topic, entry.subtopic, &content[..preview_len]),
+                    content: format!(
+                        "[EXISTING MEMORY] {}/{}: {}",
+                        entry.topic,
+                        entry.subtopic,
+                        &content[..preview_len]
+                    ),
                     timestamp: Utc::now(),
                     session_id: None,
                     tools_involved: vec![],
@@ -85,8 +103,14 @@ impl ObservationCollector {
     }
 
     fn is_relevant_log_entry(&self, entry: &LogEntry) -> bool {
-        matches!(entry.kind, LogEntryKind::Observation | LogEntryKind::Action | LogEntryKind::ActionResult | LogEntryKind::Error)
-            && !entry.content.is_empty() && entry.content.len() > 20
+        matches!(
+            entry.kind,
+            LogEntryKind::Observation
+                | LogEntryKind::Action
+                | LogEntryKind::ActionResult
+                | LogEntryKind::Error
+        ) && !entry.content.is_empty()
+            && entry.content.len() > 20
     }
 
     fn log_entry_confidence(&self, entry: &LogEntry) -> f64 {
@@ -99,7 +123,10 @@ impl ObservationCollector {
         }
     }
 
-    fn is_significant_transcript(&self, entry: &crate::memory::transcripts::TranscriptEntry) -> bool {
+    fn is_significant_transcript(
+        &self,
+        entry: &crate::memory::transcripts::TranscriptEntry,
+    ) -> bool {
         entry.content_preview.len() > 50 && !entry.content_preview.starts_with("[no output]")
     }
 }

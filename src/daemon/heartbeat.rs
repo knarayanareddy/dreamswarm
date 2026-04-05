@@ -41,14 +41,18 @@ impl Heartbeat {
     }
 
     pub fn report_signals(&mut self, count: usize) {
-        if !self.config.adaptive { return; }
+        if !self.config.adaptive {
+            return;
+        }
         if count > 0 {
-            self.current_interval = self.current_interval.checked_div(2)
+            self.current_interval = self
+                .current_interval
+                .checked_div(2)
                 .unwrap_or(self.config.min_interval)
                 .max(self.config.min_interval);
         } else {
-            self.current_interval = (self.current_interval + Duration::from_secs(5))
-                .min(self.config.max_interval);
+            self.current_interval =
+                (self.current_interval + Duration::from_secs(5)).min(self.config.max_interval);
         }
     }
 

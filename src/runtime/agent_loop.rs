@@ -81,17 +81,17 @@ impl AgentRuntime {
                 .await?;
 
             iterations += 1;
-            
+
             // Check for tool calls
             let mut made_tool_call = false;
             let mut assistant_text = String::new();
-            
+
             for content in &response.content {
                 // Here we would parse and execute the tool calls
                 if content.get("type").and_then(|t| t.as_str()) == Some("text") {
                     assistant_text.push_str(content["text"].as_str().unwrap_or(""));
                 }
-                
+
                 if content.get("type").and_then(|t| t.as_str()) == Some("tool_use") {
                     made_tool_call = true;
                     // let tool_name = content["name"].as_str().unwrap_or("");

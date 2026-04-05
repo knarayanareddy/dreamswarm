@@ -3,15 +3,15 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 // Submodules for all phases
+pub mod ask_user;
+pub mod bash_tool;
+pub mod daemon_status;
+pub mod dream_trigger;
 pub mod file_read;
 pub mod file_write;
-pub mod bash_tool;
 pub mod grep_tool;
-pub mod ask_user;
-pub mod daemon_status;
-pub mod push_notification;
 pub mod monitor_tool;
-pub mod dream_trigger;
+pub mod push_notification;
 
 #[derive(Debug, Clone)]
 pub struct ToolCall {
@@ -32,13 +32,13 @@ pub trait Tool: Send + Sync {
     fn description(&self) -> &str;
     fn input_schema(&self) -> Value;
     fn risk_level(&self) -> RiskLevel;
-    
+
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput>;
-    
+
     fn command_signature(&self, _input: &Value) -> String {
         self.name().to_lowercase().replace(' ', ":")
     }
-    
+
     fn describe_call(&self, input: &Value) -> String {
         format!("Execute {} with input: {}", self.name(), input)
     }
@@ -46,6 +46,12 @@ pub trait Tool: Send + Sync {
 
 pub struct ToolRegistry {
     pub tools: Vec<Box<dyn Tool>>,
+}
+
+impl Default for ToolRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ToolRegistry {
@@ -73,13 +79,18 @@ impl ToolRegistry {
         working_dir: &str,
     ) -> Self {
         let mut registry = Self::default_phase1();
-        
+
         // Phase 4 Tools
-        let daemon_state_dir = dirs::home_dir().unwrap_or_default().join(".dreamswarm").join("daemon");
-        registry.register(Box::new(daemon_status::DaemonStatusTool::new(daemon_state_dir.clone())));
+        let daemon_state_dir = dirs::home_dir()
+            .unwrap_or_default()
+            .join(".dreamswarm")
+            .join("daemon");
+        registry.register(Box::new(daemon_status::DaemonStatusTool::new(
+            daemon_state_dir.clone(),
+        )));
         registry.register(Box::new(push_notification::PushNotificationTool));
         registry.register(Box::new(monitor_tool::MonitorTool));
-        
+
         // Phase 5 Tool
         registry.register(Box::new(dream_trigger::DreamTriggerTool::new(
             memory,
@@ -87,7 +98,7 @@ impl ToolRegistry {
             working_dir,
             daemon_state_dir,
         )));
-        
+
         registry
     }
 }

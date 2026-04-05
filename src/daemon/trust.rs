@@ -74,7 +74,12 @@ impl TrustSystem {
         self.last_decision = Some(decision.clone());
         self.history.push(decision);
         self.trim_history();
-        tracing::info!("Trust: {:.2} -> {:.2} (approval: {})", before, self.current_level, action_description);
+        tracing::info!(
+            "Trust: {:.2} -> {:.2} (approval: {})",
+            before,
+            self.current_level,
+            action_description
+        );
     }
 
     pub fn record_denial(&mut self, action_description: &str) {
@@ -84,8 +89,12 @@ impl TrustSystem {
         self.total_denials += 1;
         self.current_level = (self.current_level - self.degradation_rate).max(self.min_level);
         if self.consecutive_denials >= 3 {
-            self.current_level = (self.current_level - self.degradation_rate * 0.5).max(self.min_level);
-            tracing::warn!("{} consecutive denials - accelerated trust degradation", self.consecutive_denials);
+            self.current_level =
+                (self.current_level - self.degradation_rate * 0.5).max(self.min_level);
+            tracing::warn!(
+                "{} consecutive denials - accelerated trust degradation",
+                self.consecutive_denials
+            );
         }
         let decision = TrustDecision {
             timestamp: Utc::now(),
@@ -97,7 +106,12 @@ impl TrustSystem {
         self.last_decision = Some(decision.clone());
         self.history.push(decision);
         self.trim_history();
-        tracing::info!("Trust: {:.2} -> {:.2} (denial: {})", before, self.current_level, action_description);
+        tracing::info!(
+            "Trust: {:.2} -> {:.2} (denial: {})",
+            before,
+            self.current_level,
+            action_description
+        );
     }
 
     pub fn permission_for(&self, urgency: &Urgency) -> TrustPermission {

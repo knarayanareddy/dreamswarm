@@ -15,8 +15,9 @@ pub struct OpenAIProvider {
 
 impl OpenAIProvider {
     pub fn new(model: &str) -> anyhow::Result<Self> {
-        let api_key = std::env::var("OPENAI_API_KEY")
-            .map_err(|_| anyhow::anyhow!("OPENAI_API_KEY not set. Export it: export OPENAI_API_KEY=sk-..."))?;
+        let api_key = std::env::var("OPENAI_API_KEY").map_err(|_| {
+            anyhow::anyhow!("OPENAI_API_KEY not set. Export it: export OPENAI_API_KEY=sk-...")
+        })?;
         Ok(Self {
             client: Client::new(),
             api_key,
@@ -77,10 +78,9 @@ impl OpenAIProvider {
         if let Some(tool_calls) = message["tool_calls"].as_array() {
             for tc in tool_calls {
                 let function = &tc["function"];
-                let args: Value = serde_json::from_str(
-                    function["arguments"].as_str().unwrap_or("{}"),
-                )
-                .unwrap_or(serde_json::json!({}));
+                let args: Value =
+                    serde_json::from_str(function["arguments"].as_str().unwrap_or("{}"))
+                        .unwrap_or(serde_json::json!({}));
                 content.push(serde_json::json!({
                     "type": "tool_use",
                     "id": tc["id"].as_str().unwrap_or(&Uuid::new_v4().to_string()),

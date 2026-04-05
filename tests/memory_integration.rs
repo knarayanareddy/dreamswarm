@@ -1,8 +1,8 @@
 // tests/memory_integration.rs
 //! Integration tests for the 3-layer memory system.
 
-use dreamswarm::memory::MemorySystem;
 use dreamswarm::memory::topics::Confidence;
+use dreamswarm::memory::MemorySystem;
 use tempfile::TempDir;
 
 #[test]
@@ -54,7 +54,10 @@ fn test_full_memory_lifecycle() {
     assert!(results[0].topic_path.contains("oauth"));
 
     // 6. Load for context injection
-    let ctx = memory.loader.load_for_turn(Some("How does auth work?")).unwrap();
+    let ctx = memory
+        .loader
+        .load_for_turn(Some("How does auth work?"))
+        .unwrap();
     assert!(ctx.index_tokens > 0);
     assert!(!ctx.topics.is_empty());
 
@@ -102,7 +105,10 @@ fn test_memory_index_capacity_limit() {
         let _ = memory.writer.store(
             &format!("Topic{}", i / 10),
             &format!("subtopic{}", i),
-            &format!("This is test entry number {} with enough content to be stored", i),
+            &format!(
+                "This is test entry number {} with enough content to be stored",
+                i
+            ),
             None,
             Confidence::Observed,
         );

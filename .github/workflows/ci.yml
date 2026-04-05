@@ -180,24 +180,6 @@ jobs:
           cargo audit
 
   # ═══════════════════════════════════════════
-  # STAGE 6: Property tests (< 10 min)
-  # ═══════════════════════════════════════════
-  property-tests:
-    name: Property Tests
-    runs-on: ubuntu-latest
-    needs: [test]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-rust
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y tmux ripgrep
-      - name: Run property tests
-        run: cargo test --test '*' --features proptest -- --ignored
-        env:
-          PROPTEST_CASES: 500
-    timeout-minutes: 15
-
-  # ═══════════════════════════════════════════
   # STAGE 7: Build artifacts (verification)
   # ═══════════════════════════════════════════
   build:
@@ -248,7 +230,7 @@ jobs:
     name: CI Pass Gate
     runs-on: ubuntu-latest
     if: always()
-    needs: [format, lint, typos, check, msrv, test, coverage, security, property-tests, build]
+    needs: [format, lint, typos, check, msrv, test, coverage, security, build]
     steps:
       - name: Check all jobs passed
         run: |

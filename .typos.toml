@@ -1,0 +1,8 @@
+[default]
+extend-ignore-re = [
+    '(?i)\(ba\)\?sh',
+]
+
+[default.extend-words]
+ba = "ba"
+ratatui = "ratatui"

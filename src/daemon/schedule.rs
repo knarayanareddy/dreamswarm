@@ -24,6 +24,12 @@ pub enum Schedule {
     AfterIdle(u32),
 }
 
+impl Default for Scheduler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Scheduler {
     pub fn new() -> Self {
         Self { jobs: Vec::new() }
@@ -57,16 +63,25 @@ impl Scheduler {
         let now = Utc::now();
         let mut due = Vec::new();
         for job in &mut self.jobs {
-            if !job.enabled { continue; }
+            if !job.enabled {
+                continue;
+            }
             let is_due = match &job.schedule {
-                Schedule::EveryMinutes(mins) => {
-                    job.last_run.map(|last| now.signed_duration_since(last).num_minutes() >= *mins as i64).unwrap_or(true)
-                }
-                Schedule::EveryHours(hours) => {
-                    job.last_run.map(|last| now.signed_duration_since(last).num_hours() >= *hours as i64).unwrap_or(true)
-                }
+                Schedule::EveryMinutes(mins) => job
+                    .last_run
+                    .map(|last| now.signed_duration_since(last).num_minutes() >= *mins as i64)
+                    .unwrap_or(true),
+                Schedule::EveryHours(hours) => job
+                    .last_run
+                    .map(|last| now.signed_duration_since(last).num_hours() >= *hours as i64)
+                    .unwrap_or(true),
                 Schedule::DailyAt { hour, minute } => {
-                    now.hour() == *hour && now.minute() == *minute && job.last_run.map(|last| last.date_naive() != now.date_naive()).unwrap_or(true)
+                    now.hour() == *hour
+                        && now.minute() == *minute
+                        && job
+                            .last_run
+                            .map(|last| last.date_naive() != now.date_naive())
+                            .unwrap_or(true)
                 }
                 Schedule::AfterIdle(mins) => idle_minutes >= *mins as u64,
             };

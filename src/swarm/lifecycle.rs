@@ -1,8 +1,8 @@
+use crate::swarm::mailbox::Mailbox;
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tokio::process::Command;
-use crate::swarm::mailbox::Mailbox;
 
 static REGISTERED_TEAMS: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
@@ -62,7 +62,10 @@ async fn kill_team_tmux_panes(_team_name: &str) {
         for line in stdout.lines() {
             if line.contains("Worker:") || line.contains("dreamswarm") {
                 if let Some(pane_id) = line.split_whitespace().next() {
-                    let _ = Command::new("tmux").args(["kill-pane", "-t", pane_id]).output().await;
+                    let _ = Command::new("tmux")
+                        .args(["kill-pane", "-t", pane_id])
+                        .output()
+                        .await;
                 }
             }
         }
@@ -70,9 +73,14 @@ async fn kill_team_tmux_panes(_team_name: &str) {
 }
 
 async fn cleanup_team_worktrees(_team_name: &str) {
-    let worktrees_dir = std::env::current_dir().unwrap_or_default().join(".dreamswarm-worktrees");
+    let worktrees_dir = std::env::current_dir()
+        .unwrap_or_default()
+        .join(".dreamswarm-worktrees");
     if worktrees_dir.exists() {
-        let _ = Command::new("git").args(["worktree", "prune"]).output().await;
+        let _ = Command::new("git")
+            .args(["worktree", "prune"])
+            .output()
+            .await;
         let _ = std::fs::remove_dir_all(&worktrees_dir);
     }
 }

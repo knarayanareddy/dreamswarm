@@ -87,10 +87,16 @@ impl SharedTaskList {
                 for dep_id in &task.dependencies {
                     let dep = self.read_task(dep_id)?;
                     if dep.status != TaskStatus::Completed {
-                        anyhow::bail!("Cannot claim task '{}': dependency '{}' not completed", task_id, dep_id);
+                        anyhow::bail!(
+                            "Cannot claim task '{}': dependency '{}' not completed",
+                            task_id,
+                            dep_id
+                        );
                     }
                 }
-                task.status = TaskStatus::Claimed { by: worker_id.to_string() };
+                task.status = TaskStatus::Claimed {
+                    by: worker_id.to_string(),
+                };
                 task.assigned_to = Some(worker_id.to_string());
                 task.updated_at = Utc::now();
                 self.write_task(&task)?;
@@ -132,7 +138,7 @@ impl SharedTaskList {
         for entry in std::fs::read_dir(&self.base_dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.extension().map_or(false, |e| e == "json") {
+            if path.extension().is_some_and(|e| e == "json") {
                 let content = std::fs::read_to_string(&path)?;
                 if let Ok(task) = serde_json::from_str::<Task>(&content) {
                     tasks.push(task);
@@ -140,25 +146,49 @@ impl SharedTaskList {
             }
         }
         tasks.sort_by(|a, b| {
-            b.priority.cmp(&a.priority).then(a.created_at.cmp(&b.created_at))
+            b.priority
+                .cmp(&a.priority)
+                .then(a.created_at.cmp(&b.created_at))
         });
         Ok(tasks)
     }
 
     pub fn all_complete(&self) -> anyhow::Result<bool> {
         let tasks = self.list_tasks()?;
-        Ok(tasks.iter().all(|t| matches!(t.status, TaskStatus::Completed | TaskStatus::Failed { .. })))
+        Ok(tasks
+            .iter()
+            .all(|t| matches!(t.status, TaskStatus::Completed | TaskStatus::Failed { .. })))
     }
 
     pub fn stats(&self) -> anyhow::Result<TaskStats> {
         let tasks = self.list_tasks()?;
         Ok(TaskStats {
             total: tasks.len(),
-            pending: tasks.iter().filter(|t| t.status == TaskStatus::Pending).count(),
-            in_progress: tasks.iter().filter(|t| matches!(t.status, TaskStatus::Claimed { .. } | TaskStatus::InProgress { .. })).count(),
-            completed: tasks.iter().filter(|t| t.status == TaskStatus::Completed).count(),
-            failed: tasks.iter().filter(|t| matches!(t.status, TaskStatus::Failed { .. })).count(),
-            blocked: tasks.iter().filter(|t| matches!(t.status, TaskStatus::Blocked { .. })).count(),
+            pending: tasks
+                .iter()
+                .filter(|t| t.status == TaskStatus::Pending)
+                .count(),
+            in_progress: tasks
+                .iter()
+                .filter(|t| {
+                    matches!(
+                        t.status,
+                        TaskStatus::Claimed { .. } | TaskStatus::InProgress { .. }
+                    )
+                })
+                .count(),
+            completed: tasks
+                .iter()
+                .filter(|t| t.status == TaskStatus::Completed)
+                .count(),
+            failed: tasks
+                .iter()
+                .filter(|t| matches!(t.status, TaskStatus::Failed { .. }))
+                .count(),
+            blocked: tasks
+                .iter()
+                .filter(|t| matches!(t.status, TaskStatus::Blocked { .. }))
+                .count(),
         })
     }
 

@@ -12,11 +12,11 @@ impl SystemPromptBuilder {
         sections.push(Self::coding_guidelines_section());
         sections.push(Self::safety_section(config));
         sections.push(Self::memory_section());
-        
+
         // if let Some(ref project_instructions) = config.project_instructions {
         //     sections.push(Self::project_context_section(project_instructions));
         // }
-        
+
         sections.push(Self::environment_section(config));
 
         sections.join("\n\n")
@@ -41,26 +41,35 @@ Your primary directives:
     fn coding_guidelines_section() -> String {
         r#"<coding_guidelines>
 Always prioritize idiomatic code for the specific language environment.
-</coding_guidelines>"#.to_string()
+</coding_guidelines>"#
+            .to_string()
     }
 
     fn safety_section(config: &AppConfig) -> String {
-        format!(r#"<safety>
+        format!(
+            r#"<safety>
 You are running in permission mode: {}.
 Respect all security boundaries. When executing destructive bash commands, always confirm safety.
-</safety>"#, config.permission_mode)
+</safety>"#,
+            config.permission_mode
+        )
     }
 
     fn memory_section() -> String {
         r#"<memory>
 Always check your context memory (MEMORY.md) for architectural guidelines before commencing work.
-</memory>"#.to_string()
+</memory>"#
+            .to_string()
     }
 
     fn environment_section(config: &AppConfig) -> String {
-        format!(r#"<environment>
+        format!(
+            r#"<environment>
 Working directory: {}
 State directory: {}
-</environment>"#, config.working_dir.display(), config.state_dir.display())
+</environment>"#,
+            config.working_dir.display(),
+            config.state_dir.display()
+        )
     }
 }

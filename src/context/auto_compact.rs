@@ -49,7 +49,10 @@ impl AutoCompact {
         provider: &dyn LLMProvider,
     ) -> anyhow::Result<CompactionSummary> {
         if self.is_disabled() {
-            anyhow::bail!("AutoCompact circuit breaker tripped after {} failures", self.max_failures);
+            anyhow::bail!(
+                "AutoCompact circuit breaker tripped after {} failures",
+                self.max_failures
+            );
         }
 
         let total_messages = messages.len();
@@ -64,7 +67,8 @@ impl AutoCompact {
         let tokens_before = self.estimate_tokens_array(old_messages);
         let summary_prompt = self.build_summary_prompt(old_messages);
 
-        let summary_messages = vec![serde_json::json!({ "role": "user", "content": summary_prompt })];
+        let summary_messages =
+            vec![serde_json::json!({ "role": "user", "content": summary_prompt })];
 
         match provider.complete(
             "You are a precise conversation summarizer. Your job is to compress conversation history while preserving all critical information.",
@@ -94,7 +98,10 @@ impl AutoCompact {
     fn build_summary_prompt(&self, messages: &[Value]) -> String {
         let mut conversation = String::new();
         for msg in messages {
-            let role = msg.get("role").and_then(|r| r.as_str()).unwrap_or("unknown");
+            let role = msg
+                .get("role")
+                .and_then(|r| r.as_str())
+                .unwrap_or("unknown");
             match msg.get("content") {
                 Some(Value::String(text)) => {
                     conversation.push_str(&format!("[{}]: {}\n\n", role, text));
@@ -108,12 +115,19 @@ impl AutoCompact {
                                 }
                             }
                             Some("tool_use") => {
-                                let name = block.get("name").and_then(|n| n.as_str()).unwrap_or("?");
-                                conversation.push_str(&format!("[assistant called tool: {}]\n\n", name));
+                                let name =
+                                    block.get("name").and_then(|n| n.as_str()).unwrap_or("?");
+                                conversation
+                                    .push_str(&format!("[assistant called tool: {}]\n\n", name));
                             }
                             Some("tool_result") => {
-                                let content = block.get("content").and_then(|c| c.as_str()).unwrap_or("");
-                                let preview = if content.len() > 200 { format!("{}...", &content[..200]) } else { content.to_string() };
+                                let content =
+                                    block.get("content").and_then(|c| c.as_str()).unwrap_or("");
+                                let preview = if content.len() > 200 {
+                                    format!("{}...", &content[..200])
+                                } else {
+                                    content.to_string()
+                                };
                                 conversation.push_str(&format!("[tool_result]: {}\n\n", preview));
                             }
                             _ => {}
@@ -152,13 +166,18 @@ Produce the structured summary now. Be concise but miss nothing important."#,
     }
 
     fn extract_text(&self, response: &CompletionResponse) -> String {
-        response.content.iter().filter_map(|block| {
-            if block.get("type").and_then(|t| t.as_str()) == Some("text") {
-                block.get("text").and_then(|t| t.as_str()).map(String::from)
-            } else {
-                None
-            }
-        }).collect::<Vec<_>>().join("\n")
+        response
+            .content
+            .iter()
+            .filter_map(|block| {
+                if block.get("type").and_then(|t| t.as_str()) == Some("text") {
+                    block.get("text").and_then(|t| t.as_str()).map(String::from)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
     fn count_recent_turns(&self, messages: &[Value], turns: usize) -> usize {
@@ -167,10 +186,16 @@ Produce the structured summary now. Be concise but miss nothing important."#,
         for msg in messages.iter().rev() {
             msg_count += 1;
             if msg.get("role").and_then(|r| r.as_str()) == Some("user") {
-                let is_tool_result = msg.get("content").and_then(|c| c.as_array()).map(|blocks| {
-                    blocks.iter().all(|b| b.get("type").and_then(|t| t.as_str()) == Some("tool_result"))
-                }).unwrap_or(false);
-                
+                let is_tool_result = msg
+                    .get("content")
+                    .and_then(|c| c.as_array())
+                    .map(|blocks| {
+                        blocks
+                            .iter()
+                            .all(|b| b.get("type").and_then(|t| t.as_str()) == Some("tool_result"))
+                    })
+                    .unwrap_or(false);
+
                 if !is_tool_result {
                     turn_count += 1;
                     if turn_count >= turns {

@@ -54,7 +54,10 @@ impl DreamSandbox {
 
     pub fn validate(&self, request: &SandboxRequest) -> Result<(), String> {
         if !self.is_allowed(&request.operation) {
-            return Err(format!("Operation {:?} is not allowed in sandbox", request.operation));
+            return Err(format!(
+                "Operation {:?} is not allowed in sandbox",
+                request.operation
+            ));
         }
         if !self.has_budget() {
             return Err("Sandbox budget exhausted".to_string());
@@ -62,7 +65,10 @@ impl DreamSandbox {
         if request.operation == SandboxOperation::ReadFile {
             let blocked = [".env", "secrets", "credentials", ".ssh", "id_rsa"];
             if blocked.iter().any(|b| request.target.contains(b)) {
-                return Err(format!("Cannot read sensitive file '{}' in sandbox", request.target));
+                return Err(format!(
+                    "Cannot read sensitive file '{}' in sandbox",
+                    request.target
+                ));
             }
         }
         Ok(())
@@ -74,15 +80,24 @@ impl DreamSandbox {
         system_prompt: &str,
         user_prompt: &str,
     ) -> anyhow::Result<String> {
-        if !self.has_budget() { anyhow::bail!("Budget exhausted"); }
+        if !self.has_budget() {
+            anyhow::bail!("Budget exhausted");
+        }
         let messages = vec![serde_json::json!({ "role": "user", "content": user_prompt })];
         let response = query_engine.complete(system_prompt, &messages, &[]).await?;
         self.record_usage(response.usage.total_tokens, response.usage.cost_usd);
-        let text = response.content.iter().filter_map(|b| {
-            if b.get("type").and_then(|t| t.as_str()) == Some("text") {
-                b.get("text").and_then(|t| t.as_str()).map(String::from)
-            } else { None }
-        }).collect::<Vec<_>>().join("\n");
+        let text = response
+            .content
+            .iter()
+            .filter_map(|b| {
+                if b.get("type").and_then(|t| t.as_str()) == Some("text") {
+                    b.get("text").and_then(|t| t.as_str()).map(String::from)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
         Ok(text)
     }
 

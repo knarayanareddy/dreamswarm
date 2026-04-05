@@ -26,7 +26,7 @@ impl Database {
         std::fs::create_dir_all(data_dir)?;
         let db_path = data_dir.join("dreamswarm.db");
         let conn = Connection::open(&db_path)?;
-        
+
         // Enable WAL mode for better concurrent access
         conn.execute_batch("PRAGMA journal_mode=WAL;")?;
         conn.execute_batch("PRAGMA foreign_keys=ON;")?;
@@ -76,8 +76,12 @@ impl Database {
             Ok(Session {
                 id: row.get(0)?,
                 messages,
-                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(2)?).unwrap_or_default().with_timezone(&chrono::Utc),
-                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(3)?).unwrap_or_default().with_timezone(&chrono::Utc),
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(2)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
+                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(3)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
                 turn_count: row.get::<_, i64>(4)? as u32,
                 total_tokens: row.get::<_, i64>(5)? as u64,
                 total_cost_usd: row.get(6)?,

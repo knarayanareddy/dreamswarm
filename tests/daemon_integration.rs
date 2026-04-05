@@ -15,7 +15,10 @@ fn test_trust_degradation_and_recovery() {
     trust.record_denial("test denial 2");
     trust.record_denial("test denial 3");
 
-    assert!(trust.current_level < initial, "Trust should degrade after denials");
+    assert!(
+        trust.current_level < initial,
+        "Trust should degrade after denials"
+    );
 
     let after_denials = trust.current_level;
 

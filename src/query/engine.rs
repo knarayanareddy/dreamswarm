@@ -2,7 +2,6 @@ use crate::runtime::config::AppConfig;
 use async_trait::async_trait;
 use serde_json::Value;
 
-
 #[derive(Debug, Clone)]
 pub struct CompletionResponse {
     pub content: Vec<Value>,
@@ -40,9 +39,14 @@ pub struct QueryEngine {
 impl QueryEngine {
     pub fn new(provider_name: &str, model: &str, _config: &AppConfig) -> anyhow::Result<Self> {
         let provider: Box<dyn LLMProvider> = match provider_name {
-            "anthropic" => Box::new(crate::query::providers::anthropic::AnthropicProvider::new(model)?),
+            "anthropic" => Box::new(crate::query::providers::anthropic::AnthropicProvider::new(
+                model,
+            )?),
             "openai" => Box::new(crate::query::providers::openai::OpenAIProvider::new(model)?),
-            _ => anyhow::bail!("Unknown provider: {}. Supported: anthropic, openai", provider_name),
+            _ => anyhow::bail!(
+                "Unknown provider: {}. Supported: anthropic, openai",
+                provider_name
+            ),
         };
         Ok(Self { provider })
     }

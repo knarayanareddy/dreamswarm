@@ -9,9 +9,18 @@ use tempfile::TempDir;
 fn test_dream_config_defaults() {
     let config = DreamConfig::default();
     // Verify sane defaults — ensures DreamConfig is properly initialized
-    assert!(config.max_duration_secs > 0, "Dream cycle must have a timeout");
-    assert!(config.max_tokens > 0, "Dream cycle must have a token budget");
-    assert!(config.lookback_days > 0, "Dream cycle must look back at least 1 day");
+    assert!(
+        config.max_duration_secs > 0,
+        "Dream cycle must have a timeout"
+    );
+    assert!(
+        config.max_tokens > 0,
+        "Dream cycle must have a token budget"
+    );
+    assert!(
+        config.lookback_days > 0,
+        "Dream cycle must look back at least 1 day"
+    );
 }
 
 #[test]

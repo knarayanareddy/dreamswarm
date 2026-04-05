@@ -6,12 +6,20 @@ use dreamswarm::swarm::task_list::{SharedTaskList, TaskStatus};
 #[test]
 fn test_task_list_roundtrip() {
     // SharedTaskList::new takes a team name string and stores under ~/.dreamswarm/
-    let team_name = format!("test-team-{}", uuid::Uuid::new_v4().to_string()[..6].to_string());
+    let team_name = format!(
+        "test-team-{}",
+        &uuid::Uuid::new_v4().to_string()[..6]
+    );
     let task_list = SharedTaskList::new(&team_name).unwrap();
 
     // Create a task
     let task = task_list
-        .create_task("Refactor the query engine", "Move providers to separate crate", vec![], 1)
+        .create_task(
+            "Refactor the query engine",
+            "Move providers to separate crate",
+            vec![],
+            1,
+        )
         .unwrap();
 
     assert_eq!(task.title, "Refactor the query engine");
@@ -27,13 +35,23 @@ fn test_task_list_roundtrip() {
 
     // Mark it in-progress
     let in_progress = task_list
-        .update_task(&task.id, TaskStatus::InProgress { by: "worker-1".to_string() }, None)
+        .update_task(
+            &task.id,
+            TaskStatus::InProgress {
+                by: "worker-1".to_string(),
+            },
+            None,
+        )
         .unwrap();
     assert!(matches!(in_progress.status, TaskStatus::InProgress { .. }));
 
     // Complete it
     task_list
-        .update_task(&task.id, TaskStatus::Completed, Some("Refactor done".to_string()))
+        .update_task(
+            &task.id,
+            TaskStatus::Completed,
+            Some("Refactor done".to_string()),
+        )
         .unwrap();
 
     // all_complete should now be true

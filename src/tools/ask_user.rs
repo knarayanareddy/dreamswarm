@@ -33,6 +33,9 @@ impl Tool for AskUserTool {
         let question = input["question"].as_str().unwrap_or_default();
         println!("Agent asks: {}", question);
         // Note: Full CLI app would read from stdin here.
-        Ok(ToolOutput { content: "User prompt submitted.".to_string(), is_error: false })
+        Ok(ToolOutput {
+            content: "User prompt submitted.".to_string(),
+            is_error: false,
+        })
     }
 }

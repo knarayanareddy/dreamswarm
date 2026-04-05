@@ -10,6 +10,12 @@ pub enum RiskLevel {
 
 pub struct PermissionGate;
 
+impl Default for PermissionGate {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PermissionGate {
     pub fn new() -> Self {
         Self

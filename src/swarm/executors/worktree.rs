@@ -57,7 +57,8 @@ impl TeammateExecutor for WorktreeExecutor {
             .args([
                 "worktree",
                 "add",
-                "-b", &branch_name,
+                "-b",
+                &branch_name,
                 worktree_path.to_str().unwrap(),
                 &base_branch,
             ])
@@ -80,17 +81,25 @@ impl TeammateExecutor for WorktreeExecutor {
 
         let pane_output = Command::new("tmux")
             .args([
-                "split-window", "-d",
+                "split-window",
+                "-d",
                 "-h",
-                "-t", &self.tmux_session,
-                "-P", "-F", "#{pane_id}",
+                "-t",
+                &self.tmux_session,
+                "-P",
+                "-F",
+                "#{pane_id}",
                 &worker_cmd,
             ])
             .output()
             .await?;
 
         let pane_id = if pane_output.status.success() {
-            Some(String::from_utf8_lossy(&pane_output.stdout).trim().to_string())
+            Some(
+                String::from_utf8_lossy(&pane_output.stdout)
+                    .trim()
+                    .to_string(),
+            )
         } else {
             tracing::warn!("Failed to create tmux pane for worktree worker, running detached");
             None
@@ -120,7 +129,11 @@ impl TeammateExecutor for WorktreeExecutor {
                 .map(|o| o.status.success())
                 .unwrap_or(false)
         } else {
-            worker.worktree_path.as_ref().map(|p| std::path::Path::new(p).exists()).unwrap_or(false)
+            worker
+                .worktree_path
+                .as_ref()
+                .map(|p| std::path::Path::new(p).exists())
+                .unwrap_or(false)
         }
     }
 
@@ -150,7 +163,10 @@ impl TeammateExecutor for WorktreeExecutor {
 
     async fn force_kill(&self, worker: &WorkerInfo) -> anyhow::Result<()> {
         if let Some(ref pane_id) = worker.tmux_pane_id {
-            let _ = Command::new("tmux").args(["kill-pane", "-t", pane_id]).output().await;
+            let _ = Command::new("tmux")
+                .args(["kill-pane", "-t", pane_id])
+                .output()
+                .await;
         }
         Ok(())
     }

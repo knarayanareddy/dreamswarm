@@ -55,12 +55,18 @@ impl MemoryWriter {
         }
 
         // RULE 3: Write to topic file FIRST
-        let topic_path = format!("{}/{}.md", Self::sanitize_path(topic), Self::sanitize_path(subtopic));
-        self.topics.append(&topic_path, content, source, confidence)?;
+        let topic_path = format!(
+            "{}/{}.md",
+            Self::sanitize_path(topic),
+            Self::sanitize_path(subtopic)
+        );
+        self.topics
+            .append(&topic_path, content, source, confidence)?;
 
         // RULE 4: Update the index with a POINTER
         let description = Self::summarize_for_index(content);
-        self.index.upsert_pointer(topic, &topic_path, &description)?;
+        self.index
+            .upsert_pointer(topic, &topic_path, &description)?;
 
         Ok(WriteResult {
             stored: true,
@@ -88,7 +94,11 @@ impl MemoryWriter {
     }
 
     pub fn remove(&self, topic: &str, subtopic: &str) -> anyhow::Result<bool> {
-        let topic_path = format!("{}/{}.md", Self::sanitize_path(topic), Self::sanitize_path(subtopic));
+        let topic_path = format!(
+            "{}/{}.md",
+            Self::sanitize_path(topic),
+            Self::sanitize_path(subtopic)
+        );
         self.index.remove_pointer(&topic_path)?;
         self.topics.delete(&topic_path)?;
         Ok(true)
@@ -96,7 +106,18 @@ impl MemoryWriter {
 
     fn is_derivable(&self, content: &str) -> bool {
         let code_indicators = [
-            "fn ", "pub fn", "def ", "class ", "function ", "const ", "let ", "import ", "from ", "require(", "#include", "package ",
+            "fn ",
+            "pub fn",
+            "def ",
+            "class ",
+            "function ",
+            "const ",
+            "let ",
+            "import ",
+            "from ",
+            "require(",
+            "#include",
+            "package ",
         ];
         let lines: Vec<&str> = content.lines().collect();
         if lines.is_empty() {
@@ -136,9 +157,7 @@ impl MemoryWriter {
 
     fn sanitize_path(name: &str) -> String {
         name.to_lowercase()
-            .replace(' ', "-")
-            .replace('/', "-")
-            .replace('\\', "-")
+            .replace([' ', '/', '\\'], "-")
             .replace("..", "")
             .chars()
             .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '_')

@@ -32,7 +32,10 @@ impl BashSecurityChain {
         for pattern in &blocklist {
             if let Ok(re) = Regex::new(pattern) {
                 if re.is_match(command) {
-                    return SecurityVerdict::Deny(format!("Command matches blocklist pattern: {}", pattern));
+                    return SecurityVerdict::Deny(format!(
+                        "Command matches blocklist pattern: {}",
+                        pattern
+                    ));
                 }
             }
         }
@@ -69,12 +72,12 @@ impl Tool for BashTool {
 
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
         let command = input["command"].as_str().unwrap_or_default();
-        
-        match BashSecurityChain::validate(command) {
-            SecurityVerdict::Deny(reason) => {
-                return Ok(ToolOutput { content: format!("Security blocked: {}", reason), is_error: true });
-            }
-            _ => {}
+
+        if let SecurityVerdict::Deny(reason) = BashSecurityChain::validate(command) {
+            return Ok(ToolOutput {
+                content: format!("Security blocked: {}", reason),
+                is_error: true,
+            });
         }
 
         let output = tokio::process::Command::new("bash")

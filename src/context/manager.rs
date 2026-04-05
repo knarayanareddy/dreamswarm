@@ -57,7 +57,12 @@ impl ContextManager {
         let current_tokens = TokenCounter::estimate_messages(messages);
         let ratio = current_tokens as f64 / self.max_context_tokens as f64;
 
-        info!("Context: {}/{} tokens ({:.1}%)", current_tokens, self.max_context_tokens, ratio * 100.0);
+        info!(
+            "Context: {}/{} tokens ({:.1}%)",
+            current_tokens,
+            self.max_context_tokens,
+            ratio * 100.0
+        );
 
         if ratio < self.auto_compact_threshold {
             return Ok(None);
@@ -72,7 +77,12 @@ impl ContextManager {
         let micro_ratio = after_micro as f64 / self.max_context_tokens as f64;
 
         if micro_saved > 0 {
-            info!(" MicroCompact saved ~{} tokens ({:.1}% -> {:.1}%)", micro_saved, ratio * 100.0, micro_ratio * 100.0);
+            info!(
+                " MicroCompact saved ~{} tokens ({:.1}% -> {:.1}%)",
+                micro_saved,
+                ratio * 100.0,
+                micro_ratio * 100.0
+            );
         }
 
         if micro_ratio < self.auto_compact_threshold {
@@ -91,7 +101,8 @@ impl ContextManager {
             match self.auto_compact.compact(messages, provider).await {
                 Ok(summary) => {
                     let total_len = messages.len();
-                    let preserved_messages: Vec<Value> = messages[total_len.saturating_sub(summary.turns_preserved)..].to_vec();
+                    let preserved_messages: Vec<Value> =
+                        messages[total_len.saturating_sub(summary.turns_preserved)..].to_vec();
 
                     messages.clear();
                     messages.push(serde_json::json!({
@@ -105,10 +116,16 @@ impl ContextManager {
                     messages.extend(preserved_messages);
 
                     let after_auto = TokenCounter::estimate_messages(messages);
-                    info!(" AutoCompact: {} turns compressed, {:.1}% -> {:.1}%", 
-                        summary.turns_compressed, micro_ratio * 100.0, after_auto as f64 / self.max_context_tokens as f64 * 100.0);
+                    info!(
+                        " AutoCompact: {} turns compressed, {:.1}% -> {:.1}%",
+                        summary.turns_compressed,
+                        micro_ratio * 100.0,
+                        after_auto as f64 / self.max_context_tokens as f64 * 100.0
+                    );
 
-                    if (after_auto as f64 / self.max_context_tokens as f64) < self.full_compact_threshold {
+                    if (after_auto as f64 / self.max_context_tokens as f64)
+                        < self.full_compact_threshold
+                    {
                         self.record_compaction(tokens_before - after_auto);
                         return Ok(Some(CompactionReport {
                             stage_fired: CompactionStage::AutoCompact,
@@ -129,10 +146,15 @@ impl ContextManager {
         let result = self.full_compact.compact(messages, provider).await?;
         *messages = result.compacted_messages;
         let after_full = TokenCounter::estimate_messages(messages);
-        
-        info!(" FullCompact: {} -> {} tokens, {} files re-injected", tokens_before, after_full, result.files_reinjected.len());
+
+        info!(
+            " FullCompact: {} -> {} tokens, {} files re-injected",
+            tokens_before,
+            after_full,
+            result.files_reinjected.len()
+        );
         self.record_compaction(tokens_before - after_full);
-        
+
         Ok(Some(CompactionReport {
             stage_fired: CompactionStage::FullCompact,
             tokens_before,

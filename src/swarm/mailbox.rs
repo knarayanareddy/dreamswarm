@@ -33,7 +33,9 @@ impl Mailbox {
             timestamp: Utc::now(),
             read: false,
         };
-        let inbox_path = self.inboxes_dir.join(format!("{}.jsonl", Self::sanitize(to)));
+        let inbox_path = self
+            .inboxes_dir
+            .join(format!("{}.jsonl", Self::sanitize(to)));
         use std::io::Write;
         let mut file = std::fs::OpenOptions::new()
             .create(true)
@@ -45,21 +47,37 @@ impl Mailbox {
     }
 
     pub fn send_chat(&self, to: &str, text: &str) -> anyhow::Result<()> {
-        self.send(to, MessageContent::Chat { text: text.to_string() })
+        self.send(
+            to,
+            MessageContent::Chat {
+                text: text.to_string(),
+            },
+        )
     }
 
-    pub fn send_task_assignment(&self, to: &str, task_id: &str, instructions: &str) -> anyhow::Result<()> {
-        self.send(to, MessageContent::TaskAssignment {
-            task_id: task_id.to_string(),
-            instructions: instructions.to_string(),
-        })
+    pub fn send_task_assignment(
+        &self,
+        to: &str,
+        task_id: &str,
+        instructions: &str,
+    ) -> anyhow::Result<()> {
+        self.send(
+            to,
+            MessageContent::TaskAssignment {
+                task_id: task_id.to_string(),
+                instructions: instructions.to_string(),
+            },
+        )
     }
 
     pub fn send_task_result(&self, to: &str, task_id: &str, result: &str) -> anyhow::Result<()> {
-        self.send(to, MessageContent::TaskResult {
-            task_id: task_id.to_string(),
-            result: result.to_string(),
-        })
+        self.send(
+            to,
+            MessageContent::TaskResult {
+                task_id: task_id.to_string(),
+                result: result.to_string(),
+            },
+        )
     }
 
     pub fn send_shutdown(&self, to: &str) -> anyhow::Result<()> {
@@ -68,7 +86,9 @@ impl Mailbox {
 
     pub fn receive(&mut self) -> anyhow::Result<Vec<AgentMessage>> {
         self.poll_count += 1;
-        let inbox_path = self.inboxes_dir.join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
+        let inbox_path = self
+            .inboxes_dir
+            .join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
         if !inbox_path.exists() {
             return Ok(vec![]);
         }
@@ -98,7 +118,9 @@ impl Mailbox {
     }
 
     pub fn peek(&self) -> anyhow::Result<Vec<AgentMessage>> {
-        let inbox_path = self.inboxes_dir.join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
+        let inbox_path = self
+            .inboxes_dir
+            .join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
         if !inbox_path.exists() {
             return Ok(vec![]);
         }
@@ -112,7 +134,9 @@ impl Mailbox {
     }
 
     pub fn clear(&self) -> anyhow::Result<()> {
-        let inbox_path = self.inboxes_dir.join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
+        let inbox_path = self
+            .inboxes_dir
+            .join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
         if inbox_path.exists() {
             std::fs::remove_file(&inbox_path)?;
         }

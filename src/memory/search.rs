@@ -33,12 +33,8 @@ impl MemorySearch {
         // Phase 2: Search within matched topic files
         for entry in &index_matches {
             if let Some(content) = self.topics.read(&entry.file_path)? {
-                let file_results = self.search_in_content(
-                    &entry.file_path,
-                    &entry.topic,
-                    &content,
-                    query,
-                );
+                let file_results =
+                    self.search_in_content(&entry.file_path, &entry.topic, &content, query);
                 results.extend(file_results);
             }
         }
@@ -46,7 +42,8 @@ impl MemorySearch {
         // Phase 3: Broader search if few results
         if results.len() < max_results {
             let all_files = self.topics.list_all()?;
-            let searched_paths: Vec<&str> = index_matches.iter().map(|e| e.file_path.as_str()).collect();
+            let searched_paths: Vec<&str> =
+                index_matches.iter().map(|e| e.file_path.as_str()).collect();
 
             for file_path in &all_files {
                 if searched_paths.contains(&file_path.as_str()) {

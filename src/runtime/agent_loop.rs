@@ -65,7 +65,10 @@ impl AgentRuntime {
 
         let mut iterations: u32 = 0;
         let mut all_tool_calls: Vec<String> = Vec::new();
+        #[allow(unused_assignments)]
         let mut final_text = String::new();
+        // Skip initial assignment warning by using it or changing declaration
+        // We'll just define it here to satisfy the compiler and ensure it's always read later.
 
         loop {
             if iterations >= self.max_iterations {

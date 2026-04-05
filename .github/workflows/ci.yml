@@ -186,7 +186,7 @@ jobs:
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04
           - target: x86_64-apple-darwin
-            os: macos-12
+            os: macos-latest
           - target: aarch64-apple-darwin
             os: macos-latest
     steps:
@@ -202,6 +202,15 @@ jobs:
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
           echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
           echo "CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++" >> $GITHUB_ENV
+      
+      - name: Inject ONNX Runtime (macOS Intel Cross-build)
+        if: matrix.target == 'x86_64-apple-darwin'
+        run: |
+          curl -L -o onnxruntime.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.17.1/onnxruntime-osx-x86_64-1.17.1.tgz
+          tar -xzf onnxruntime.tgz
+          echo "ORT_DYLIB_PATH=$GITHUB_WORKSPACE/onnxruntime-osx-x86_64-1.17.1/lib/libonnxruntime.dylib" >> $GITHUB_ENV
+          echo "ORT_STRATEGY: system" >> $GITHUB_ENV
+
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
         env:

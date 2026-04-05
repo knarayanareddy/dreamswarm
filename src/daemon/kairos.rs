@@ -207,7 +207,7 @@ impl KairosDaemon {
 
     async fn send_system_notification(
         &self,
-        message: &str,
+        _message: &str,
         _urgency: &Urgency,
     ) -> anyhow::Result<()> {
         #[cfg(target_os = "macos")]
@@ -217,7 +217,7 @@ impl KairosDaemon {
                     "-e",
                     &format!(
                         "display notification \"{}\" with title \"DreamSwarm\"",
-                        message
+                        _message
                     ),
                 ])
                 .output()

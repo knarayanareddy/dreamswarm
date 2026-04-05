@@ -1,14 +1,20 @@
+use crate::memory::vector::VectorStore;
 use crate::runtime::permissions::RiskLevel;
 use crate::tools::{Tool, ToolOutput};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::PathBuf;
+use tracing::info;
 
 fn knowledge_dir() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".dreamswarm")
         .join("knowledge")
+}
+
+fn vector_store_path() -> PathBuf {
+    knowledge_dir().join("vector_store.json")
 }
 
 /// Allows an agent to publish a "finding" or "lesson learned" to the
@@ -68,6 +74,11 @@ impl Tool for PublishKnowledgeTool {
         let path = dir.join(format!("{}.json", id));
         std::fs::write(&path, serde_json::to_string_pretty(&entry)?)?;
 
+        // Also index in vector store for semantic search
+        if let Ok(mut vs) = VectorStore::new(vector_store_path()) {
+            let _ = vs.add(id.clone(), format!("{}\n{}", title, content), entry);
+        }
+
         tracing::info!("Knowledge published: '{}' (id: {})", title, id);
         Ok(ToolOutput {
             content: format!("✅ Knowledge published successfully (id: {})", id),
@@ -115,59 +126,62 @@ impl Tool for SearchKnowledgeTool {
             });
         }
 
-        let mut results: Vec<String> = vec![];
+        let mut results_all: std::collections::HashMap<String, (Value, f32)> = std::collections::HashMap::new();
 
+        // 1. Keyword Search (Legacy)
         for entry in std::fs::read_dir(&dir)? {
             let entry = entry?;
-            if entry.path().extension().and_then(|e| e.to_str()) != Some("json") {
+            if entry.path().extension().and_then(|e| e.to_str()) != Some("json") || entry.path().file_name().unwrap() == "vector_store.json" {
                 continue;
             }
             let raw = std::fs::read_to_string(entry.path())?;
             if let Ok(doc) = serde_json::from_str::<Value>(&raw) {
                 let title = doc["title"].as_str().unwrap_or("").to_lowercase();
                 let content = doc["content"].as_str().unwrap_or("").to_lowercase();
-                let tags = doc["tags"]
-                    .as_array()
-                    .map(|a| {
-                        a.iter()
-                            .filter_map(|v| v.as_str())
-                            .collect::<Vec<_>>()
-                            .join(" ")
-                    })
-                    .unwrap_or_default()
-                    .to_lowercase();
+                let tags = doc["tags"].as_array().map(|a| a.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(" ")).unwrap_or_default().to_lowercase();
 
                 if title.contains(&query) || content.contains(&query) || tags.contains(&query) {
-                    results.push(format!(
-                        "### {}\n*Published: {}*\n{}\n**Tags:** {}\n",
-                        doc["title"].as_str().unwrap_or(""),
-                        doc["published_at"].as_str().unwrap_or(""),
-                        doc["content"].as_str().unwrap_or(""),
-                        doc["tags"]
-                            .as_array()
-                            .map(|a| a
-                                .iter()
-                                .filter_map(|v| v.as_str())
-                                .collect::<Vec<_>>()
-                                .join(", "))
-                            .unwrap_or_default()
-                    ));
+                    let id = doc["id"].as_str().unwrap_or("").to_string();
+                    results_all.insert(id, (doc, 1.5)); // High score for exact keyword match
                 }
             }
         }
 
-        if results.is_empty() {
+        // 2. Semantic Search (Vector)
+        if let Ok(vs) = VectorStore::new(vector_store_path()) {
+            if let Ok(semantic_hits) = vs.search(&query, 5) {
+                for (entry, score) in semantic_hits {
+                    if score > 0.7 { // Similarity threshold
+                        if !results_all.contains_key(&entry.id) {
+                            results_all.insert(entry.id, (entry.metadata, score));
+                        }
+                    }
+                }
+            }
+        }
+
+        if results_all.is_empty() {
             Ok(ToolOutput {
                 content: format!("No knowledge entries found matching '{}'.", query),
                 is_error: false,
             })
         } else {
+            let mut formatted: Vec<String> = results_all.values().map(|(doc, _score)| {
+                format!(
+                    "### {}\n*Published: {}*\n{}\n**Tags:** {}\n",
+                    doc["title"].as_str().unwrap_or(""),
+                    doc["published_at"].as_str().unwrap_or(""),
+                    doc["content"].as_str().unwrap_or(""),
+                    doc["tags"].as_array().map(|a| a.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(", ")).unwrap_or_default()
+                )
+            }).collect();
+
             Ok(ToolOutput {
                 content: format!(
-                    "## Knowledge Graph Results for '{}'\n\n{} result(s) found:\n\n{}",
+                    "## Hybrid Knowledge Results for '{}'\n\n{} result(s) found (Keyword + Semantic):\n\n{}",
                     query,
-                    results.len(),
-                    results.join("\n---\n")
+                    formatted.len(),
+                    formatted.join("\n---\n")
                 ),
                 is_error: false,
             })

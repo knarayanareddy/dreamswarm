@@ -1,6 +1,6 @@
 use crate::prompts::roles::SwarmRole;
 use crate::swarm::executors::{
-    in_process::InProcessExecutor, tmux::TmuxExecutor, worktree::WorktreeExecutor,
+    in_process::InProcessExecutor, ssh::SshExecutor, tmux::TmuxExecutor, worktree::WorktreeExecutor,
     TeammateExecutor, WorkerConfig,
 };
 use crate::swarm::mailbox::Mailbox;
@@ -37,6 +37,7 @@ impl SwarmCoordinator {
                 PathBuf::from(working_dir),
                 "dreamswarm",
             )?),
+            SpawnStrategy::SSH => Box::new(SshExecutor::new(config.remote_hosts.clone())),
         };
 
         let state = TeamState {
@@ -83,6 +84,15 @@ impl SwarmCoordinator {
         tracing::info!("Role-aware spawn: '{}' → {:?}", name, swarm_role);
 
         let worker_id = format!("w-{}", &uuid::Uuid::new_v4().to_string()[..6]);
+
+        // Round-robin host selection for SSH
+        let remote_host = if self.config.spawn_strategy == SpawnStrategy::SSH && !self.config.remote_hosts.is_empty() {
+            let idx = self.workers.len() % self.config.remote_hosts.len();
+            Some(self.config.remote_hosts[idx].clone())
+        } else {
+            None
+        };
+
         let worker_config = WorkerConfig {
             id: worker_id.clone(),
             name: name.to_string(),
@@ -92,6 +102,7 @@ impl SwarmCoordinator {
             model: self.config.worker_model.clone(),
             permission_mode: self.config.worker_mode.clone(),
             working_dir: self.working_dir.clone(),
+            remote_host,
         };
 
         let worker = self.executor.spawn(&worker_config).await?;

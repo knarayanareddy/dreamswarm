@@ -12,6 +12,7 @@ pub struct WorkerConfig {
     pub model: Option<String>,
     pub permission_mode: String,
     pub working_dir: String,
+    pub remote_host: Option<String>,
 }
 
 #[async_trait]
@@ -35,6 +36,7 @@ pub trait TeammateExecutor: Send + Sync {
 pub mod in_process;
 pub mod tmux;
 pub mod worktree;
+pub mod ssh;
 
 pub fn detect_best_executor() -> SpawnStrategy {
     // Check for tmux

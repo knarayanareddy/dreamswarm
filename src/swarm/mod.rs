@@ -10,6 +10,7 @@ pub struct TeamConfig {
     pub worker_mode: String,
     pub worker_model: Option<String>,
     pub timeout_seconds: u64,
+    pub remote_hosts: Vec<String>,
 }
 
 impl Default for TeamConfig {
@@ -22,6 +23,7 @@ impl Default for TeamConfig {
             worker_mode: "default".to_string(),
             worker_model: None,
             timeout_seconds: 600,
+            remote_hosts: vec![],
         }
     }
 }
@@ -31,6 +33,7 @@ pub enum SpawnStrategy {
     InProcess,
     TmuxPane,
     GitWorktree,
+    SSH,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -53,6 +56,7 @@ pub struct WorkerInfo {
     pub worktree_path: Option<String>,
     pub branch_name: Option<String>,
     pub tmux_pane_id: Option<String>,
+    pub remote_host: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

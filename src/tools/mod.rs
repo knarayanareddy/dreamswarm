@@ -112,6 +112,8 @@ impl ToolRegistry {
         registry.register(Box::new(python_tool::PythonExecuteTool));
         registry.register(Box::new(js_tool::JSExecuteTool));
         registry.register(Box::new(rust_debug::RustCheckTool));
+        registry.register(Box::new(rust_debug::DebuggerTool));
+        registry.register(Box::new(rust_debug::TraceAnalyzerTool));
         registry.register(Box::new(memory_tools::PublishKnowledgeTool));
         registry.register(Box::new(memory_tools::SearchKnowledgeTool));
 

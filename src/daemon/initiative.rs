@@ -66,21 +66,20 @@ impl InitiativeEngine {
             })
             .collect();
 
-        if !build_failures.is_empty()
-            && self.trust.should_auto_act(&Urgency::High) {
-                return Some(Initiative::Act(ProactiveAction::RunTests {
-                    reason: format!("Build/test failure: {}", build_failures[0].description),
-                    changed_files: build_failures
-                        .iter()
-                        .filter_map(|s| {
-                            s.metadata
-                                .get("path")
-                                .and_then(|p| p.as_str())
-                                .map(String::from)
-                        })
-                        .collect(),
-                }));
-            }
+        if !build_failures.is_empty() && self.trust.should_auto_act(&Urgency::High) {
+            return Some(Initiative::Act(ProactiveAction::RunTests {
+                reason: format!("Build/test failure: {}", build_failures[0].description),
+                changed_files: build_failures
+                    .iter()
+                    .filter_map(|s| {
+                        s.metadata
+                            .get("path")
+                            .and_then(|p| p.as_str())
+                            .map(String::from)
+                    })
+                    .collect(),
+            }));
+        }
 
         let source_changes: Vec<&Signal> = signals
             .iter()
@@ -94,21 +93,20 @@ impl InitiativeEngine {
             })
             .collect();
 
-        if source_changes.len() >= 3
-            && self.trust.should_auto_act(&Urgency::Medium) {
-                return Some(Initiative::Act(ProactiveAction::RunTests {
-                    reason: format!("{} source files changed", source_changes.len()),
-                    changed_files: source_changes
-                        .iter()
-                        .filter_map(|s| {
-                            s.metadata
-                                .get("path")
-                                .and_then(|p| p.as_str())
-                                .map(String::from)
-                        })
-                        .collect(),
-                }));
-            }
+        if source_changes.len() >= 3 && self.trust.should_auto_act(&Urgency::Medium) {
+            return Some(Initiative::Act(ProactiveAction::RunTests {
+                reason: format!("{} source files changed", source_changes.len()),
+                changed_files: source_changes
+                    .iter()
+                    .filter_map(|s| {
+                        s.metadata
+                            .get("path")
+                            .and_then(|p| p.as_str())
+                            .map(String::from)
+                    })
+                    .collect(),
+            }));
+        }
         None
     }
 

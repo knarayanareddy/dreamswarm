@@ -1,4 +1,9 @@
-#![allow(clippy::ptr_arg, clippy::manual_strip, clippy::vec_init_then_push, clippy::field_reassign_with_default)]
+#![allow(
+    clippy::ptr_arg,
+    clippy::manual_strip,
+    clippy::vec_init_then_push,
+    clippy::field_reassign_with_default
+)]
 use clap::{Parser, Subcommand};
 use dreamswarm::daemon::daily_log::DailyLog;
 use dreamswarm::daemon::kairos::KairosDaemon;

@@ -6,10 +6,7 @@ use dreamswarm::swarm::task_list::{SharedTaskList, TaskStatus};
 #[test]
 fn test_task_list_roundtrip() {
     // SharedTaskList::new takes a team name string and stores under ~/.dreamswarm/
-    let team_name = format!(
-        "test-team-{}",
-        &uuid::Uuid::new_v4().to_string()[..6]
-    );
+    let team_name = format!("test-team-{}", &uuid::Uuid::new_v4().to_string()[..6]);
     let task_list = SharedTaskList::new(&team_name).unwrap();
 
     // Create a task

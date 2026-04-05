@@ -29,9 +29,8 @@ impl MemoryPruner {
                         topic: entry.topic.clone(),
                         subtopic: entry.subtopic.clone(),
                         content: String::new(),
-                        reasoning:
-                            "Describes code structure that can be re-derived from source"
-                                .to_string(),
+                        reasoning: "Describes code structure that can be re-derived from source"
+                            .to_string(),
                         confidence: 0.0,
                     });
                     continue;

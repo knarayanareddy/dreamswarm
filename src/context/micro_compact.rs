@@ -89,12 +89,13 @@ impl MicroCompact {
 
         // RULE 3: Compress old "no matches" / empty results
         if (content.contains("No matches found") || content.contains("(no output)"))
-            && message_index < (current_turn as usize).saturating_sub(3) {
-                let compressed = "[no results]";
-                block["content"] = Value::String(compressed.to_string());
-                let new_tokens = compressed.len() / 4;
-                return original_tokens.saturating_sub(new_tokens);
-            }
+            && message_index < (current_turn as usize).saturating_sub(3)
+        {
+            let compressed = "[no results]";
+            block["content"] = Value::String(compressed.to_string());
+            let new_tokens = compressed.len() / 4;
+            return original_tokens.saturating_sub(new_tokens);
+        }
         0
     }
 }

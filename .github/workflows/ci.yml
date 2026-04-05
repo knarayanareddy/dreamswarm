@@ -97,18 +97,26 @@ jobs:
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: brew install tmux ripgrep
+      - name: Locate ONNX Runtime
+        run: |
+          LIB_PATH=$(find target -name "libonnxruntime.so" -o -name "libonnxruntime.dylib" | head -n 1)
+          if [ -n "$LIB_PATH" ]; then
+            LIB_DIR=$(dirname "$LIB_PATH")
+            echo "ORT_DYLIB_PATH=$LIB_PATH" >> $GITHUB_ENV
+            echo "LD_LIBRARY_PATH=$LIB_DIR:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+            echo "DYLD_LIBRARY_PATH=$LIB_DIR:$DYLD_LIBRARY_PATH" >> $GITHUB_ENV
+            echo "Found ONNX Runtime at $LIB_PATH"
+          else
+            echo "ONNX Runtime not found in target/"
+          fi
       - name: Run unit tests
         run: cargo test --lib --all-features
         env:
           RUST_LOG: dreamswarm=debug
-          LD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
-          DYLD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
       - name: Run integration tests
         run: cargo test --test '*' --all-features
         env:
           RUST_LOG: dreamswarm=info
-          LD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
-          DYLD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
       - name: Run doc tests
         run: cargo test --doc --all-features
 
@@ -130,15 +138,22 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y tmux ripgrep
+      - name: Locate ONNX Runtime
+        run: |
+          LIB_PATH=$(find target -name "libonnxruntime.so" -o -name "libonnxruntime.dylib" | head -n 1)
+          if [ -n "$LIB_PATH" ]; then
+            LIB_DIR=$(dirname "$LIB_PATH")
+            echo "ORT_DYLIB_PATH=$LIB_PATH" >> $GITHUB_ENV
+            echo "LD_LIBRARY_PATH=$LIB_DIR:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+            echo "DYLD_LIBRARY_PATH=$LIB_DIR:$DYLD_LIBRARY_PATH" >> $GITHUB_ENV
+            echo "Found ONNX Runtime at $LIB_PATH"
+          fi
       - name: Generate coverage report
         run: |
           cargo llvm-cov --all-features \
             --workspace \
             --lcov \
             --output-path lcov.info
-        env:
-          LD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
-          DYLD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
       - name: Upload to Codecov
         uses: codecov/codecov-action@v4
         with:

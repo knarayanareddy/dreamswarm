@@ -19,10 +19,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-rust
-      - name: Install audit tools
-        run: |
-          cargo binstall cargo-deny --no-confirm --force
-          cargo binstall cargo-audit --no-confirm --force
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@cargo-deny
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@cargo-audit
       - name: Run cargo-audit
         run: cargo audit --json > audit-report.json 2>&1 || true
       - name: Run cargo-deny

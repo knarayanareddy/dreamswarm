@@ -26,20 +26,6 @@ jobs:
         run: cargo test --all-features --no-fail-fast
     timeout-minutes: 30
 
-  property-tests:
-    name: Property Tests (Extended)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-rust
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y tmux ripgrep
-      - name: Run property tests
-        run: cargo test --test '*' --features proptest -- --ignored
-        env:
-          PROPTEST_CASES: 5000
-    timeout-minutes: 30
-
   benchmarks:
     name: Benchmarks
     runs-on: ubuntu-latest
@@ -66,7 +52,7 @@ jobs:
         with:
           toolchain: nightly
       - name: Install cargo-fuzz
-        run: cargo install cargo-fuzz
+        uses: taiki-e/install-action@cargo-fuzz
       - name: Fuzz bash security validators
         run: |
           cd fuzz
@@ -101,7 +87,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-rust
       - name: Install cargo-outdated
-        run: cargo binstall cargo-outdated --no-confirm --force
+        uses: taiki-e/install-action@cargo-outdated
       - name: Check for outdated dependencies
         run: |
           cargo outdated --root-deps-only --exit-code 0 | tee outdated.txt

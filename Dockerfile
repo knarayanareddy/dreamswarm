@@ -1,13 +1,22 @@
 # Stage 1: Build
-FROM rust:slim-bookworm AS builder
+FROM ubuntu:24.04 AS builder
 
-# Install build dependencies for C-bindings (like rusqlite)
+# Prevent tzdata prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install build dependencies for C-bindings and Rust toolchain
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
     build-essential \
     cmake \
+    curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /build
 
@@ -17,7 +26,10 @@ RUN cargo build --release
 # The binary is at target/release/dreamswarm
 
 # Stage 2: Runtime
-FROM debian:12-slim
+FROM ubuntu:24.04
+
+# Prevent tzdata prompts
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     tmux \

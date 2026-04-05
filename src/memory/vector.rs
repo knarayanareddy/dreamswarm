@@ -2,7 +2,7 @@ use fastembed::{TextEmbedding, InitOptions, EmbeddingModel};
 use ndarray::Array1;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tracing::{info, warn};
+use tracing::info;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VectorEntry {
@@ -56,7 +56,7 @@ impl VectorStore {
         Ok(())
     }
 
-    pub fn search(&self, query: &str, limit: usize) -> anyhow::Result<Vec<(VectorEntry, f32)>> {
+    pub fn search(&mut self, query: &str, limit: usize) -> anyhow::Result<Vec<(VectorEntry, f32)>> {
         info!("Searching vector space for: '{}'", query);
         let query_embeddings = self.model.embed(vec![query], None)?;
         let query_vec = match query_embeddings.first() {

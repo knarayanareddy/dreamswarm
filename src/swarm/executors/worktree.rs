@@ -115,6 +115,7 @@ impl TeammateExecutor for WorktreeExecutor {
             worktree_path: Some(worktree_path.to_string_lossy().to_string()),
             branch_name: Some(branch_name),
             tmux_pane_id: pane_id,
+            remote_host: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         })

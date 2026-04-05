@@ -3,6 +3,7 @@ pub mod loader;
 pub mod search;
 pub mod topics;
 pub mod transcripts;
+pub mod vector;
 pub mod writer;
 
 use std::path::PathBuf;

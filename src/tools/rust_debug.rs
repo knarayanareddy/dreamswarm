@@ -84,7 +84,7 @@ impl Tool for DebuggerTool {
     }
 
     fn risk_level(&self) -> RiskLevel {
-        RiskLevel::Medium
+        RiskLevel::Moderate
     }
 
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
@@ -93,7 +93,7 @@ impl Tool for DebuggerTool {
             .ok_or_else(|| anyhow::anyhow!("Missing command"))?;
         let debugger = input["debugger"].as_str().unwrap_or("lldb");
 
-        let script = if debugger == "lldb" {
+        let _script = if debugger == "lldb" {
             format!("run\nbt\nquit")
         } else {
             format!("run\nbacktrace\nquit")

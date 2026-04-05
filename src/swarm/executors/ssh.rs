@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use chrono::Utc;
 use std::process::Stdio;
 use tokio::process::Command;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 pub struct SshExecutor {
     pub remote_hosts: Vec<String>,
@@ -117,7 +117,7 @@ impl TeammateExecutor for SshExecutor {
         }
     }
 
-    async fn send_input(&self, worker: &WorkerInfo, input: &str) -> anyhow::Result<()> {
+    async fn send_input(&self, _worker: &WorkerInfo, _input: &str) -> anyhow::Result<()> {
         // Mailbox handles most communication, but we could implement raw stdin here if needed
         warn!("send_input not implemented for SSH executor (use mailbox instead)");
         Ok(())

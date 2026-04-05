@@ -4,7 +4,6 @@ use crate::tools::{Tool, ToolOutput};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::path::PathBuf;
-use tracing::info;
 
 fn knowledge_dir() -> PathBuf {
     dirs::home_dir()
@@ -160,7 +159,7 @@ impl Tool for SearchKnowledgeTool {
         }
 
         // 2. Semantic Search (Vector)
-        if let Ok(vs) = VectorStore::new(vector_store_path()) {
+        if let Ok(mut vs) = VectorStore::new(vector_store_path()) {
             if let Ok(semantic_hits) = vs.search(&query, 5) {
                 for (entry, score) in semantic_hits {
                     if score > 0.7 {
@@ -179,7 +178,7 @@ impl Tool for SearchKnowledgeTool {
                 is_error: false,
             })
         } else {
-            let mut formatted: Vec<String> = results_all
+            let formatted: Vec<String> = results_all
                 .values()
                 .map(|(doc, _score)| {
                     format!(

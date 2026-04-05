@@ -47,6 +47,7 @@ impl TeammateExecutor for InProcessExecutor {
             worktree_path: None,
             branch_name: None,
             tmux_pane_id: None,
+            remote_host: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };

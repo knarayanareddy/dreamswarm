@@ -11,6 +11,9 @@ WORKDIR /build
 
 # Cache dependency compilation
 COPY Cargo.toml Cargo.lock ./
+ENV CC_x86_64_unknown_linux_musl=musl-gcc \
+    CXX_x86_64_unknown_linux_musl=g++ \
+    CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 RUN rustup target add x86_64-unknown-linux-musl
 RUN cargo build --release --target x86_64-unknown-linux-musl 2>/dev/null || true

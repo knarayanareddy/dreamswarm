@@ -94,7 +94,12 @@ impl Mailbox {
         )
     }
 
-    pub fn send_help_response(&self, to: &str, request_id: &str, result: &str) -> anyhow::Result<()> {
+    pub fn send_help_response(
+        &self,
+        to: &str,
+        request_id: &str,
+        result: &str,
+    ) -> anyhow::Result<()> {
         self.send(
             to,
             MessageContent::HelpResponse {

@@ -11,12 +11,12 @@ pub mod file_read;
 pub mod file_write;
 pub mod git;
 pub mod grep_tool;
+pub mod js_tool;
 pub mod monitor_tool;
 pub mod push_notification;
-pub mod swarm_tools;
 pub mod python_tool;
-pub mod js_tool;
 pub mod rust_debug;
+pub mod swarm_tools;
 
 #[derive(Debug, Clone)]
 pub struct ToolCall {
@@ -105,9 +105,7 @@ impl ToolRegistry {
             registry.register(Box::new(swarm_tools::RequestHelpTool {
                 mailbox: mbox.clone(),
             }));
-            registry.register(Box::new(swarm_tools::CheckInboxTool {
-                mailbox: mbox,
-            }));
+            registry.register(Box::new(swarm_tools::CheckInboxTool { mailbox: mbox }));
         }
 
         registry.register(Box::new(python_tool::PythonExecuteTool));

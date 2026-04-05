@@ -189,7 +189,8 @@ async fn main() -> anyhow::Result<()> {
             let session = Session::new();
 
             // Initialize Runtime
-            let runtime = AgentRuntime::new(session, query_engine, tool_registry, config, db, Some(mbox));
+            let runtime =
+                AgentRuntime::new(session, query_engine, tool_registry, config, db, Some(mbox));
 
             // Start TUI
             dreamswarm::tui::app::run_interactive(runtime).await?;
@@ -201,10 +202,13 @@ async fn main() -> anyhow::Result<()> {
             db.migrate()?;
 
             let query_engine = QueryEngine::new(&config.provider, &config.model, &config)?;
-            
+
             // Initialize Mailbox for worker
-            let mbox = Arc::new(RwLock::new(Mailbox::new(&team, &cli.role.clone().unwrap_or_else(|| "worker".to_string()))?));
-            
+            let mbox = Arc::new(RwLock::new(Mailbox::new(
+                &team,
+                &cli.role.clone().unwrap_or_else(|| "worker".to_string()),
+            )?));
+
             let tool_registry = ToolRegistry::default_phase1(memory.clone(), Some(mbox.clone()));
             let mut session = Session::new();
 
@@ -216,14 +220,8 @@ async fn main() -> anyhow::Result<()> {
                 session.add_user_message(prompt);
             }
 
-            let mut runtime = AgentRuntime::new(
-                session,
-                query_engine,
-                tool_registry,
-                config,
-                db,
-                Some(mbox),
-            );
+            let mut runtime =
+                AgentRuntime::new(session, query_engine, tool_registry, config, db, Some(mbox));
 
             // In worker mode, we assume semi-autonomy or piping
             // We use an auto-approver for Dangerous tools for now (or until mailbox is ready)

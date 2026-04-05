@@ -32,6 +32,7 @@ pub struct AgentRuntime {
     permission_gate: PermissionGate,
     config: AppConfig,
     db: Database,
+    #[allow(dead_code)]
     mailbox: Option<Arc<RwLock<Mailbox>>>,
     max_iterations: u32,
 }

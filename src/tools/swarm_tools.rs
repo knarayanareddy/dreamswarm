@@ -52,19 +52,25 @@ pub struct CheckInboxTool {
 
 #[async_trait]
 impl Tool for CheckInboxTool {
-    fn name(&self) -> &str { "CheckInbox" }
-    fn description(&self) -> &str { "Check your mailbox for any new messages, help requests, or responses from other agents." }
+    fn name(&self) -> &str {
+        "CheckInbox"
+    }
+    fn description(&self) -> &str {
+        "Check your mailbox for any new messages, help requests, or responses from other agents."
+    }
     fn input_schema(&self) -> Value {
         serde_json::json!({
             "type": "object",
             "properties": {}
         })
     }
-    fn risk_level(&self) -> RiskLevel { RiskLevel::Safe }
+    fn risk_level(&self) -> RiskLevel {
+        RiskLevel::Safe
+    }
     async fn execute(&self, _input: &Value) -> anyhow::Result<ToolOutput> {
         let mut mailbox = self.mailbox.write().await;
         let messages = mailbox.receive()?;
-        
+
         if messages.is_empty() {
             return Ok(ToolOutput {
                 content: "Your inbox is empty.".to_string(),
@@ -73,6 +79,9 @@ impl Tool for CheckInboxTool {
         }
 
         let content = serde_json::to_string_pretty(&messages)?;
-        Ok(ToolOutput { content, is_error: false })
+        Ok(ToolOutput {
+            content,
+            is_error: false,
+        })
     }
 }

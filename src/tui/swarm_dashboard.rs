@@ -1,18 +1,18 @@
+use crate::swarm::{task_list::SharedTaskList, task_list::TaskStatus, TeamState, WorkerStatus};
+use crossterm::{
+    event::{self, Event, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Terminal,
 };
-use crossterm::{
-    event::{self, Event, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use crate::swarm::{task_list::TaskStatus, TeamState, WorkerStatus, task_list::SharedTaskList};
 use std::io;
-use std::time::{Duration, Instant};
 use std::path::PathBuf;
+use std::time::{Duration, Instant};
 use tokio::process::Command;
 
 pub struct SwarmApp {
@@ -43,7 +43,7 @@ impl SwarmApp {
             .join("teams")
             .join(&self.team_name)
             .join("state.json");
-        
+
         if state_path.exists() {
             let content = std::fs::read_to_string(state_path)?;
             let state: TeamState = serde_json::from_str(&content)?;
@@ -72,7 +72,7 @@ pub async fn run_dashboard(team_name: &str) -> anyhow::Result<()> {
         let timeout = tick_rate
             .checked_sub(app.last_update.elapsed())
             .unwrap_or_else(|| Duration::from_secs(0));
-            
+
         if event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
@@ -96,7 +96,7 @@ pub async fn run_dashboard(team_name: &str) -> anyhow::Result<()> {
                                     // Direct kill for phase 1 dashboard autonomy
                                     let mut cmd = Command::new("tmux");
                                     cmd.args(["kill-pane", "-t", pane_id]);
-                                    let _ = cmd.spawn(); 
+                                    let _ = cmd.spawn();
                                 }
                             }
                         }
@@ -111,7 +111,11 @@ pub async fn run_dashboard(team_name: &str) -> anyhow::Result<()> {
                                             if task.assigned_to.as_deref() == Some(&worker.id) {
                                                 task.status = TaskStatus::Pending;
                                                 task.assigned_to = None;
-                                                let _ = tl.update_task(&task.id, TaskStatus::Pending, None);
+                                                let _ = tl.update_task(
+                                                    &task.id,
+                                                    TaskStatus::Pending,
+                                                    None,
+                                                );
                                                 break;
                                             }
                                         }
@@ -141,16 +145,22 @@ pub async fn run_dashboard(team_name: &str) -> anyhow::Result<()> {
 fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Min(10),
-            Constraint::Length(3),
-        ].as_ref())
+        .constraints(
+            [
+                Constraint::Length(3),
+                Constraint::Min(10),
+                Constraint::Length(3),
+            ]
+            .as_ref(),
+        )
         .split(f.size());
 
     // Header
-    let header = Paragraph::new(format!(" DreamSwarm Swarm Dashboard | Team: {} ", app.team_name))
-        .block(Block::default().borders(Borders::ALL));
+    let header = Paragraph::new(format!(
+        " DreamSwarm Swarm Dashboard | Team: {} ",
+        app.team_name
+    ))
+    .block(Block::default().borders(Borders::ALL));
     f.render_widget(header, chunks[0]);
 
     // Main Content
@@ -161,38 +171,57 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
 
     // Workers Panel
     let workers_list: Vec<ListItem> = if let Some(ref state) = app.state {
-        state.workers.iter().enumerate().map(|(i, w)| {
-            let status_symbol = match w.status {
-                WorkerStatus::Active => "🐝",
-                WorkerStatus::Idle => "💤",
-                WorkerStatus::Spawning => "🥚",
-                WorkerStatus::Completed => "✅",
-                _ => "❌",
-            };
-            let style = if i == app.selected_worker_index {
-                ratatui::style::Style::default().fg(ratatui::style::Color::Yellow).add_modifier(ratatui::style::Modifier::BOLD)
-            } else {
-                ratatui::style::Style::default()
-            };
-            ListItem::new(format!("{} {} ({}) — {:?}", status_symbol, w.name, &w.id[..6], w.status)).style(style)
-        }).collect()
+        state
+            .workers
+            .iter()
+            .enumerate()
+            .map(|(i, w)| {
+                let status_symbol = match w.status {
+                    WorkerStatus::Active => "🐝",
+                    WorkerStatus::Idle => "💤",
+                    WorkerStatus::Spawning => "🥚",
+                    WorkerStatus::Completed => "✅",
+                    _ => "❌",
+                };
+                let style = if i == app.selected_worker_index {
+                    ratatui::style::Style::default()
+                        .fg(ratatui::style::Color::Yellow)
+                        .add_modifier(ratatui::style::Modifier::BOLD)
+                } else {
+                    ratatui::style::Style::default()
+                };
+                ListItem::new(format!(
+                    "{} {} ({}) — {:?}",
+                    status_symbol,
+                    w.name,
+                    &w.id[..6],
+                    w.status
+                ))
+                .style(style)
+            })
+            .collect()
     } else {
         vec![ListItem::new("No workers active.")]
     };
-    let workers = List::new(workers_list)
-        .block(Block::default().title(" Active Swarm ").borders(Borders::ALL));
+    let workers = List::new(workers_list).block(
+        Block::default()
+            .title(" Active Swarm ")
+            .borders(Borders::ALL),
+    );
     f.render_widget(workers, main_chunks[0]);
 
     // Task Panel
     // Note: We'd ideally pull from TaskList here too, but for MVP we'll show team status
-    let status_block = Block::default().title(" Swarm Operations ").borders(Borders::ALL);
+    let status_block = Block::default()
+        .title(" Swarm Operations ")
+        .borders(Borders::ALL);
     let _inner_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(4), Constraint::Min(2)])
         .split(status_block.inner(main_chunks[1]));
-    
+
     f.render_widget(status_block, main_chunks[1]);
-    
+
     let instructions = Paragraph::new(" [q/Esc]: Quit | [k]: Kill Agent | [r]: Re-assign Task ");
     f.render_widget(instructions, chunks[2]);
 }

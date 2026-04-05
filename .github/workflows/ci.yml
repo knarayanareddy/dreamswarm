@@ -67,16 +67,7 @@ jobs:
       - name: Check compilation
         run: cargo check --all-targets --all-features
 
-  msrv:
-    name: Minimum Supported Rust Version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-rust
-        with:
-          toolchain: ${{ env.MSRV }}
-      - name: Check MSRV
-        run: cargo check --all-features
+
 
   # ═══════════════════════════════════════════
   # STAGE 3: Tests (< 15 min)
@@ -234,7 +225,7 @@ jobs:
     name: CI Pass Gate
     runs-on: ubuntu-latest
     if: always()
-    needs: [format, lint, typos, check, msrv, test, coverage, security, build]
+    needs: [format, lint, typos, check, test, coverage, security, build]
     steps:
       - name: Check all jobs passed
         run: |

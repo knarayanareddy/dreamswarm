@@ -1,3 +1,4 @@
+#![allow(clippy::ptr_arg, clippy::manual_strip, clippy::vec_init_then_push, clippy::field_reassign_with_default)]
 pub mod context;
 pub mod daemon;
 pub mod db;

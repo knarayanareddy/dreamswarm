@@ -5,20 +5,22 @@ use async_trait::async_trait;
 use serde_json::Value;
 use std::path::PathBuf;
 
-fn knowledge_dir() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".dreamswarm")
-        .join("knowledge")
+// Remove hardcoded knowledge_dir() and vector_store_path() functions.
+// They are now managed via the Tool struct.
+
+pub struct PublishKnowledgeTool {
+    pub memory_dir: PathBuf,
 }
 
-fn vector_store_path() -> PathBuf {
-    knowledge_dir().join("vector_store.json")
-}
+impl PublishKnowledgeTool {
+    fn knowledge_dir(&self) -> PathBuf {
+        self.memory_dir.join("knowledge")
+    }
 
-/// Allows an agent to publish a "finding" or "lesson learned" to the
-/// shared knowledge graph so that all other agents can benefit from it.
-pub struct PublishKnowledgeTool;
+    fn vector_store_path(&self) -> PathBuf {
+        self.knowledge_dir().join("vector_store.json")
+    }
+}
 
 #[async_trait]
 impl Tool for PublishKnowledgeTool {
@@ -58,7 +60,7 @@ impl Tool for PublishKnowledgeTool {
             })
             .unwrap_or_default();
 
-        let dir = knowledge_dir();
+        let dir = self.knowledge_dir();
         std::fs::create_dir_all(&dir)?;
 
         let id = uuid::Uuid::new_v4().to_string();
@@ -74,7 +76,7 @@ impl Tool for PublishKnowledgeTool {
         std::fs::write(&path, serde_json::to_string_pretty(&entry)?)?;
 
         // Also index in vector store for semantic search
-        if let Ok(mut vs) = VectorStore::new(vector_store_path()) {
+        if let Ok(mut vs) = VectorStore::new(self.vector_store_path()) {
             let _ = vs.add(id.clone(), format!("{}\n{}", title, content), entry);
         }
 
@@ -86,9 +88,19 @@ impl Tool for PublishKnowledgeTool {
     }
 }
 
-/// Allows an agent to search the shared knowledge graph for findings
-/// published by any agent in the swarm.
-pub struct SearchKnowledgeTool;
+pub struct SearchKnowledgeTool {
+    pub memory_dir: PathBuf,
+}
+
+impl SearchKnowledgeTool {
+    fn knowledge_dir(&self) -> PathBuf {
+        self.memory_dir.join("knowledge")
+    }
+
+    fn vector_store_path(&self) -> PathBuf {
+        self.knowledge_dir().join("vector_store.json")
+    }
+}
 
 #[async_trait]
 impl Tool for SearchKnowledgeTool {
@@ -116,7 +128,7 @@ impl Tool for SearchKnowledgeTool {
 
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
         let query = input["query"].as_str().unwrap_or("").to_lowercase();
-        let dir = knowledge_dir();
+        let dir = self.knowledge_dir();
 
         if !dir.exists() {
             return Ok(ToolOutput {
@@ -159,7 +171,7 @@ impl Tool for SearchKnowledgeTool {
         }
 
         // 2. Semantic Search (Vector)
-        if let Ok(mut vs) = VectorStore::new(vector_store_path()) {
+        if let Ok(mut vs) = VectorStore::new(self.vector_store_path()) {
             if let Ok(semantic_hits) = vs.search(&query, 5) {
                 for (entry, score) in semantic_hits {
                     if score > 0.7 {

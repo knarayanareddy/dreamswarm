@@ -74,6 +74,11 @@ fn test_publish_and_search_knowledge() {
     use dreamswarm::tools::Tool;
 
     let rt = tokio::runtime::Runtime::new().unwrap();
+    let tmp = tempfile::TempDir::new().unwrap();
+    let memory_dir = tmp.path().to_path_buf();
+    
+    let publish_tool = PublishKnowledgeTool { memory_dir: memory_dir.clone() };
+    let search_tool = SearchKnowledgeTool { memory_dir };
 
     // Publish a finding
     let publish_input = serde_json::json!({
@@ -83,15 +88,15 @@ fn test_publish_and_search_knowledge() {
     });
 
     let result = rt
-        .block_on(PublishKnowledgeTool.execute(&publish_input))
+        .block_on(publish_tool.execute(&publish_input))
         .unwrap();
-    assert!(!result.is_error, "PublishKnowledge should succeed");
+    assert!(!result.is_error, "PublishKnowledge should succeed. Error: {}", result.content);
     assert!(result.content.contains("published successfully"));
 
     // Search for it by tag keyword
     let search_input = serde_json::json!({ "query": "serde" });
     let search_result = rt
-        .block_on(SearchKnowledgeTool.execute(&search_input))
+        .block_on(search_tool.execute(&search_input))
         .unwrap();
 
     assert!(!search_result.is_error, "SearchKnowledge should succeed");

@@ -20,6 +20,7 @@ pub struct VectorStore {
 
 impl VectorStore {
     pub fn new(path: PathBuf) -> anyhow::Result<Self> {
+        Self::ensure_ort_lib_path();
         info!("Initializing VectorStore with fastembed (BGE-Small)...");
         let model = TextEmbedding::try_new(
             InitOptions::new(EmbeddingModel::BGESmallENV15).with_show_download_progress(true),
@@ -83,6 +84,47 @@ impl VectorStore {
         results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         Ok(results.into_iter().take(limit).collect())
+    }
+
+    fn ensure_ort_lib_path() {
+        if std::env::var("ORT_DYLIB_PATH").is_ok() {
+            return;
+        }
+
+        let target_dir = std::path::PathBuf::from("target");
+        if !target_dir.exists() {
+            return;
+        }
+
+        let pattern = if cfg!(target_os = "windows") {
+            "onnxruntime.dll"
+        } else if cfg!(target_os = "macos") {
+            "libonnxruntime.dylib"
+        } else {
+            "libonnxruntime.so"
+        };
+
+        fn find_file(dir: &std::path::Path, name: &str) -> Option<std::path::PathBuf> {
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        if let Some(found) = find_file(&path, name) {
+                            return Some(found);
+                        }
+                    } else if path.file_name().and_then(|n| n.to_str()) == Some(name) {
+                        return Some(path);
+                    }
+                }
+            }
+            None
+        }
+
+        if let Some(path) = find_file(&target_dir, pattern) {
+            let path_str = path.to_string_lossy().into_owned();
+            info!("Self-Healing: Found ONNX Runtime at {}", path_str);
+            std::env::set_var("ORT_DYLIB_PATH", path_str);
+        }
     }
 
     fn cosine_similarity(&self, a: &Array1<f32>, b: &Array1<f32>) -> f32 {

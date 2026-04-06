@@ -97,7 +97,7 @@ impl ToolRegistry {
         registry.register(Box::new(file_read::FileReadTool));
         registry.register(Box::new(file_write::FileWriteTool));
         registry.register(Box::new(bash_tool::BashTool));
-        registry.register(Box::new(grep_tool::GrepTool { memory }));
+        registry.register(Box::new(grep_tool::GrepTool { memory: memory.clone() }));
         registry.register(Box::new(ask_user::AskUserTool));
         registry.register(Box::new(git::GitBranchTool));
         registry.register(Box::new(git::GitCommitTool));
@@ -109,13 +109,19 @@ impl ToolRegistry {
             registry.register(Box::new(swarm_tools::CheckInboxTool { mailbox: mbox }));
         }
 
+        let mem_dir = memory.try_read().map(|m| m.memory_dir().clone()).unwrap_or_default();
+
         registry.register(Box::new(python_tool::PythonExecuteTool));
         registry.register(Box::new(js_tool::JSExecuteTool));
         registry.register(Box::new(rust_debug::RustCheckTool));
         registry.register(Box::new(rust_debug::DebuggerTool));
         registry.register(Box::new(rust_debug::TraceAnalyzerTool));
-        registry.register(Box::new(memory_tools::PublishKnowledgeTool));
-        registry.register(Box::new(memory_tools::SearchKnowledgeTool));
+        registry.register(Box::new(memory_tools::PublishKnowledgeTool {
+            memory_dir: mem_dir.clone(),
+        }));
+        registry.register(Box::new(memory_tools::SearchKnowledgeTool {
+            memory_dir: mem_dir,
+        }));
 
         registry
     }

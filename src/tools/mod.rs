@@ -142,7 +142,12 @@ impl ToolRegistry {
         // Phase 4 Tools
         let daemon_state_dir = memory
             .try_read()
-            .map(|m| m.memory_dir().parent().unwrap_or(m.memory_dir()).join("daemon"))
+            .map(|m| {
+                m.memory_dir()
+                    .parent()
+                    .unwrap_or(m.memory_dir())
+                    .join("daemon")
+            })
             .unwrap_or_default();
         registry.register(Box::new(daemon_status::DaemonStatusTool::new(
             daemon_state_dir.clone(),

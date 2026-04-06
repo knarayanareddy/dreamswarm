@@ -180,7 +180,11 @@ async fn main() -> anyhow::Result<()> {
             let query_engine = QueryEngine::new(&config.provider, &config.model, &config)?;
 
             // Initialize Mailbox
-            let mbox = Arc::new(RwLock::new(Mailbox::new(config.state_dir.clone(), "default", "lead")?));
+            let mbox = Arc::new(RwLock::new(Mailbox::new(
+                config.state_dir.clone(),
+                "default",
+                "lead",
+            )?));
 
             // Initialize Tool Registry
             let tool_registry = ToolRegistry::default_phase1(memory.clone(), Some(mbox.clone()));

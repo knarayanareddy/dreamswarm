@@ -229,7 +229,11 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
 
     // ── Header ────────────────────────────────────────────────────────────────
     let worker_count = app.state.as_ref().map_or(0, |s| s.workers.len());
-    let heartbeat = if app.last_update.elapsed().as_millis() < 500 { "●" } else { "○" };
+    let heartbeat = if app.last_update.elapsed().as_millis() < 500 {
+        "●"
+    } else {
+        "○"
+    };
     let header_text = format!(
         " 🐝 DreamSwarm Dashboard {} │  Team: {}  │  Agents: {} ",
         heartbeat, app.team_name, worker_count

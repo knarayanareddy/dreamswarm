@@ -328,9 +328,7 @@ impl SwarmCoordinator {
     }
 
     fn persist_state(&self) -> anyhow::Result<()> {
-        let state_dir = self.state_dir
-            .join("teams")
-            .join(&self.config.team_name);
+        let state_dir = self.state_dir.join("teams").join(&self.config.team_name);
         std::fs::create_dir_all(&state_dir)?;
         let state_path = state_dir.join("state.json");
         let content = serde_json::to_string_pretty(&self.state)?;

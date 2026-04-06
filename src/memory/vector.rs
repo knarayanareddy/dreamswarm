@@ -21,7 +21,7 @@ pub struct VectorStore {
 impl VectorStore {
     pub fn new(path: PathBuf) -> anyhow::Result<Self> {
         Self::ensure_ort_lib_path();
-        
+
         // Phase 7 resilience: check for library existence before attempting to load
         if !Self::is_ort_available() {
             anyhow::bail!("ONNX Runtime library not found. Neural indexing disabled.");

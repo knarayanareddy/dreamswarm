@@ -43,16 +43,18 @@ pub async fn cleanup_all_teams() {
         }
     };
 
-        for team_name in &teams {
-            tracing::info!("Cleaning up team '{}'", team_name);
-            kill_team_tmux_panes(team_name).await;
-            cleanup_team_worktrees(team_name).await;
-            // Note: global signal cleanup uses the default state directory 
-            // unless we refactor REGISTERED_TEAMS to store paths.
-            let default_state = dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".dreamswarm");
-            cleanup_team_directory(default_state.clone(), team_name);
-            let _ = Mailbox::cleanup_team(default_state, team_name);
-        }
+    for team_name in &teams {
+        tracing::info!("Cleaning up team '{}'", team_name);
+        kill_team_tmux_panes(team_name).await;
+        cleanup_team_worktrees(team_name).await;
+        // Note: global signal cleanup uses the default state directory
+        // unless we refactor REGISTERED_TEAMS to store paths.
+        let default_state = dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(".dreamswarm");
+        cleanup_team_directory(default_state.clone(), team_name);
+        let _ = Mailbox::cleanup_team(default_state, team_name);
+    }
 }
 
 async fn kill_team_tmux_panes(_team_name: &str) {
@@ -89,9 +91,7 @@ async fn cleanup_team_worktrees(_team_name: &str) {
 }
 
 fn cleanup_team_directory(base_dir: PathBuf, team_name: &str) {
-    let team_dir = base_dir
-        .join("teams")
-        .join(team_name);
+    let team_dir = base_dir.join("teams").join(team_name);
     if team_dir.exists() {
         let _ = std::fs::remove_dir_all(&team_dir);
     }

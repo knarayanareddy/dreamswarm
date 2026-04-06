@@ -58,13 +58,14 @@ impl TeammateExecutor for InProcessExecutor {
         let state_dir = config.state_dir.clone();
         let join_handle = tokio::spawn(async move {
             tracing::info!("In-process worker '{}' started", worker_id);
-            let mut mailbox = match crate::swarm::mailbox::Mailbox::new(state_dir, &team_name, &worker_id) {
-                Ok(m) => m,
-                Err(e) => {
-                    tracing::error!("Worker {} mailbox failed: {}", worker_id, e);
-                    return;
-                }
-            };
+            let mut mailbox =
+                match crate::swarm::mailbox::Mailbox::new(state_dir, &team_name, &worker_id) {
+                    Ok(m) => m,
+                    Err(e) => {
+                        tracing::error!("Worker {} mailbox failed: {}", worker_id, e);
+                        return;
+                    }
+                };
 
             loop {
                 tokio::select! {

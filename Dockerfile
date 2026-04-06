@@ -38,7 +38,15 @@ RUN apt-get update && apt-get install -y \
     bash \
     ca-certificates \
     tini \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install ONNX Runtime 1.20.1
+RUN curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-linux-x64-1.20.1.tgz && \
+    tar -zxvf onnx.tgz && \
+    cp onnxruntime-linux-x64-1.20.1/lib/libonnxruntime.so* /usr/lib/ && \
+    ldconfig && \
+    rm -rf onnx*
 
 # Create non-root user
 RUN useradd -ms /bin/bash dreamswarm

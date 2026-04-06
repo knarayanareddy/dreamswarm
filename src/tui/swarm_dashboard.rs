@@ -9,7 +9,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Table, Row, Cell},
+    widgets::{Block, Borders, Cell, List, ListItem, Paragraph, Row, Table},
     Terminal,
 };
 use std::collections::VecDeque;
@@ -20,6 +20,7 @@ use tokio::process::Command;
 
 const MAX_LOG_ENTRIES: usize = 50;
 
+pub struct SwarmApp {
     pub team_name: String,
     pub base_dir: PathBuf,
     pub state: Option<TeamState>,
@@ -44,9 +45,7 @@ impl SwarmApp {
     }
 
     pub fn update_state(&mut self) -> anyhow::Result<()> {
-        let team_dir = self.base_dir
-            .join("teams")
-            .join(&self.team_name);
+        let team_dir = self.base_dir.join("teams").join(&self.team_name);
 
         // Update swarm state
         let state_path = team_dir.join("state.json");
@@ -297,10 +296,14 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
             vec![
                 Row::new(vec![Cell::from("Name"), Cell::from(worker.name.clone())]),
                 Row::new(vec![Cell::from("ID"), Cell::from(worker.id.clone())]),
-                Row::new(vec![Cell::from("Status"), Cell::from(format!("{:?}", worker.status))]),
                 Row::new(vec![
-                    Cell::from("Current Task"),
-                    Cell::from(worker.current_task_id.as_deref().unwrap_or("None")),
+                    Cell::from("Status"),
+                    Cell::from(format!("{:?}", worker.status)),
+                ]),
+                Row::new(vec![Cell::from("Role"), Cell::from(worker.role.clone())]),
+                Row::new(vec![
+                    Cell::from("Branch"),
+                    Cell::from(worker.branch_name.as_deref().unwrap_or("None")),
                 ]),
                 Row::new(vec![
                     Cell::from("Tmux Pane"),
@@ -316,7 +319,7 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
 
     let inspector = Table::new(
         inspector_data,
-        [Constraint::Length(12), Constraint::Min(20)]
+        [Constraint::Length(12), Constraint::Min(20)],
     )
     .block(
         Block::default()
@@ -325,8 +328,11 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
             .border_style(Style::default().fg(Color::Yellow)),
     )
     .header(
-        Row::new(vec!["Attribute", "Value"])
-            .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+        Row::new(vec!["Attribute", "Value"]).style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
     );
     f.render_widget(inspector, right_column[0]);
 

@@ -76,8 +76,10 @@ fn test_publish_and_search_knowledge() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let tmp = tempfile::TempDir::new().unwrap();
     let memory_dir = tmp.path().to_path_buf();
-    
-    let publish_tool = PublishKnowledgeTool { memory_dir: memory_dir.clone() };
+
+    let publish_tool = PublishKnowledgeTool {
+        memory_dir: memory_dir.clone(),
+    };
     let search_tool = SearchKnowledgeTool { memory_dir };
 
     // Publish a finding
@@ -87,17 +89,17 @@ fn test_publish_and_search_knowledge() {
         "tags": ["rust", "performance", "serde"]
     });
 
-    let result = rt
-        .block_on(publish_tool.execute(&publish_input))
-        .unwrap();
-    assert!(!result.is_error, "PublishKnowledge should succeed. Error: {}", result.content);
+    let result = rt.block_on(publish_tool.execute(&publish_input)).unwrap();
+    assert!(
+        !result.is_error,
+        "PublishKnowledge should succeed. Error: {}",
+        result.content
+    );
     assert!(result.content.contains("published successfully"));
 
     // Search for it by tag keyword
     let search_input = serde_json::json!({ "query": "serde" });
-    let search_result = rt
-        .block_on(search_tool.execute(&search_input))
-        .unwrap();
+    let search_result = rt.block_on(search_tool.execute(&search_input)).unwrap();
 
     assert!(!search_result.is_error, "SearchKnowledge should succeed");
     assert!(

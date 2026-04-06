@@ -41,10 +41,10 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install ONNX Runtime 1.20.1
-RUN curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-linux-x64-1.20.1.tgz && \
+# Install ONNX Runtime 1.24.4
+RUN curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.24.4/onnxruntime-linux-x64-1.24.4.tgz && \
     tar -zxvf onnx.tgz && \
-    cp onnxruntime-linux-x64-1.20.1/lib/libonnxruntime.so* /usr/lib/ && \
+    cp onnxruntime-linux-x64-1.24.4/lib/libonnxruntime.so* /usr/lib/ && \
     ldconfig && \
     rm -rf onnx*
 

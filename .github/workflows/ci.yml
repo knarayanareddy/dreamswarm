@@ -102,16 +102,16 @@ jobs:
       - name: Sudo Install ONNX Runtime
         run: |
           if [[ "${{ runner.os }}" == "Linux" ]]; then
-            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-linux-x64-1.20.1.tgz
+            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.24.4/onnxruntime-linux-x64-1.24.4.tgz
             tar -zxvf onnx.tgz
-            sudo cp onnxruntime-linux-x64-1.20.1/lib/libonnxruntime.so* /usr/lib/
+            sudo cp onnxruntime-linux-x64-1.24.4/lib/libonnxruntime.so* /usr/lib/
             sudo ldconfig
           else
-            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-osx-x86_64-1.20.1.tgz
+            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.24.4/onnxruntime-osx-arm64-1.24.4.tgz
             tar -zxvf onnx.tgz
             sudo mkdir -p /usr/local/lib
-            sudo cp onnxruntime-osx-x86_64-1.20.1/lib/libonnxruntime.*.dylib /usr/local/lib/
-            sudo cp onnxruntime-osx-x86_64-1.20.1/lib/libonnxruntime.dylib /usr/local/lib/
+            sudo cp onnxruntime-osx-arm64-1.24.4/lib/libonnxruntime.*.dylib /usr/local/lib/
+            sudo cp onnxruntime-osx-arm64-1.24.4/lib/libonnxruntime.dylib /usr/local/lib/
           fi
           rm -rf onnx*
           echo "ORT_STRATEGY=system" >> $GITHUB_ENV
@@ -145,16 +145,16 @@ jobs:
       - name: Sudo Install ONNX Runtime
         run: |
           if [[ "${{ runner.os }}" == "Linux" ]]; then
-            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-linux-x64-1.20.1.tgz
+            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.24.4/onnxruntime-linux-x64-1.24.4.tgz
             tar -zxvf onnx.tgz
-            sudo cp onnxruntime-linux-x64-1.20.1/lib/libonnxruntime.so* /usr/lib/
+            sudo cp onnxruntime-linux-x64-1.24.4/lib/libonnxruntime.so* /usr/lib/
             sudo ldconfig
           else
-            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-osx-x86_64-1.20.1.tgz
+            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.24.4/onnxruntime-osx-arm64-1.24.4.tgz
             tar -zxvf onnx.tgz
             sudo mkdir -p /usr/local/lib
-            sudo cp onnxruntime-osx-x86_64-1.20.1/lib/libonnxruntime.*.dylib /usr/local/lib/
-            sudo cp onnxruntime-osx-x86_64-1.20.1/lib/libonnxruntime.dylib /usr/local/lib/
+            sudo cp onnxruntime-osx-arm64-1.24.4/lib/libonnxruntime.*.dylib /usr/local/lib/
+            sudo cp onnxruntime-osx-arm64-1.24.4/lib/libonnxruntime.dylib /usr/local/lib/
           fi
           rm -rf onnx*
           echo "ORT_STRATEGY=system" >> $GITHUB_ENV

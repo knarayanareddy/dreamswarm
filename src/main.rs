@@ -248,7 +248,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(Commands::Swarm { team }) => {
             println!("🐝 Launching Swarm Dashboard for team: {}", team);
-            dreamswarm::tui::swarm_dashboard::run_dashboard(&team).await?;
+            dreamswarm::tui::swarm_dashboard::run_dashboard(&team, config.state_dir).await?;
         }
         Some(Commands::Sessions) => {
             println!("Listing active sessions...");

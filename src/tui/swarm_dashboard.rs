@@ -9,7 +9,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Table, Row, Cell},
     Terminal,
 };
 use std::collections::VecDeque;
@@ -20,8 +20,8 @@ use tokio::process::Command;
 
 const MAX_LOG_ENTRIES: usize = 50;
 
-pub struct SwarmApp {
     pub team_name: String,
+    pub base_dir: PathBuf,
     pub state: Option<TeamState>,
     pub selected_worker_index: usize,
     pub should_quit: bool,
@@ -31,9 +31,10 @@ pub struct SwarmApp {
 }
 
 impl SwarmApp {
-    pub fn new(team_name: &str) -> Self {
+    pub fn new(team_name: &str, base_dir: PathBuf) -> Self {
         Self {
             team_name: team_name.to_string(),
+            base_dir,
             state: None,
             selected_worker_index: 0,
             should_quit: false,
@@ -43,9 +44,7 @@ impl SwarmApp {
     }
 
     pub fn update_state(&mut self) -> anyhow::Result<()> {
-        let team_dir = dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(".dreamswarm")
+        let team_dir = self.base_dir
             .join("teams")
             .join(&self.team_name);
 
@@ -109,10 +108,7 @@ impl SwarmApp {
         }
 
         // Also show recent knowledge publications
-        let knowledge_dir = dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(".dreamswarm")
-            .join("knowledge");
+        let knowledge_dir = self.base_dir.join("memory").join("knowledge");
         if knowledge_dir.exists() {
             if let Ok(entries) = std::fs::read_dir(&knowledge_dir) {
                 for entry in entries.flatten() {
@@ -137,14 +133,14 @@ impl SwarmApp {
     }
 }
 
-pub async fn run_dashboard(team_name: &str) -> anyhow::Result<()> {
+pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = SwarmApp::new(team_name);
+    let mut app = SwarmApp::new(team_name, base_dir);
     let tick_rate = Duration::from_millis(250);
 
     loop {
@@ -226,7 +222,7 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
             [
                 Constraint::Length(3),
                 Constraint::Min(10),
-                Constraint::Length(3),
+                Constraint::Length(2),
             ]
             .as_ref(),
         )
@@ -247,11 +243,16 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
         .block(Block::default().borders(Borders::ALL));
     f.render_widget(header, root[0]);
 
-    // ── Body: left = workers, right = message bus ─────────────────────────────
+    // ── Body: left = agents, center = inspector, bottom-right = message bus ────
     let body = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(38), Constraint::Percentage(62)].as_ref())
+        .constraints([Constraint::Percentage(25), Constraint::Percentage(75)].as_ref())
         .split(root[1]);
+
+    let right_column = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
+        .split(body[1]);
 
     // Workers panel
     let workers_list: Vec<ListItem> = if let Some(ref state) = app.state {
@@ -284,11 +285,50 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
 
     let workers_panel = List::new(workers_list).block(
         Block::default()
-            .title(" 🐝 Active Agents ")
+            .title(" 🐝 Swarm Members ")
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Blue)),
+            .border_style(Style::default().fg(Color::Cyan)),
     );
     f.render_widget(workers_panel, body[0]);
+
+    // Agent Inspector (Top Right)
+    let inspector_data = if let Some(ref state) = app.state {
+        if let Some(worker) = state.workers.get(app.selected_worker_index) {
+            vec![
+                Row::new(vec![Cell::from("Name"), Cell::from(worker.name.clone())]),
+                Row::new(vec![Cell::from("ID"), Cell::from(worker.id.clone())]),
+                Row::new(vec![Cell::from("Status"), Cell::from(format!("{:?}", worker.status))]),
+                Row::new(vec![
+                    Cell::from("Current Task"),
+                    Cell::from(worker.current_task_id.as_deref().unwrap_or("None")),
+                ]),
+                Row::new(vec![
+                    Cell::from("Tmux Pane"),
+                    Cell::from(worker.tmux_pane_id.as_deref().unwrap_or("-")),
+                ]),
+            ]
+        } else {
+            vec![]
+        }
+    } else {
+        vec![]
+    };
+
+    let inspector = Table::new(
+        inspector_data,
+        [Constraint::Length(12), Constraint::Min(20)]
+    )
+    .block(
+        Block::default()
+            .title(" 🔍 Agent Inspector ")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(Color::Yellow)),
+    )
+    .header(
+        Row::new(vec!["Attribute", "Value"])
+            .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+    );
+    f.render_widget(inspector, right_column[0]);
 
     // Message Bus panel
     let log_items: Vec<ListItem> = if app.message_log.is_empty() {
@@ -322,11 +362,11 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
 
     let bus_panel = List::new(log_items).block(
         Block::default()
-            .title(" 📡 Message Bus ")
+            .title(" 📡 Hybrid Message Bus ")
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Magenta)),
     );
-    f.render_widget(bus_panel, body[1]);
+    f.render_widget(bus_panel, right_column[1]);
 
     // ── Footer ────────────────────────────────────────────────────────────────
     let footer = Paragraph::new(" [q] Quit  [↑↓] Select  [k] Force-Kill  [r] Re-assign Task ")

@@ -101,19 +101,19 @@ jobs:
         run: cargo test --all-features --no-run
       - name: Sudo Install ONNX Runtime
         run: |
-          LIB_PATH=$(find target -name "libonnxruntime.so" -o -name "libonnxruntime.dylib" | head -n 1)
-          if [ -n "$LIB_PATH" ]; then
-            if [[ "${{ runner.os }}" == "Linux" ]]; then
-              sudo cp "$LIB_PATH" /usr/lib/
-              sudo ldconfig
-            else
-              sudo cp "$LIB_PATH" /usr/local/lib/
-            fi
-            echo "Installed $LIB_PATH to system library path"
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.17.1/onnxruntime-linux-x64-1.17.1.tgz
+            tar -zxvf onnx.tgz
+            sudo cp onnxruntime-linux-x64-1.17.1/lib/libonnxruntime.so* /usr/lib/
+            sudo ldconfig
           else
-            echo "ONNX Runtime not found in target/"
-            exit 1
+            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.17.1/onnxruntime-osx-x86_64-1.17.1.tgz
+            tar -zxvf onnx.tgz
+            sudo cp onnxruntime-osx-x86_64-1.17.1/lib/libonnxruntime.*.dylib /usr/local/lib/
+            sudo cp onnxruntime-osx-x86_64-1.17.1/lib/libonnxruntime.dylib /usr/local/lib/
           fi
+          rm -rf onnx*
+          echo "ORT_STRATEGY=system" >> $GITHUB_ENV
       - name: Run unit tests
         run: cargo test --lib --all-features
         env:
@@ -143,16 +143,19 @@ jobs:
         run: cargo llvm-cov --all-features --no-run
       - name: Sudo Install ONNX Runtime
         run: |
-          LIB_PATH=$(find target -name "libonnxruntime.so" -o -name "libonnxruntime.dylib" | head -n 1)
-          if [ -n "$LIB_PATH" ]; then
-            if [[ "${{ runner.os }}" == "Linux" ]]; then
-              sudo cp "$LIB_PATH" /usr/lib/
-              sudo ldconfig
-            else
-              sudo cp "$LIB_PATH" /usr/local/lib/
-            fi
-            echo "Installed $LIB_PATH to system library path"
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.17.1/onnxruntime-linux-x64-1.17.1.tgz
+            tar -zxvf onnx.tgz
+            sudo cp onnxruntime-linux-x64-1.17.1/lib/libonnxruntime.so* /usr/lib/
+            sudo ldconfig
+          else
+            curl -L -o onnx.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.17.1/onnxruntime-osx-x86_64-1.17.1.tgz
+            tar -zxvf onnx.tgz
+            sudo cp onnxruntime-osx-x86_64-1.17.1/lib/libonnxruntime.*.dylib /usr/local/lib/
+            sudo cp onnxruntime-osx-x86_64-1.17.1/lib/libonnxruntime.dylib /usr/local/lib/
           fi
+          rm -rf onnx*
+          echo "ORT_STRATEGY=system" >> $GITHUB_ENV
       - name: Generate coverage report
         run: |
           cargo llvm-cov --all-features \

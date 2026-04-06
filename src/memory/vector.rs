@@ -21,6 +21,12 @@ pub struct VectorStore {
 impl VectorStore {
     pub fn new(path: PathBuf) -> anyhow::Result<Self> {
         Self::ensure_ort_lib_path();
+        
+        // Phase 7 resilience: check for library existence before attempting to load
+        if !Self::is_ort_available() {
+            anyhow::bail!("ONNX Runtime library not found. Neural indexing disabled.");
+        }
+
         info!("Initializing VectorStore with fastembed (BGE-Small)...");
         let model = TextEmbedding::try_new(
             InitOptions::new(EmbeddingModel::BGESmallENV15).with_show_download_progress(true),
@@ -142,5 +148,36 @@ impl VectorStore {
         let data = serde_json::to_string_pretty(&self.entries)?;
         std::fs::write(&self.path, data)?;
         Ok(())
+    }
+
+    fn is_ort_available() -> bool {
+        // Check environment variable set by ensure_ort_lib_path
+        if std::env::var("ORT_DYLIB_PATH").is_ok() {
+            return true;
+        }
+
+        // Check standard search paths
+        let pattern = if cfg!(target_os = "windows") {
+            "onnxruntime.dll"
+        } else if cfg!(target_os = "macos") {
+            "libonnxruntime.dylib"
+        } else {
+            "libonnxruntime.so"
+        };
+
+        // If not in env, check if it's in /usr/lib or /usr/local/lib
+        let common_paths = if cfg!(target_os = "macos") {
+            vec!["/usr/local/lib", "/usr/lib"]
+        } else {
+            vec!["/usr/lib", "/usr/local/lib"]
+        };
+
+        for base in common_paths {
+            if std::path::Path::new(base).join(pattern).exists() {
+                return true;
+            }
+        }
+
+        false
     }
 }

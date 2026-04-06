@@ -12,6 +12,7 @@ pub struct WorkerConfig {
     pub model: Option<String>,
     pub permission_mode: String,
     pub working_dir: String,
+    pub state_dir: std::path::PathBuf,
     pub remote_host: Option<String>,
 }
 

@@ -20,12 +20,13 @@ pub struct SwarmCoordinator {
     workers: Vec<WorkerInfo>,
     state: TeamState,
     working_dir: String,
+    state_dir: PathBuf,
 }
 
 impl SwarmCoordinator {
-    pub fn new(config: TeamConfig, working_dir: &str) -> anyhow::Result<Self> {
+    pub fn new(config: TeamConfig, working_dir: &str, state_dir: PathBuf) -> anyhow::Result<Self> {
         let task_list = SharedTaskList::new(&config.team_name)?;
-        let mailbox = Mailbox::new(&config.team_name, "lead")?;
+        let mailbox = Mailbox::new(state_dir.clone(), &config.team_name, "lead")?;
         let executor: Box<dyn TeammateExecutor> = match config.spawn_strategy {
             SpawnStrategy::InProcess => Box::new(InProcessExecutor::new()),
             SpawnStrategy::TmuxPane => {
@@ -56,6 +57,7 @@ impl SwarmCoordinator {
             workers: vec![],
             state,
             working_dir: working_dir.to_string(),
+            state_dir,
         })
     }
 
@@ -104,6 +106,7 @@ impl SwarmCoordinator {
             model: self.config.worker_model.clone(),
             permission_mode: self.config.worker_mode.clone(),
             working_dir: self.working_dir.clone(),
+            state_dir: self.state_dir.clone(),
             remote_host,
         };
 
@@ -302,7 +305,7 @@ impl SwarmCoordinator {
             }
             let _ = self.executor.cleanup(worker).await;
         }
-        let _ = Mailbox::cleanup_team(&self.config.team_name);
+        let _ = Mailbox::cleanup_team(self.state_dir.clone(), &self.config.team_name);
         self.state.status = TeamStatus::Completed;
         self.state.updated_at = Utc::now();
         self.persist_state()?;
@@ -325,9 +328,7 @@ impl SwarmCoordinator {
     }
 
     fn persist_state(&self) -> anyhow::Result<()> {
-        let state_dir = dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(".dreamswarm")
+        let state_dir = self.state_dir
             .join("teams")
             .join(&self.config.team_name);
         std::fs::create_dir_all(&state_dir)?;

@@ -57,7 +57,7 @@ impl SwarmApp {
         }
 
         // Scan mailbox directory for new messages to populate the message bus log
-        let mailbox_dir = team_dir.join("mailbox");
+        let mailbox_dir = team_dir.join("inboxes");
         if mailbox_dir.exists() {
             if let Ok(entries) = std::fs::read_dir(&mailbox_dir) {
                 for entry in entries.flatten() {
@@ -229,9 +229,10 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
 
     // ── Header ────────────────────────────────────────────────────────────────
     let worker_count = app.state.as_ref().map_or(0, |s| s.workers.len());
+    let heartbeat = if app.last_update.elapsed().as_millis() < 500 { "●" } else { "○" };
     let header_text = format!(
-        " 🐝 DreamSwarm Dashboard  │  Team: {}  │  Agents: {} ",
-        app.team_name, worker_count
+        " 🐝 DreamSwarm Dashboard {} │  Team: {}  │  Agents: {} ",
+        heartbeat, app.team_name, worker_count
     );
     let header = Paragraph::new(header_text)
         .style(
@@ -308,6 +309,10 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
                 Row::new(vec![
                     Cell::from("Tmux Pane"),
                     Cell::from(worker.tmux_pane_id.as_deref().unwrap_or("-")),
+                ]),
+                Row::new(vec![
+                    Cell::from("Last Update"),
+                    Cell::from(worker.updated_at.format("%H:%M:%S").to_string()),
                 ]),
             ]
         } else {

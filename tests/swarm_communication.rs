@@ -8,10 +8,12 @@ use dreamswarm::swarm::task_list::{SharedTaskList, TaskStatus};
 #[test]
 fn test_request_help_and_check_inbox() {
     let team = format!("test-help-{}", &uuid::Uuid::new_v4().to_string()[..6]);
+    let tmp = tempfile::TempDir::new().unwrap();
+    let state_dir = tmp.path().to_path_buf();
 
     // Two agents share the same team mailbox directory
-    let mut agent_a = Mailbox::new(&team, "agent-alpha").unwrap();
-    let mut agent_b = Mailbox::new(&team, "agent-beta").unwrap();
+    let mut agent_a = Mailbox::new(state_dir.clone(), &team, "agent-alpha").unwrap();
+    let mut agent_b = Mailbox::new(state_dir, &team, "agent-beta").unwrap();
 
     // Agent A sends a help request to Agent B
     let request_id = uuid::Uuid::new_v4().to_string();

@@ -9,10 +9,8 @@ pub struct Mailbox {
 }
 
 impl Mailbox {
-    pub fn new(team_name: &str, agent_name: &str) -> anyhow::Result<Self> {
-        let inboxes_dir = dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(".dreamswarm")
+    pub fn new(base_dir: PathBuf, team_name: &str, agent_name: &str) -> anyhow::Result<Self> {
+        let inboxes_dir = base_dir
             .join("teams")
             .join(Self::sanitize(team_name))
             .join("inboxes");
@@ -168,10 +166,8 @@ impl Mailbox {
         Ok(())
     }
 
-    pub fn cleanup_team(team_name: &str) -> anyhow::Result<()> {
-        let inboxes_dir = dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(".dreamswarm")
+    pub fn cleanup_team(base_dir: PathBuf, team_name: &str) -> anyhow::Result<()> {
+        let inboxes_dir = base_dir
             .join("teams")
             .join(Self::sanitize(team_name))
             .join("inboxes");

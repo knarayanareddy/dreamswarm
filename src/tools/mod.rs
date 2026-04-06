@@ -140,10 +140,10 @@ impl ToolRegistry {
         let mut registry = Self::default_phase1(memory.clone(), mailbox);
 
         // Phase 4 Tools
-        let daemon_state_dir = dirs::home_dir()
-            .unwrap_or_default()
-            .join(".dreamswarm")
-            .join("daemon");
+        let daemon_state_dir = memory
+            .try_read()
+            .map(|m| m.memory_dir().parent().unwrap_or(m.memory_dir()).join("daemon"))
+            .unwrap_or_default();
         registry.register(Box::new(daemon_status::DaemonStatusTool::new(
             daemon_state_dir.clone(),
         )));

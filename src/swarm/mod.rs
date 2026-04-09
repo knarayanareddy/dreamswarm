@@ -42,6 +42,7 @@ pub enum MergeStrategy {
     OctopusMerge,
     Sequential,
     LeadReview,
+    Consensus,
     Manual,
 }
 
@@ -54,6 +55,7 @@ pub struct WorkerInfo {
     pub spawn_type: SpawnStrategy,
     pub session_id: Option<String>,
     pub worktree_path: Option<String>,
+    pub instructions: String,
     pub branch_name: Option<String>,
     pub tmux_pane_id: Option<String>,
     pub remote_host: Option<String>,

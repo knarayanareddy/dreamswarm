@@ -86,6 +86,7 @@ impl TeammateExecutor for SshExecutor {
             session_id: None,
             worktree_path: None,
             branch_name: None,
+            instructions: String::new(),
             tmux_pane_id: None,
             remote_host: Some(host.to_string()),
             created_at: Utc::now(),

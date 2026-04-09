@@ -101,6 +101,12 @@ impl MemoryLoader {
         })
     }
 
+    /// High-level query interface for the Oracle API.
+    pub fn query(&self, query: &str) -> anyhow::Result<Vec<TopicInjection>> {
+        let ctx = self.load_for_turn(Some(query))?;
+        Ok(ctx.topics)
+    }
+
     pub fn format_for_prompt(&self, ctx: &MemoryContext) -> String {
         let mut output = String::new();
         output.push_str("<memory_index>\n");

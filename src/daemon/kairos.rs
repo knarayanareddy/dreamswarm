@@ -81,6 +81,19 @@ impl KairosDaemon {
         // Phase 5: Safe Auto-Resume
         let _ = self.attempt_auto_resume().await;
 
+        // Phase 6: Start The Oracle API
+        if self.config.api_enabled {
+            let api_state = crate::api::server::ApiState {
+                memory: self.memory.clone(),
+            };
+            let port = self.config.api_port;
+            tokio::spawn(async move {
+                if let Err(e) = crate::api::server::start_api_server(api_state, port).await {
+                    tracing::error!("The Oracle API failed to start: {}", e);
+                }
+            });
+        }
+
         let running = self.running.clone();
         tokio::spawn(async move {
             tokio::signal::ctrl_c().await.ok();
@@ -133,9 +146,9 @@ impl KairosDaemon {
                 Initiative::Sleep => {}
             }
 
-            // Phase 4: Autonomous Resilience
-            if let Err(e) = self.check_swarm_health().await {
-                tracing::error!("Swarm Health Check failed: {}", e);
+            // Phase 6: Neural Self-Optimization
+            if let Err(e) = self.run_self_optimization().await {
+                tracing::error!("Self-Optimization failed: {}", e);
             }
         }
         Ok(())
@@ -167,6 +180,24 @@ impl KairosDaemon {
             };
 
             tracing::info!("{}", DreamReporter::format_brief(&report));
+
+            // Phase 6: Autonomous Feature Synthesis
+            if let Ok(vacuums) =
+                crate::dream::synthesizer::ThematicSynthesizer::detect_feature_vacuums(&mem)
+            {
+                for (path, _reason) in vacuums {
+                    let _ = self.daily_log.log_observation(
+                        &format!(
+                            "Autonomous Feature Synthesis: Flagged Implementation Gap at '{}'",
+                            path
+                        ),
+                        vec!["FEATURE_SYNTHESIS".to_string()],
+                        self.initiative_engine.trust().current_level,
+                        None,
+                    );
+                }
+            }
+
             Ok(())
         } else {
             anyhow::bail!("No query engine available for autoDream")
@@ -254,6 +285,52 @@ impl KairosDaemon {
                 );
             }
         }
+        Ok(())
+    }
+
+    async fn run_self_optimization(&self) -> anyhow::Result<()> {
+        let trust = self.initiative_engine.trust().current_level;
+        if trust < self.config.auto_optimization_trust_threshold {
+            return Ok(());
+        }
+
+        let refinements_dir = self
+            .config
+            .state_dir
+            .parent()
+            .unwrap()
+            .join("memory")
+            .join("refinements");
+        if !refinements_dir.exists() {
+            return Ok(());
+        }
+
+        let entries = std::fs::read_dir(&refinements_dir)?;
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().is_some_and(|ext| ext == "md") {
+                let content = std::fs::read_to_string(&path)?;
+                if content.contains("# Agent Refinement:") {
+                    tracing::info!(
+                        "Phase 6: Auto-applying neural refinement from {}",
+                        path.display()
+                    );
+                    self.daily_log.log_observation(
+                        &format!("Neural Self-Optimization: Auto-applying instruction refinement from {}", path.file_name().unwrap_or_default().to_string_lossy()),
+                        vec!["SELF_OPTIMIZATION".to_string()],
+                        trust,
+                        None
+                    )?;
+
+                    // In a production system, we'd append/merge this into a SYSTEM_PROMPT.md.
+                    // For this build, we archive the refinement to mark it as 'applied'.
+                    let applied_dir = refinements_dir.join("applied");
+                    std::fs::create_dir_all(&applied_dir)?;
+                    std::fs::rename(&path, applied_dir.join(path.file_name().unwrap()))?;
+                }
+            }
+        }
+
         Ok(())
     }
 

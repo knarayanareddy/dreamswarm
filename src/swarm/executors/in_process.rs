@@ -46,6 +46,7 @@ impl TeammateExecutor for InProcessExecutor {
             session_id: Some(uuid::Uuid::new_v4().to_string()),
             worktree_path: None,
             branch_name: None,
+            instructions: String::new(),
             tmux_pane_id: None,
             remote_host: None,
             created_at: Utc::now(),

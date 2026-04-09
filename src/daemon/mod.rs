@@ -23,6 +23,9 @@ pub struct DaemonConfig {
     pub state_dir: PathBuf,
     pub notifications_enabled: bool,
     pub brief_mode: bool,
+    pub auto_optimization_trust_threshold: f64,
+    pub api_enabled: bool,
+    pub api_port: u16,
 }
 
 impl Default for DaemonConfig {
@@ -40,6 +43,9 @@ impl Default for DaemonConfig {
             state_dir,
             notifications_enabled: true,
             brief_mode: true,
+            auto_optimization_trust_threshold: 0.8,
+            api_enabled: true,
+            api_port: 8080,
         }
     }
 }

@@ -40,6 +40,28 @@ impl ThematicSynthesizer {
         Ok(targets)
     }
 
+    /// Detects 'Feature Vacuums': implementation gaps identified during L3 consolidation.
+    pub fn detect_feature_vacuums(memory: &MemorySystem) -> anyhow::Result<Vec<(String, String)>> {
+        let mut vacuums = Vec::new();
+        let all_topics = memory.topics.list_all()?;
+        for path in all_topics {
+            if path.contains("chapter") {
+                if let Some(content) = memory.topics.read(&path)? {
+                    if content.contains("TODO")
+                        || content.contains("FIXME")
+                        || content.contains("MISSING")
+                    {
+                        vacuums.push((
+                            path,
+                            "Detected implementation gap in architecture chapter".to_string(),
+                        ));
+                    }
+                }
+            }
+        }
+        Ok(vacuums)
+    }
+
     pub async fn propose_synthesis(
         topic: &str,
         l2_paths: &[String],

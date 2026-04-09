@@ -4,6 +4,7 @@
     clippy::vec_init_then_push,
     clippy::field_reassign_with_default
 )]
+pub mod api;
 pub mod context;
 pub mod daemon;
 pub mod db;

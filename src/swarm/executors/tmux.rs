@@ -115,6 +115,7 @@ impl TeammateExecutor for TmuxExecutor {
             session_id: None,
             worktree_path: None,
             branch_name: None,
+            instructions: String::new(),
             tmux_pane_id: Some(pane_id),
             remote_host: None,
             created_at: Utc::now(),

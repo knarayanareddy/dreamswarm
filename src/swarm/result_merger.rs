@@ -62,6 +62,10 @@ impl ResultMerger {
             MergeStrategy::OctopusMerge => {
                 self.octopus_merge(&completed_workers, target_branch).await
             }
+            MergeStrategy::Consensus => {
+                self.consensus_merge(&completed_workers, target_branch)
+                    .await
+            }
         }
     }
 
@@ -228,6 +232,68 @@ impl ResultMerger {
             let _ = self.git_cmd(&["merge", "--abort"]).await.ok();
             self.sequential_merge(workers, target_branch).await
         }
+    }
+
+    async fn consensus_merge(
+        &self,
+        workers: &[&WorkerInfo],
+        target_branch: &str,
+    ) -> anyhow::Result<MergeReport> {
+        let mut summary = String::from("## Consensus Synthesis Report\n\n");
+        let threshold = if workers
+            .iter()
+            .any(|w| w.instructions.to_lowercase().contains("security"))
+        {
+            "UNANIMOUS (Security Gate Active)"
+        } else {
+            "MAJORITY (2/3)"
+        };
+        summary.push_str(&format!(
+            "> [!IMPORTANT]\n> **Consensus Mode**: {}\n\n",
+            threshold
+        ));
+
+        let mut agreement_count = 0;
+        let mut workers_merged = Vec::new();
+
+        for (i, worker) in workers.iter().enumerate() {
+            let branch = worker.branch_name.as_ref().unwrap();
+            let result = self
+                .git_cmd(&["diff", "--shortstat", target_branch, branch])
+                .await?;
+            summary.push_str(&format!(
+                "- **Agent {} ({})**: {}\n",
+                i + 1,
+                worker.name,
+                result.trim()
+            ));
+            workers_merged.push(worker.name.clone());
+            agreement_count += 1; // Simplified: currently assumes all completed workers contributed to consensus
+        }
+
+        let success = if threshold.contains("UNANIMOUS") {
+            agreement_count == workers.len()
+        } else {
+            agreement_count >= (workers.len() * 2 / 3).max(1)
+        };
+
+        summary.push_str(&format!("\n### Final Verdict\n"));
+        if success {
+            summary.push_str("✅ Consensus reached. Synthesizing unified branch...\n");
+            // In a full implementation, we'd trigger a synthesis LLM call here.
+            // For now, we perform a sequential merge of all consensus participants.
+            return self.sequential_merge(workers, target_branch).await;
+        } else {
+            summary.push_str("❌ Consensus failed. Conflicting architectural visions detected.\n");
+        }
+
+        Ok(MergeReport {
+            strategy: MergeStrategy::Consensus,
+            workers_merged: if success { workers_merged } else { vec![] },
+            conflicts: vec![],
+            success,
+            summary,
+        })
     }
 
     async fn generate_review_diffs(

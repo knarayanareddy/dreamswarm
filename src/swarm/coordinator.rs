@@ -110,7 +110,8 @@ impl SwarmCoordinator {
             remote_host,
         };
 
-        let worker = self.executor.spawn(&worker_config).await?;
+        let mut worker = self.executor.spawn(&worker_config).await?;
+        worker.instructions = instructions.to_string(); // Preserve for consensus audits
         self.workers.push(worker.clone());
         self.state.workers.push(worker.clone());
         self.state.updated_at = Utc::now();

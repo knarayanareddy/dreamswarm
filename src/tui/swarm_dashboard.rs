@@ -1,4 +1,5 @@
 use crate::swarm::{task_list::SharedTaskList, task_list::TaskStatus, TeamState, WorkerStatus};
+use chrono::Utc;
 use crossterm::{
     event::{self, Event, KeyCode},
     execute,
@@ -9,7 +10,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Gauge, List, ListItem, Paragraph, Row, Sparkline, Table, Tabs},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Row, Sparkline, Table, Tabs},
     Terminal,
 };
 use std::collections::VecDeque;
@@ -64,7 +65,7 @@ impl SwarmApp {
             let content = std::fs::read_to_string(state_path)?;
             if let Ok(state) = serde_json::from_str::<TeamState>(&content) {
                 // Approximate cost (normally would be aggregated from session DB)
-                self.total_cost = state.workers.len() as f64 * 0.15; 
+                self.total_cost = state.workers.len() as f64 * 0.15;
                 self.state = Some(state);
             }
         }
@@ -199,7 +200,10 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                                                     None,
                                                 );
                                                 app.last_action_status = Some((
-                                                    format!("Re-assigned task from {}", worker.name),
+                                                    format!(
+                                                        "Re-assigned task from {}",
+                                                        worker.name
+                                                    ),
                                                     Instant::now() + Duration::from_secs(3),
                                                 ));
                                                 break;
@@ -219,7 +223,6 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
             break;
         }
     }
-
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -244,9 +247,12 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
     // ── 1. Swarm Vitals (Header) ──────────────────────────────────────────────
     let worker_count = app.state.as_ref().map_or(0, |s| s.workers.len());
     let active_count = app.state.as_ref().map_or(0, |s| {
-        s.workers.iter().filter(|w| w.status == WorkerStatus::Active).count()
+        s.workers
+            .iter()
+            .filter(|w| w.status == WorkerStatus::Active)
+            .count()
     });
-    
+
     let uptime = app.state.as_ref().map_or("0m".to_string(), |s| {
         let elapsed = Utc::now() - s.created_at;
         format!("{}m", elapsed.num_minutes())
@@ -262,23 +268,37 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
         ])
         .split(root[0]);
 
-    let vital_style = Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD);
-    
+    let vital_style = Style::default()
+        .fg(Color::Cyan)
+        .add_modifier(Modifier::BOLD);
+
     f.render_widget(
-        Paragraph::new(format!(" 🐝 Team: {}", app.team_name)).block(Block::default().borders(Borders::ALL)).style(vital_style),
-        vitals_layout[0]
+        Paragraph::new(format!(" 🐝 Team: {}", app.team_name))
+            .block(Block::default().borders(Borders::ALL))
+            .style(vital_style),
+        vitals_layout[0],
     );
     f.render_widget(
-        Paragraph::new(format!(" ⏱ Uptime: {}", uptime)).block(Block::default().borders(Borders::ALL)).style(vital_style),
-        vitals_layout[1]
+        Paragraph::new(format!(" ⏱ Uptime: {}", uptime))
+            .block(Block::default().borders(Borders::ALL))
+            .style(vital_style),
+        vitals_layout[1],
     );
     f.render_widget(
-        Paragraph::new(format!(" 🤖 Agents: {}/{}", active_count, worker_count)).block(Block::default().borders(Borders::ALL)).style(vital_style),
-        vitals_layout[2]
+        Paragraph::new(format!(" 🤖 Agents: {}/{}", active_count, worker_count))
+            .block(Block::default().borders(Borders::ALL))
+            .style(vital_style),
+        vitals_layout[2],
     );
     f.render_widget(
-        Paragraph::new(format!(" 💰 Est. Cost: ${:.2}", app.total_cost)).block(Block::default().borders(Borders::ALL)).style(Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
-        vitals_layout[3]
+        Paragraph::new(format!(" 💰 Est. Cost: ${:.2}", app.total_cost))
+            .block(Block::default().borders(Borders::ALL))
+            .style(
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        vitals_layout[3],
     );
 
     // ── 2. Main Body ──────────────────────────────────────────────────────────
@@ -289,37 +309,58 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
 
     let right_column = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(50), // Inspector
-            Constraint::Percentage(50), // Message Bus
-        ].as_ref())
+        .constraints(
+            [
+                Constraint::Percentage(50), // Inspector
+                Constraint::Percentage(50), // Message Bus
+            ]
+            .as_ref(),
+        )
         .split(body[1]);
 
     // Workers Panel
     let workers_list: Vec<ListItem> = if let Some(ref state) = app.state {
-        state.workers.iter().enumerate().map(|(i, w)| {
-            let (symbol, color) = match w.status {
-                WorkerStatus::Active => ("🐝", Color::Green),
-                WorkerStatus::Idle => ("💤", Color::DarkGray),
-                WorkerStatus::Spawning => ("🥚", Color::Yellow),
-                WorkerStatus::Completed => ("✅", Color::Cyan),
-                _ => ("🚫", Color::Red),
-            };
-            let style = if i == app.selected_worker_index {
-                Style::default().bg(Color::Indexed(236)).fg(Color::Yellow).add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(color)
-            };
-            let label = format!(" {} {:<12} [{}]", symbol, w.name, &w.id[..6.min(w.id.len())]);
-            ListItem::new(Line::from(vec![Span::styled(label, style)]))
-        }).collect()
+        state
+            .workers
+            .iter()
+            .enumerate()
+            .map(|(i, w)| {
+                let (symbol, color) = match w.status {
+                    WorkerStatus::Active => ("🐝", Color::Green),
+                    WorkerStatus::Idle => ("💤", Color::DarkGray),
+                    WorkerStatus::Spawning => ("🥚", Color::Yellow),
+                    WorkerStatus::Completed => ("✅", Color::Cyan),
+                    _ => ("🚫", Color::Red),
+                };
+                let style = if i == app.selected_worker_index {
+                    Style::default()
+                        .bg(Color::Indexed(236))
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(color)
+                };
+                let label = format!(
+                    " {} {:<12} [{}]",
+                    symbol,
+                    w.name,
+                    &w.id[..6.min(w.id.len())]
+                );
+                ListItem::new(Line::from(vec![Span::styled(label, style)]))
+            })
+            .collect()
     } else {
         vec![ListItem::new(" Scanning for agents...")]
     };
 
     f.render_widget(
-        List::new(workers_list).block(Block::default().title(" 🐝 Swarm Registry ").borders(Borders::ALL).border_style(Style::default().fg(Color::Cyan))),
-        body[0]
+        List::new(workers_list).block(
+            Block::default()
+                .title(" 🐝 Swarm Registry ")
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Cyan)),
+        ),
+        body[0],
     );
 
     // Agent Inspector (Top Right)
@@ -327,7 +368,7 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
         .title(" 🔍 Agent Deep-Dive ")
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Yellow));
-    
+
     let inspector_inner = inspector_block.inner(right_column[0]);
     f.render_widget(inspector_block, right_column[0]);
 
@@ -344,30 +385,44 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
                 .select(app.selected_tab)
                 .block(Block::default().borders(Borders::BOTTOM))
                 .style(Style::default().fg(Color::DarkGray))
-                .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+                .highlight_style(
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                );
             f.render_widget(tabs, chunks[0]);
 
             match app.selected_tab {
                 0 => {
+                    let status_str = format!("{:?}", worker.status);
+                    let branch_str = worker.branch_name.as_deref().unwrap_or("-").to_string();
+                    let worktree_str = worker.worktree_path.as_deref().unwrap_or("-").to_string();
                     let rows = vec![
-                        Row::new(vec!["Role", &worker.role]),
-                        Row::new(vec!["Status", &format!("{:?}", worker.status)]),
-                        Row::new(vec!["Branch", worker.branch_name.as_deref().unwrap_or("-")]),
-                        Row::new(vec!["Worktree", worker.worktree_path.as_deref().unwrap_or("-")]),
+                        Row::new(vec!["Role".to_string(), worker.role.clone()]),
+                        Row::new(vec!["Status".to_string(), status_str]),
+                        Row::new(vec!["Branch".to_string(), branch_str]),
+                        Row::new(vec!["Worktree".to_string(), worktree_str]),
                     ];
-                    let table = Table::new(rows, [Constraint::Length(10), Constraint::Min(20)])
-                        .header(Row::new(vec!["Property", "Value"]).style(Style::default().add_modifier(Modifier::UNDERLINED)));
+                    let table = Table::new(rows, [Constraint::Length(10), Constraint::Min(20)]).header(
+                        Row::new(vec!["Property", "Value"])
+                            .style(Style::default().add_modifier(Modifier::UNDERLINED)),
+                    );
                     f.render_widget(table, chunks[1]);
                 }
                 1 => {
-                    let worker_logs: Vec<ListItem> = app.message_log.iter()
+                    let worker_logs: Vec<ListItem> = app
+                        .message_log
+                        .iter()
                         .filter(|l| l.contains(&worker.id[..6]))
                         .map(|l| ListItem::new(l.as_str()))
                         .collect();
                     f.render_widget(List::new(worker_logs), chunks[1]);
                 }
                 _ => {
-                    f.render_widget(Paragraph::new("\n  File tracking disabled in preview."), chunks[1]);
+                    f.render_widget(
+                        Paragraph::new("\n  File tracking disabled in preview."),
+                        chunks[1],
+                    );
                 }
             }
         }
@@ -380,19 +435,42 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
         .split(right_column[1]);
 
     let sparkline = Sparkline::default()
-        .block(Block::default().title(" 📡 Message Throughput ").borders(Borders::LEFT | Borders::RIGHT | Borders::TOP))
-        .data(&app.throughput_history.as_slices().0)
+        .block(
+            Block::default()
+                .title(" 📡 Message Throughput ")
+                .borders(Borders::LEFT | Borders::RIGHT | Borders::TOP),
+        )
+        .data(app.throughput_history.as_slices().0)
         .style(Style::default().fg(Color::Magenta));
     f.render_widget(sparkline, bus_layout[0]);
 
-    let log_items: Vec<ListItem> = app.message_log.iter().rev().take(10).map(|line| {
-        let color = if line.contains("🆘") { Color::Red } else if line.contains("✅") { Color::Green } else { Color::White };
-        ListItem::new(Line::from(Span::styled(format!(" {}", line), Style::default().fg(color))))
-    }).collect();
+    let log_items: Vec<ListItem> = app
+        .message_log
+        .iter()
+        .rev()
+        .take(10)
+        .map(|line| {
+            let color = if line.contains("🆘") {
+                Color::Red
+            } else if line.contains("✅") {
+                Color::Green
+            } else {
+                Color::White
+            };
+            ListItem::new(Line::from(Span::styled(
+                format!(" {}", line),
+                Style::default().fg(color),
+            )))
+        })
+        .collect();
 
     f.render_widget(
-        List::new(log_items).block(Block::default().borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM).border_style(Style::default().fg(Color::Magenta))),
-        bus_layout[1]
+        List::new(log_items).block(
+            Block::default()
+                .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
+                .border_style(Style::default().fg(Color::Magenta)),
+        ),
+        bus_layout[1],
     );
 
     // ── 3. Footer / Status ────────────────────────────────────────────────────
@@ -407,9 +485,13 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
 
     if let Some((ref msg, _)) = app.last_action_status {
         let status = Paragraph::new(format!(" 📢 {} ", msg))
-            .style(Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD))
+            .style(
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .block(Block::default().borders(Borders::ALL));
         f.render_widget(status, footer_chunks[1]);
     }
 }
-

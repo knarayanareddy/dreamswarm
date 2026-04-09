@@ -86,7 +86,11 @@ impl SwarmApp {
     }
 
     pub fn refresh_conflicts(&mut self) -> anyhow::Result<()> {
-        let conflicts_dir = self.base_dir.join(".dreamswarm").join("memory").join("conflicts");
+        let conflicts_dir = self
+            .base_dir
+            .join(".dreamswarm")
+            .join("memory")
+            .join("conflicts");
         if !conflicts_dir.exists() {
             self.conflicts = Vec::new();
             return Ok(());
@@ -97,7 +101,10 @@ impl SwarmApp {
             let path = entry.path();
             if path.extension().is_some_and(|e| e == "md") {
                 let content = std::fs::read_to_string(&path)?;
-                if let Some(ticket) = self.parse_conflict_ticket(entry.file_name().to_string_lossy().to_string(), &content) {
+                if let Some(ticket) = self.parse_conflict_ticket(
+                    entry.file_name().to_string_lossy().to_string(),
+                    &content,
+                ) {
                     new_conflicts.push(ticket);
                 }
             }
@@ -127,9 +134,15 @@ impl SwarmApp {
             if section.starts_with("Reason") {
                 reason = section.trim_start_matches("Reason").trim().to_string();
             } else if section.starts_with("Existing Knowledge") {
-                existing = section.trim_start_matches("Existing Knowledge").trim().to_string();
+                existing = section
+                    .trim_start_matches("Existing Knowledge")
+                    .trim()
+                    .to_string();
             } else if section.starts_with("New Contradicting Observation") {
-                proposed = section.trim_start_matches("New Contradicting Observation").trim().to_string();
+                proposed = section
+                    .trim_start_matches("New Contradicting Observation")
+                    .trim()
+                    .to_string();
                 // Special case for footer stripping
                 if let Some(pos) = proposed.find("\n---\n") {
                     proposed.truncate(pos);
@@ -271,36 +284,33 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                     KeyCode::Tab if app.mode == AppMode::Registry => {
                         app.selected_tab = (app.selected_tab + 1) % 3;
                     }
-                    KeyCode::Up => {
-                        match app.mode {
-                            AppMode::Registry => {
-                                if app.selected_worker_index > 0 {
-                                    app.selected_worker_index -= 1;
-                                }
+                    KeyCode::Up => match app.mode {
+                        AppMode::Registry => {
+                            if app.selected_worker_index > 0 {
+                                app.selected_worker_index -= 1;
                             }
-                            AppMode::Memory => {
-                                if app.selected_conflict_index > 0 {
-                                    app.selected_conflict_index -= 1;
+                        }
+                        AppMode::Memory => {
+                            if app.selected_conflict_index > 0 {
+                                app.selected_conflict_index -= 1;
+                            }
+                        }
+                    },
+                    KeyCode::Down => match app.mode {
+                        AppMode::Registry => {
+                            if let Some(ref state) = app.state {
+                                if app.selected_worker_index < state.workers.len().saturating_sub(1)
+                                {
+                                    app.selected_worker_index += 1;
                                 }
                             }
                         }
-                    }
-                    KeyCode::Down => {
-                        match app.mode {
-                            AppMode::Registry => {
-                                if let Some(ref state) = app.state {
-                                    if app.selected_worker_index < state.workers.len().saturating_sub(1) {
-                                        app.selected_worker_index += 1;
-                                    }
-                                }
-                            }
-                            AppMode::Memory => {
-                                if app.selected_conflict_index < app.conflicts.len().saturating_sub(1) {
-                                    app.selected_conflict_index += 1;
-                                }
+                        AppMode::Memory => {
+                            if app.selected_conflict_index < app.conflicts.len().saturating_sub(1) {
+                                app.selected_conflict_index += 1;
                             }
                         }
-                    }
+                    },
                     KeyCode::Char('k') if app.mode == AppMode::Registry => {
                         if let Some(ref state) = app.state {
                             if let Some(worker) = state.workers.get(app.selected_worker_index) {
@@ -345,22 +355,35 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                     }
                     KeyCode::Char('a') if app.mode == AppMode::Memory => {
                         if let Some(conflict) = app.conflicts.get(app.selected_conflict_index) {
-                            let conflicts_dir = app.base_dir.join(".dreamswarm").join("memory").join("conflicts");
+                            let conflicts_dir = app
+                                .base_dir
+                                .join(".dreamswarm")
+                                .join("memory")
+                                .join("conflicts");
                             let resolved_dir = conflicts_dir.join("resolved");
                             let _ = std::fs::create_dir_all(&resolved_dir);
 
                             // 1. Update topic
-                            let topic_dir = app.base_dir.join(".dreamswarm").join("memory").join("topics")
+                            let topic_dir = app
+                                .base_dir
+                                .join(".dreamswarm")
+                                .join("memory")
+                                .join("topics")
                                 .join(conflict.topic.to_lowercase().replace(' ', "-"));
-                            let topic_path = topic_dir.join(format!("{}.md", conflict.subtopic.to_lowercase().replace(' ', "-")));
-                            
+                            let topic_path = topic_dir.join(format!(
+                                "{}.md",
+                                conflict.subtopic.to_lowercase().replace(' ', "-")
+                            ));
+
                             let timestamp = Utc::now().format("%Y-%m-%d %H:%M UTC");
                             let resolution_entry = format!(
                                 "\n---\n_[{} | ✅ verified]_\n_Source: User Resolved Conflict_\n{}\n",
                                 timestamp, conflict.proposed
                             );
 
-                            if let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(&topic_path) {
+                            if let Ok(mut file) =
+                                std::fs::OpenOptions::new().append(true).open(&topic_path)
+                            {
                                 use std::io::Write;
                                 let _ = write!(file, "{}", resolution_entry);
                             }
@@ -368,7 +391,7 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                             // 2. Archive ticket
                             let _ = std::fs::rename(
                                 conflicts_dir.join(&conflict.id),
-                                resolved_dir.join(&conflict.id)
+                                resolved_dir.join(&conflict.id),
                             );
 
                             app.last_action_status = Some((
@@ -380,13 +403,17 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                     }
                     KeyCode::Char('k') if app.mode == AppMode::Memory => {
                         if let Some(conflict) = app.conflicts.get(app.selected_conflict_index) {
-                            let conflicts_dir = app.base_dir.join(".dreamswarm").join("memory").join("conflicts");
+                            let conflicts_dir = app
+                                .base_dir
+                                .join(".dreamswarm")
+                                .join("memory")
+                                .join("conflicts");
                             let resolved_dir = conflicts_dir.join("resolved");
                             let _ = std::fs::create_dir_all(&resolved_dir);
 
                             let _ = std::fs::rename(
                                 conflicts_dir.join(&conflict.id),
-                                resolved_dir.join(&conflict.id)
+                                resolved_dir.join(&conflict.id),
                             );
 
                             app.last_action_status = Some((
@@ -669,12 +696,15 @@ fn render_registry_view(f: &mut ratatui::Frame, app: &SwarmApp) {
         .split(root[3]);
 
     let footer_text = match app.mode {
-        AppMode::Registry => " [q] Quit  [tab] Switch Tab  [m] Memory Mode  [k] Kill  [r] Re-assign ",
-        AppMode::Memory => " [q] Quit  [m] Registry Mode  [v] Toggle View  [a] Accept New  [k] Keep Existing ",
+        AppMode::Registry => {
+            " [q] Quit  [tab] Switch Tab  [m] Memory Mode  [k] Kill  [r] Re-assign "
+        }
+        AppMode::Memory => {
+            " [q] Quit  [m] Registry Mode  [v] Toggle View  [a] Accept New  [k] Keep Existing "
+        }
     };
 
-    let base_footer = Paragraph::new(footer_text)
-        .style(Style::default().fg(Color::DarkGray));
+    let base_footer = Paragraph::new(footer_text).style(Style::default().fg(Color::DarkGray));
     f.render_widget(base_footer, footer_chunks[0]);
 
     if let Some((ref msg, _)) = app.last_action_status {
@@ -792,9 +822,7 @@ fn render_memory_view(f: &mut ratatui::Frame, app: &SwarmApp) {
         f.render_widget(reason_block, detail_chunks[1]);
     } else {
         f.render_widget(
-            Paragraph::new(
-                "\n\n  No active knowledge conflicts found. Memory is synchronized.",
-            ),
+            Paragraph::new("\n\n  No active knowledge conflicts found. Memory is synchronized."),
             body[1],
         );
     }
@@ -866,12 +894,15 @@ fn render_footer(f: &mut ratatui::Frame, app: &SwarmApp, area: ratatui::layout::
         .split(area);
 
     let footer_text = match app.mode {
-        AppMode::Registry => " [q] Quit  [tab] Switch Tab  [m] Memory Mode  [k] Kill  [r] Re-assign ",
-        AppMode::Memory => " [q] Quit  [m] Registry Mode  [v] Toggle View  [a] Accept New  [k] Keep Existing ",
+        AppMode::Registry => {
+            " [q] Quit  [tab] Switch Tab  [m] Memory Mode  [k] Kill  [r] Re-assign "
+        }
+        AppMode::Memory => {
+            " [q] Quit  [m] Registry Mode  [v] Toggle View  [a] Accept New  [k] Keep Existing "
+        }
     };
 
-    let base_footer =
-        Paragraph::new(footer_text).style(Style::default().fg(Color::DarkGray));
+    let base_footer = Paragraph::new(footer_text).style(Style::default().fg(Color::DarkGray));
     f.render_widget(base_footer, footer_chunks[0]);
 
     if let Some((ref msg, _)) = app.last_action_status {

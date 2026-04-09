@@ -40,9 +40,3 @@ runs:
         restore-keys: |
           ${{ runner.os }}-cargo-${{ inputs.toolchain }}-
           ${{ runner.os }}-cargo-
-
-    - name: Install sccache
-      shell: bash
-      run: |
-        cargo binstall sccache --no-confirm --force 2>/dev/null || cargo install sccache
-        echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV

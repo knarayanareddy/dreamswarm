@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use crate::runtime::permissions::AgentMode;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct AppConfig {
@@ -43,8 +43,7 @@ impl AppConfig {
         let mut config = Self::default();
         config.model = model;
         config.provider = provider;
-        config.permission_mode = AgentMode::from_str(&permission_mode);
+        config.permission_mode = permission_mode.parse().unwrap_or(AgentMode::Default);
         config
     }
 }
-

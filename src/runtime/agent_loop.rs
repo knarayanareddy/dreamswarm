@@ -168,7 +168,9 @@ impl AgentRuntime {
                     // Execute tool
                     if let Some(tool) = self.tool_registry.get_tool(&name) {
                         let signature = tool.command_signature(&input);
-                        let permission = self.permission_gate.check(&name, tool.risk_level(), &signature);
+                        let permission =
+                            self.permission_gate
+                                .check(&name, tool.risk_level(), &signature);
 
                         let mut final_allowed = false;
                         let mut error_content: Option<String> = None;

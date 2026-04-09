@@ -25,14 +25,16 @@ pub enum AgentMode {
     Plan,              // Propose only, never execute
 }
 
-impl AgentMode {
-    pub fn from_str(s: &str) -> Self {
+impl std::str::FromStr for AgentMode {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "accept-edits" | "acceptedits" => AgentMode::AcceptEdits,
-            "bypass" | "yolo" | "dangerously-skip-permissions" => AgentMode::BypassPermissions,
-            "readonly" | "read-only" => AgentMode::ReadOnly,
-            "plan" => AgentMode::Plan,
-            _ => AgentMode::Default,
+            "accept-edits" | "acceptedits" => Ok(AgentMode::AcceptEdits),
+            "bypass" | "yolo" | "dangerously-skip-permissions" => Ok(AgentMode::BypassPermissions),
+            "readonly" | "read-only" => Ok(AgentMode::ReadOnly),
+            "plan" => Ok(AgentMode::Plan),
+            _ => Ok(AgentMode::Default),
         }
     }
 }
@@ -48,7 +50,6 @@ impl std::fmt::Display for AgentMode {
         }
     }
 }
-
 
 pub struct PermissionGate {
     pub mode: AgentMode,
@@ -155,22 +156,14 @@ mod tests {
 
     #[test]
     fn test_deny_list_blocks() {
-        let gate = PermissionGate::new(
-            AgentMode::Default,
-            &[],
-            &["Bash(rm*)".to_string()],
-        );
+        let gate = PermissionGate::new(AgentMode::Default, &[], &["Bash(rm*)".to_string()]);
         let result = gate.check("Bash", RiskLevel::Dangerous, "rm -rf /");
         assert!(matches!(result, Permission::Deny(_)));
     }
 
     #[test]
     fn test_allow_list_permits() {
-        let gate = PermissionGate::new(
-            AgentMode::Default,
-            &["Bash(git*)".to_string()],
-            &[],
-        );
+        let gate = PermissionGate::new(AgentMode::Default, &["Bash(git*)".to_string()], &[]);
         let result = gate.check("Bash", RiskLevel::Dangerous, "git status");
         assert_eq!(result, Permission::Allow);
     }
@@ -178,8 +171,13 @@ mod tests {
     #[test]
     fn test_readonly_mode() {
         let gate = PermissionGate::new(AgentMode::ReadOnly, &[], &[]);
-        assert_eq!(gate.check("FileRead", RiskLevel::Safe, "test.txt"), Permission::Allow);
-        assert!(matches!(gate.check("FileWrite", RiskLevel::Moderate, "test.txt"), Permission::Deny(_)));
+        assert_eq!(
+            gate.check("FileRead", RiskLevel::Safe, "test.txt"),
+            Permission::Allow
+        );
+        assert!(matches!(
+            gate.check("FileWrite", RiskLevel::Moderate, "test.txt"),
+            Permission::Deny(_)
+        ));
     }
 }
-

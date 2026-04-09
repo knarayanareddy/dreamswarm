@@ -277,7 +277,7 @@ impl ResultMerger {
             agreement_count >= (workers.len() * 2 / 3).max(1)
         };
 
-        summary.push_str(&format!("\n### Final Verdict\n"));
+        summary.push_str("\n### Final Verdict\n");
         if success {
             summary.push_str("✅ Consensus reached. Synthesizing unified branch...\n");
             // In a full implementation, we'd trigger a synthesis LLM call here.

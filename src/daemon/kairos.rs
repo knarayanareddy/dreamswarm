@@ -218,29 +218,6 @@ impl KairosDaemon {
         Ok(())
     }
 
-    async fn check_swarm_health(&self) -> anyhow::Result<()> {
-        if let Some(ref _qe) = self.query_engine {
-            let mirror = crate::dream::mirror::MirrorEngine::new(self.config.state_dir.clone());
-            let snapshot = mirror.generate_snapshot()?;
-
-            for (sid, health) in snapshot.agent_performance {
-                if health.vitals.is_stalled && health.avg_confidence > 0.9 {
-                    tracing::warn!(
-                        "Kairos: Agent '{}' is stalled. Initiating autonomous healing...",
-                        sid
-                    );
-                    self.daily_log.log_error(
-                        &format!("Autonomous Healing: Flagged agent '{}' as stalled (Loop: {}, Entropy: {:.2})", 
-                            sid, health.vitals.tool_loop_count, health.vitals.entropy_score),
-                        self.initiative_engine.trust().current_level,
-                        Some(sid.clone())
-                    )?;
-                }
-            }
-        }
-        Ok(())
-    }
-
     async fn attempt_auto_resume(&self) -> anyhow::Result<()> {
         let snapshot_dir = self.config.state_dir.join("snapshots");
         if !snapshot_dir.exists() {
@@ -275,14 +252,6 @@ impl KairosDaemon {
                     self.initiative_engine.trust().current_level,
                     None,
                 )?;
-
-                // In a production scenario, we'd spawn the coordinator here.
-                // For this implementation, we mark the state as 'Resuming' in the daily log.
-            } else {
-                tracing::info!(
-                    "Halt & Resume: Found snapshot but it's too old ({}s). Skipping.",
-                    elapsed
-                );
             }
         }
         Ok(())

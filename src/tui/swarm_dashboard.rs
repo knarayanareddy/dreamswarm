@@ -33,9 +33,17 @@ pub enum ConflictView {
     Stacked,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TicketKind {
+    Conflict,
+    Synthesis,
+    Refinement,
+}
+
 #[derive(Debug, Clone)]
 pub struct ConflictTicket {
     pub id: String,
+    pub kind: TicketKind,
     pub topic: String,
     pub subtopic: String,
     pub reason: String,
@@ -114,6 +122,7 @@ impl SwarmApp {
     }
 
     fn parse_conflict_ticket(&self, id: String, content: &str) -> Option<ConflictTicket> {
+        let mut kind = TicketKind::Conflict;
         let mut topic = String::new();
         let mut subtopic = String::new();
         let mut reason = String::new();
@@ -121,11 +130,25 @@ impl SwarmApp {
         let mut proposed = String::new();
 
         if let Some(line) = content.lines().next() {
-            let header = line.trim_start_matches("# Knowledge Conflict: ");
-            let parts: Vec<&str> = header.split('/').collect();
-            if parts.len() >= 2 {
-                topic = parts[0].to_string();
-                subtopic = parts[1].to_string();
+            if line.contains("Knowledge Conflict") {
+                let header = line.trim_start_matches("# Knowledge Conflict: ");
+                let parts: Vec<&str> = header.split('/').collect();
+                if parts.len() >= 2 {
+                    topic = parts[0].to_string();
+                    subtopic = parts[1].to_string();
+                }
+            } else if line.contains("Thematic Consolidation Proposal") {
+                kind = TicketKind::Synthesis;
+                topic = line
+                    .trim_start_matches("# Thematic Consolidation Proposal: ")
+                    .to_string();
+                subtopic = "L3 Theme".to_string();
+            } else if line.contains("Instruction Refinement Proposal") {
+                kind = TicketKind::Refinement;
+                topic = line
+                    .trim_start_matches("# Instruction Refinement Proposal: ")
+                    .to_string();
+                subtopic = "Self-Mirror".to_string();
             }
         }
 
@@ -133,16 +156,27 @@ impl SwarmApp {
         for section in sections {
             if section.starts_with("Reason") {
                 reason = section.trim_start_matches("Reason").trim().to_string();
-            } else if section.starts_with("Existing Knowledge") {
-                existing = section
-                    .trim_start_matches("Existing Knowledge")
-                    .trim()
-                    .to_string();
-            } else if section.starts_with("New Contradicting Observation") {
-                proposed = section
-                    .trim_start_matches("New Contradicting Observation")
-                    .trim()
-                    .to_string();
+            } else if section.starts_with("Existing Knowledge")
+                || section.starts_with("Source L2 Files")
+            {
+                let iden = if section.starts_with("Existing Knowledge") {
+                    "Existing Knowledge"
+                } else {
+                    "Source L2 Files"
+                };
+                existing = section.trim_start_matches(iden).trim().to_string();
+            } else if section.starts_with("New Contradicting Observation")
+                || section.starts_with("Synthesis")
+                || section.starts_with("New Instructions")
+            {
+                let iden = if section.starts_with("New Contradicting Observation") {
+                    "New Contradicting Observation"
+                } else if section.starts_with("Synthesis") {
+                    "Synthesis"
+                } else {
+                    "New Instructions"
+                };
+                proposed = section.trim_start_matches(iden).trim().to_string();
                 // Special case for footer stripping
                 if let Some(pos) = proposed.find("\n---\n") {
                     proposed.truncate(pos);
@@ -152,6 +186,7 @@ impl SwarmApp {
 
         Some(ConflictTicket {
             id,
+            kind,
             topic,
             subtopic,
             reason,
@@ -363,32 +398,76 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                             let resolved_dir = conflicts_dir.join("resolved");
                             let _ = std::fs::create_dir_all(&resolved_dir);
 
-                            // 1. Update topic
-                            let topic_dir = app
-                                .base_dir
-                                .join(".dreamswarm")
-                                .join("memory")
-                                .join("topics")
-                                .join(conflict.topic.to_lowercase().replace(' ', "-"));
-                            let topic_path = topic_dir.join(format!(
-                                "{}.md",
-                                conflict.subtopic.to_lowercase().replace(' ', "-")
-                            ));
+                            match conflict.kind {
+                                TicketKind::Conflict => {
+                                    // 1. Update topic
+                                    let topic_dir = app
+                                        .base_dir
+                                        .join(".dreamswarm")
+                                        .join("memory")
+                                        .join("topics")
+                                        .join(conflict.topic.to_lowercase().replace(' ', "-"));
+                                    let topic_path = topic_dir.join(format!(
+                                        "{}.md",
+                                        conflict.subtopic.to_lowercase().replace(' ', "-")
+                                    ));
 
-                            let timestamp = Utc::now().format("%Y-%m-%d %H:%M UTC");
-                            let resolution_entry = format!(
-                                "\n---\n_[{} | ✅ verified]_\n_Source: User Resolved Conflict_\n{}\n",
-                                timestamp, conflict.proposed
-                            );
+                                    let timestamp = Utc::now().format("%Y-%m-%d %H:%M UTC");
+                                    let resolution_entry = format!(
+                                        "\n---\n_[{} | ✅ verified]_\n_Source: User Resolved Conflict_\n{}\n",
+                                        timestamp, conflict.proposed
+                                    );
 
-                            if let Ok(mut file) =
-                                std::fs::OpenOptions::new().append(true).open(&topic_path)
-                            {
-                                use std::io::Write;
-                                let _ = write!(file, "{}", resolution_entry);
+                                    if let Ok(mut file) =
+                                        std::fs::OpenOptions::new().append(true).open(&topic_path)
+                                    {
+                                        use std::io::Write;
+                                        let _ = write!(file, "{}", resolution_entry);
+                                    }
+                                }
+                                TicketKind::Synthesis => {
+                                    // 1. Write L3 Chapter
+                                    let themes_dir = app
+                                        .base_dir
+                                        .join(".dreamswarm")
+                                        .join("memory")
+                                        .join("themes");
+                                    let theme_path = themes_dir.join(format!(
+                                        "{}.md",
+                                        conflict.topic.to_lowercase().replace(' ', "-")
+                                    ));
+                                    let _ = std::fs::write(&theme_path, &conflict.proposed);
+
+                                    // 2. Archive Source L2s
+                                    let archive_dir = app
+                                        .base_dir
+                                        .join(".dreamswarm")
+                                        .join("memory")
+                                        .join("archive")
+                                        .join("synthesized");
+                                    let _ = std::fs::create_dir_all(&archive_dir);
+                                    for line in conflict.existing.lines() {
+                                        let source_path = app
+                                            .base_dir
+                                            .join(".dreamswarm")
+                                            .join("memory")
+                                            .join("topics")
+                                            .join(line.trim());
+                                        if source_path.exists() {
+                                            let dest = archive_dir.join(line.trim());
+                                            if let Some(p) = dest.parent() {
+                                                let _ = std::fs::create_dir_all(p);
+                                            }
+                                            let _ = std::fs::rename(source_path, dest);
+                                        }
+                                    }
+                                }
+                                TicketKind::Refinement => {
+                                    // Just log for now
+                                }
                             }
 
-                            // 2. Archive ticket
+                            // Archive ticket
                             let _ = std::fs::rename(
                                 conflicts_dir.join(&conflict.id),
                                 resolved_dir.join(&conflict.id),
@@ -756,7 +835,12 @@ fn render_memory_view(f: &mut ratatui::Frame, app: &SwarmApp) {
             } else {
                 Style::default()
             };
-            ListItem::new(format!(" ⚠️  {}/{}", c.topic, c.subtopic)).style(style)
+            let icon = match c.kind {
+                TicketKind::Conflict => "⚠️ ",
+                TicketKind::Synthesis => "✨ ",
+                TicketKind::Refinement => "🎯 ",
+            };
+            ListItem::new(format!(" {} {}/{}", icon, c.topic, c.subtopic)).style(style)
         })
         .collect();
 
@@ -784,12 +868,18 @@ fn render_memory_view(f: &mut ratatui::Frame, app: &SwarmApp) {
                     .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
                     .split(knowledge_area);
 
+                let (left_head, right_head) = match conflict.kind {
+                    TicketKind::Conflict => (" 🏛 Existing (L2) ", " 🆕 Proposed (L1) "),
+                    TicketKind::Synthesis => (" 🧩 Sources (L2) ", " 📖 Synthetic (L3) "),
+                    TicketKind::Refinement => (" 👤 Current Role ", " 🧠 Optimized Role "),
+                };
+
                 f.render_widget(
-                    render_knowledge_block(" 🏛 Existing (L2) ", &conflict.existing, Color::Cyan),
+                    render_knowledge_block(left_head, &conflict.existing, Color::Cyan),
                     diff_layout[0],
                 );
                 f.render_widget(
-                    render_knowledge_block(" 🆕 Proposed (L1) ", &conflict.proposed, Color::Green),
+                    render_knowledge_block(right_head, &conflict.proposed, Color::Green),
                     diff_layout[1],
                 );
             }
@@ -799,12 +889,18 @@ fn render_memory_view(f: &mut ratatui::Frame, app: &SwarmApp) {
                     .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
                     .split(knowledge_area);
 
+                let (left_head, right_head) = match conflict.kind {
+                    TicketKind::Conflict => (" 🏛 Existing (L2) ", " 🆕 Proposed (L1) "),
+                    TicketKind::Synthesis => (" 🧩 Sources (L2) ", " 📖 Synthetic (L3) "),
+                    TicketKind::Refinement => (" 👤 Current Role ", " 🧠 Optimized Role "),
+                };
+
                 f.render_widget(
-                    render_knowledge_block(" 🏛 Existing (L2) ", &conflict.existing, Color::Cyan),
+                    render_knowledge_block(left_head, &conflict.existing, Color::Cyan),
                     diff_layout[0],
                 );
                 f.render_widget(
-                    render_knowledge_block(" 🆕 Proposed (L1) ", &conflict.proposed, Color::Green),
+                    render_knowledge_block(right_head, &conflict.proposed, Color::Green),
                     diff_layout[1],
                 );
             }

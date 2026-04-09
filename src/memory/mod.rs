@@ -29,6 +29,7 @@ impl MemorySystem {
         std::fs::create_dir_all(memory_dir.join("topics"))?;
         std::fs::create_dir_all(memory_dir.join("transcripts"))?;
         std::fs::create_dir_all(memory_dir.join("conflicts"))?;
+        std::fs::create_dir_all(memory_dir.join("themes"))?;
 
         let index = index::MemoryIndex::new(memory_dir.join("MEMORY.md"));
         let topics = topics::TopicStore::new(memory_dir.join("topics"));

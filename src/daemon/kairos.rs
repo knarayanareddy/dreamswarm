@@ -140,7 +140,22 @@ impl KairosDaemon {
                 self.config.state_dir.clone(),
             );
             let mem = self.memory.read().await;
-            let report = engine.dream(&mem, qe).await?;
+
+            // Heuristic: Deep dream if we have many L2 fragments
+            let target_count =
+                crate::dream::synthesizer::ThematicSynthesizer::detect_consolidation_targets(&mem)?
+                    .len();
+
+            let report = if target_count > 0 {
+                tracing::info!(
+                    "High entropy detected ({} targets). Running DEEP dream.",
+                    target_count
+                );
+                engine.deep_dream(&mem, qe).await?
+            } else {
+                engine.dream(&mem, qe).await?
+            };
+
             tracing::info!("{}", DreamReporter::format_brief(&report));
             Ok(())
         } else {

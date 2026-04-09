@@ -4,10 +4,12 @@ use serde::{Deserialize, Serialize};
 pub mod analyzer;
 pub mod collector;
 pub mod engine;
+pub mod mirror;
 pub mod planner;
 pub mod pruner;
 pub mod report;
 pub mod sandbox;
+pub mod synthesizer;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DreamConfig {
@@ -85,6 +87,13 @@ pub enum OperationKind {
         existing_data: String,
         new_data: String,
     },
+    ConsolidateTheme {
+        l2_paths: Vec<String>,
+    },
+    RefineInstructions {
+        agent_id: String,
+        new_instructions: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -114,4 +123,21 @@ pub struct DreamReport {
     pub memory_before_hash: String,
     pub memory_after_hash: String,
     pub errors: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MirrorSnapshot {
+    pub timestamp: DateTime<Utc>,
+    pub total_ops: usize,
+    pub conflict_rate: f64,
+    pub token_efficiency: f64, // tokens per operation
+    pub most_volatile_topic: Option<String>,
+    pub agent_performance: std::collections::HashMap<String, AgentHealth>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentHealth {
+    pub success_count: usize,
+    pub conflict_count: usize,
+    pub avg_confidence: f64,
 }

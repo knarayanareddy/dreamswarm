@@ -28,6 +28,45 @@ impl DreamEngine {
         }
     }
 
+    pub async fn deep_dream(
+        &self,
+        memory: &MemorySystem,
+        query_engine: &QueryEngine,
+    ) -> anyhow::Result<DreamReport> {
+        // 1. Standard Dream (L1/L2 Consolidation)
+        let mut report = self.dream(memory, query_engine).await?;
+
+        // 2. Thematic Synthesis (L3)
+        let mut sandbox = DreamSandbox::new(self.config.max_tokens, self.config.max_cost_usd);
+        let targets =
+            crate::dream::synthesizer::ThematicSynthesizer::detect_consolidation_targets(memory)?;
+        for (topic, contexts) in targets {
+            if let Ok(op) = crate::dream::synthesizer::ThematicSynthesizer::propose_synthesis(
+                &topic,
+                &contexts,
+                memory,
+                query_engine,
+                &mut sandbox,
+            )
+            .await
+            {
+                self.apply_operation(&op, memory)?;
+                report.operations_applied += 1;
+            }
+        }
+
+        // 3. Mirror Cycle (Self-Reflection)
+        let mirror = crate::dream::mirror::MirrorEngine::new(self.daemon_state_dir.clone());
+        if let Ok(mirror_ops) = mirror.reflect(query_engine, &mut sandbox).await {
+            for op in mirror_ops {
+                self.apply_operation(&op, memory)?;
+                report.operations_applied += 1;
+            }
+        }
+
+        Ok(report)
+    }
+
     pub async fn dream(
         &self,
         memory: &MemorySystem,
@@ -106,7 +145,9 @@ impl DreamEngine {
                             }
                             OperationKind::Confirm { .. } => confirmed_count += 1,
                             OperationKind::Update { .. } => {}
-                            OperationKind::Conflict { .. } => contradictions_count += 1,
+                            OperationKind::Conflict { .. }
+                            | OperationKind::ConsolidateTheme { .. }
+                            | OperationKind::RefineInstructions { .. } => contradictions_count += 1,
                         }
                     }
                 }
@@ -256,6 +297,36 @@ impl DreamEngine {
                 );
                 std::fs::write(conflict_path, ticket_content)?;
                 tracing::warn!("Knowledge Conflict Ticket Generated: {}", ticket_id);
+                Ok(true)
+            }
+            OperationKind::ConsolidateTheme { l2_paths } => {
+                let ticket_id =
+                    format!("proposal_synthesis_{}_{}", Utc::now().timestamp(), op.topic);
+                let path = memory
+                    .memory_dir()
+                    .join("conflicts")
+                    .join(format!("{}.md", ticket_id));
+                let content = format!(
+                    "# Thematic Consolidation Proposal: {}\n\n## Synthesis\n{}\n\n## Source L2 Files\n{}\n\n## Reasoning\n{}\n\n---\nStatus: Pending Approval",
+                    op.topic, op.content, l2_paths.join("\n"), op.reasoning
+                );
+                std::fs::write(path, content)?;
+                Ok(true)
+            }
+            OperationKind::RefineInstructions {
+                agent_id,
+                new_instructions,
+            } => {
+                let ticket_id = format!("proposal_refine_{}_{}", Utc::now().timestamp(), agent_id);
+                let path = memory
+                    .memory_dir()
+                    .join("conflicts")
+                    .join(format!("{}.md", ticket_id));
+                let content = format!(
+                    "# Instruction Refinement Proposal: {}\n\n## New Instructions\n{}\n\n## Reasoning\n{}\n\n---\nStatus: Pending Approval",
+                    agent_id, new_instructions, op.reasoning
+                );
+                std::fs::write(path, content)?;
                 Ok(true)
             }
         }

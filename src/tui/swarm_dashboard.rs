@@ -21,6 +21,28 @@ use tokio::process::Command;
 
 const MAX_LOG_ENTRIES: usize = 50;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AppMode {
+    Registry,
+    Memory,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ConflictView {
+    SideBySide,
+    Stacked,
+}
+
+#[derive(Debug, Clone)]
+pub struct ConflictTicket {
+    pub id: String,
+    pub topic: String,
+    pub subtopic: String,
+    pub reason: String,
+    pub existing: String,
+    pub proposed: String,
+}
+
 pub struct SwarmApp {
     pub team_name: String,
     pub base_dir: PathBuf,
@@ -36,6 +58,10 @@ pub struct SwarmApp {
     pub last_action_status: Option<(String, Instant)>,
     pub total_cost: f64,
     pub selected_tab: usize,
+    pub mode: AppMode,
+    pub conflicts: Vec<ConflictTicket>,
+    pub selected_conflict_index: usize,
+    pub conflict_view: ConflictView,
 }
 
 impl SwarmApp {
@@ -52,7 +78,73 @@ impl SwarmApp {
             last_action_status: None,
             total_cost: 0.0,
             selected_tab: 0,
+            mode: AppMode::Registry,
+            conflicts: Vec::new(),
+            selected_conflict_index: 0,
+            conflict_view: ConflictView::Stacked,
         }
+    }
+
+    pub fn refresh_conflicts(&mut self) -> anyhow::Result<()> {
+        let conflicts_dir = self.base_dir.join(".dreamswarm").join("memory").join("conflicts");
+        if !conflicts_dir.exists() {
+            self.conflicts = Vec::new();
+            return Ok(());
+        }
+
+        let mut new_conflicts = Vec::new();
+        for entry in std::fs::read_dir(conflicts_dir)?.flatten() {
+            let path = entry.path();
+            if path.extension().is_some_and(|e| e == "md") {
+                let content = std::fs::read_to_string(&path)?;
+                if let Some(ticket) = self.parse_conflict_ticket(entry.file_name().to_string_lossy().to_string(), &content) {
+                    new_conflicts.push(ticket);
+                }
+            }
+        }
+        self.conflicts = new_conflicts;
+        Ok(())
+    }
+
+    fn parse_conflict_ticket(&self, id: String, content: &str) -> Option<ConflictTicket> {
+        let mut topic = String::new();
+        let mut subtopic = String::new();
+        let mut reason = String::new();
+        let mut existing = String::new();
+        let mut proposed = String::new();
+
+        if let Some(line) = content.lines().next() {
+            let header = line.trim_start_matches("# Knowledge Conflict: ");
+            let parts: Vec<&str> = header.split('/').collect();
+            if parts.len() >= 2 {
+                topic = parts[0].to_string();
+                subtopic = parts[1].to_string();
+            }
+        }
+
+        let sections: Vec<&str> = content.split("## ").collect();
+        for section in sections {
+            if section.starts_with("Reason") {
+                reason = section.trim_start_matches("Reason").trim().to_string();
+            } else if section.starts_with("Existing Knowledge") {
+                existing = section.trim_start_matches("Existing Knowledge").trim().to_string();
+            } else if section.starts_with("New Contradicting Observation") {
+                proposed = section.trim_start_matches("New Contradicting Observation").trim().to_string();
+                // Special case for footer stripping
+                if let Some(pos) = proposed.find("\n---\n") {
+                    proposed.truncate(pos);
+                }
+            }
+        }
+
+        Some(ConflictTicket {
+            id,
+            topic,
+            subtopic,
+            reason,
+            existing,
+            proposed,
+        })
     }
 
     pub fn update_state(&mut self) -> anyhow::Result<()> {
@@ -157,22 +249,59 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') | KeyCode::Esc => app.should_quit = true,
-                    KeyCode::Tab => {
+                    KeyCode::Char('m') => {
+                        app.mode = match app.mode {
+                            AppMode::Registry => {
+                                let _ = app.refresh_conflicts();
+                                AppMode::Memory
+                            }
+                            AppMode::Memory => AppMode::Registry,
+                        };
+                    }
+                    KeyCode::Char('v') if app.mode == AppMode::Memory => {
+                        app.conflict_view = match app.conflict_view {
+                            ConflictView::SideBySide => ConflictView::Stacked,
+                            ConflictView::Stacked => ConflictView::SideBySide,
+                        };
+                        app.last_action_status = Some((
+                            format!("View toggled to {:?}", app.conflict_view),
+                            Instant::now() + Duration::from_secs(2),
+                        ));
+                    }
+                    KeyCode::Tab if app.mode == AppMode::Registry => {
                         app.selected_tab = (app.selected_tab + 1) % 3;
                     }
                     KeyCode::Up => {
-                        if app.selected_worker_index > 0 {
-                            app.selected_worker_index -= 1;
-                        }
-                    }
-                    KeyCode::Down => {
-                        if let Some(ref state) = app.state {
-                            if app.selected_worker_index < state.workers.len().saturating_sub(1) {
-                                app.selected_worker_index += 1;
+                        match app.mode {
+                            AppMode::Registry => {
+                                if app.selected_worker_index > 0 {
+                                    app.selected_worker_index -= 1;
+                                }
+                            }
+                            AppMode::Memory => {
+                                if app.selected_conflict_index > 0 {
+                                    app.selected_conflict_index -= 1;
+                                }
                             }
                         }
                     }
-                    KeyCode::Char('k') => {
+                    KeyCode::Down => {
+                        match app.mode {
+                            AppMode::Registry => {
+                                if let Some(ref state) = app.state {
+                                    if app.selected_worker_index < state.workers.len().saturating_sub(1) {
+                                        app.selected_worker_index += 1;
+                                    }
+                                }
+                            }
+                            AppMode::Memory => {
+                                if app.selected_conflict_index < app.conflicts.len().saturating_sub(1) {
+                                    app.selected_conflict_index += 1;
+                                }
+                            }
+                        }
+                    }
+                    KeyCode::Char('k') if app.mode == AppMode::Registry => {
                         if let Some(ref state) = app.state {
                             if let Some(worker) = state.workers.get(app.selected_worker_index) {
                                 if let Some(ref pane_id) = worker.tmux_pane_id {
@@ -187,7 +316,7 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                             }
                         }
                     }
-                    KeyCode::Char('r') => {
+                    KeyCode::Char('r') if app.mode == AppMode::Registry => {
                         if let Some(ref state) = app.state {
                             if let Some(worker) = state.workers.get(app.selected_worker_index) {
                                 if let Ok(tl) = SharedTaskList::new(&app.team_name) {
@@ -214,6 +343,59 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                             }
                         }
                     }
+                    KeyCode::Char('a') if app.mode == AppMode::Memory => {
+                        if let Some(conflict) = app.conflicts.get(app.selected_conflict_index) {
+                            let conflicts_dir = app.base_dir.join(".dreamswarm").join("memory").join("conflicts");
+                            let resolved_dir = conflicts_dir.join("resolved");
+                            let _ = std::fs::create_dir_all(&resolved_dir);
+
+                            // 1. Update topic
+                            let topic_dir = app.base_dir.join(".dreamswarm").join("memory").join("topics")
+                                .join(conflict.topic.to_lowercase().replace(' ', "-"));
+                            let topic_path = topic_dir.join(format!("{}.md", conflict.subtopic.to_lowercase().replace(' ', "-")));
+                            
+                            let timestamp = Utc::now().format("%Y-%m-%d %H:%M UTC");
+                            let resolution_entry = format!(
+                                "\n---\n_[{} | ✅ verified]_\n_Source: User Resolved Conflict_\n{}\n",
+                                timestamp, conflict.proposed
+                            );
+
+                            if let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(&topic_path) {
+                                use std::io::Write;
+                                let _ = write!(file, "{}", resolution_entry);
+                            }
+
+                            // 2. Archive ticket
+                            let _ = std::fs::rename(
+                                conflicts_dir.join(&conflict.id),
+                                resolved_dir.join(&conflict.id)
+                            );
+
+                            app.last_action_status = Some((
+                                format!("Accepted: {}/{}", conflict.topic, conflict.subtopic),
+                                Instant::now() + Duration::from_secs(3),
+                            ));
+                            let _ = app.refresh_conflicts();
+                        }
+                    }
+                    KeyCode::Char('k') if app.mode == AppMode::Memory => {
+                        if let Some(conflict) = app.conflicts.get(app.selected_conflict_index) {
+                            let conflicts_dir = app.base_dir.join(".dreamswarm").join("memory").join("conflicts");
+                            let resolved_dir = conflicts_dir.join("resolved");
+                            let _ = std::fs::create_dir_all(&resolved_dir);
+
+                            let _ = std::fs::rename(
+                                conflicts_dir.join(&conflict.id),
+                                resolved_dir.join(&conflict.id)
+                            );
+
+                            app.last_action_status = Some((
+                                format!("Kept Existing: {}/{}", conflict.topic, conflict.subtopic),
+                                Instant::now() + Duration::from_secs(3),
+                            ));
+                            let _ = app.refresh_conflicts();
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -231,6 +413,13 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
 }
 
 fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
+    match app.mode {
+        AppMode::Registry => render_registry_view(f, app),
+        AppMode::Memory => render_memory_view(f, app),
+    }
+}
+
+fn render_registry_view(f: &mut ratatui::Frame, app: &SwarmApp) {
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -474,13 +663,17 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
         bus_layout[1],
     );
 
-    // ── 3. Footer / Status ────────────────────────────────────────────────────
     let footer_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Min(20), Constraint::Length(40)])
         .split(root[3]);
 
-    let base_footer = Paragraph::new(" [q] Quit  [tab] Switch Tab  [k] Kill  [r] Re-assign ")
+    let footer_text = match app.mode {
+        AppMode::Registry => " [q] Quit  [tab] Switch Tab  [m] Memory Mode  [k] Kill  [r] Re-assign ",
+        AppMode::Memory => " [q] Quit  [m] Registry Mode  [v] Toggle View  [a] Accept New  [k] Keep Existing ",
+    };
+
+    let base_footer = Paragraph::new(footer_text)
         .style(Style::default().fg(Color::DarkGray));
     f.render_widget(base_footer, footer_chunks[0]);
 
@@ -495,4 +688,216 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
             .block(Block::default().borders(Borders::ALL));
         f.render_widget(status, footer_chunks[1]);
     }
+}
+
+fn render_memory_view(f: &mut ratatui::Frame, app: &SwarmApp) {
+    let root = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Length(3), // Header (Reuse Vitals)
+                Constraint::Min(10),   // Main body
+                Constraint::Length(1), // Spacer
+                Constraint::Length(3), // Footer / Status
+            ]
+            .as_ref(),
+        )
+        .split(f.size());
+
+    // Reuse vitals for consistency
+    render_vitals(f, app, root[0]);
+
+    let body = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(25), Constraint::Percentage(75)].as_ref())
+        .split(root[1]);
+
+    // 1. Conflict List
+    let items: Vec<ListItem> = app
+        .conflicts
+        .iter()
+        .enumerate()
+        .map(|(i, c)| {
+            let style = if i == app.selected_conflict_index {
+                Style::default()
+                    .bg(Color::Indexed(236))
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
+            ListItem::new(format!(" ⚠️  {}/{}", c.topic, c.subtopic)).style(style)
+        })
+        .collect();
+
+    let list = List::new(items).block(
+        Block::default()
+            .title(" 🚩 Conflicts ")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(Color::Yellow)),
+    );
+    f.render_widget(list, body[0]);
+
+    // 2. Conflict Detail
+    if let Some(conflict) = app.conflicts.get(app.selected_conflict_index) {
+        let detail_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(0), Constraint::Length(8)])
+            .split(body[1]);
+
+        // Knowledge Diffs
+        let knowledge_area = detail_chunks[0];
+        match app.conflict_view {
+            ConflictView::SideBySide => {
+                let diff_layout = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                    .split(knowledge_area);
+
+                f.render_widget(
+                    render_knowledge_block(" 🏛 Existing (L2) ", &conflict.existing, Color::Cyan),
+                    diff_layout[0],
+                );
+                f.render_widget(
+                    render_knowledge_block(" 🆕 Proposed (L1) ", &conflict.proposed, Color::Green),
+                    diff_layout[1],
+                );
+            }
+            ConflictView::Stacked => {
+                let diff_layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                    .split(knowledge_area);
+
+                f.render_widget(
+                    render_knowledge_block(" 🏛 Existing (L2) ", &conflict.existing, Color::Cyan),
+                    diff_layout[0],
+                );
+                f.render_widget(
+                    render_knowledge_block(" 🆕 Proposed (L1) ", &conflict.proposed, Color::Green),
+                    diff_layout[1],
+                );
+            }
+        }
+
+        // Reasoning
+        let reason_block = Paragraph::new(format!("Reasoning: {}", conflict.reason))
+            .block(
+                Block::default()
+                    .title(" 💡 Analyst Notes ")
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::Magenta)),
+            )
+            .wrap(ratatui::widgets::Wrap { trim: true });
+        f.render_widget(reason_block, detail_chunks[1]);
+    } else {
+        f.render_widget(
+            Paragraph::new(
+                "\n\n  No active knowledge conflicts found. Memory is synchronized.",
+            ),
+            body[1],
+        );
+    }
+
+    render_footer(f, app, root[3]);
+}
+
+fn render_vitals(f: &mut ratatui::Frame, app: &SwarmApp, area: ratatui::layout::Rect) {
+    let worker_count = app.state.as_ref().map_or(0, |s| s.workers.len());
+    let active_count = app.state.as_ref().map_or(0, |s| {
+        s.workers
+            .iter()
+            .filter(|w| w.status == WorkerStatus::Active)
+            .count()
+    });
+    let uptime = app.state.as_ref().map_or("0m".to_string(), |s| {
+        let elapsed = Utc::now() - s.created_at;
+        format!("{}m", elapsed.num_minutes())
+    });
+
+    let vitals_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(25),
+            Constraint::Percentage(25),
+            Constraint::Percentage(25),
+            Constraint::Percentage(25),
+        ])
+        .split(area);
+
+    let vital_style = Style::default()
+        .fg(Color::Cyan)
+        .add_modifier(Modifier::BOLD);
+
+    f.render_widget(
+        Paragraph::new(format!(" 🐝 Team: {}", app.team_name))
+            .block(Block::default().borders(Borders::ALL))
+            .style(vital_style),
+        vitals_layout[0],
+    );
+    f.render_widget(
+        Paragraph::new(format!(" ⏱ Uptime: {}", uptime))
+            .block(Block::default().borders(Borders::ALL))
+            .style(vital_style),
+        vitals_layout[1],
+    );
+    f.render_widget(
+        Paragraph::new(format!(" 🤖 Agents: {}/{}", active_count, worker_count))
+            .block(Block::default().borders(Borders::ALL))
+            .style(vital_style),
+        vitals_layout[2],
+    );
+    f.render_widget(
+        Paragraph::new(format!(" 💰 Est. Cost: ${:.2}", app.total_cost))
+            .block(Block::default().borders(Borders::ALL))
+            .style(
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        vitals_layout[3],
+    );
+}
+
+fn render_footer(f: &mut ratatui::Frame, app: &SwarmApp, area: ratatui::layout::Rect) {
+    let footer_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Min(20), Constraint::Length(40)])
+        .split(area);
+
+    let footer_text = match app.mode {
+        AppMode::Registry => " [q] Quit  [tab] Switch Tab  [m] Memory Mode  [k] Kill  [r] Re-assign ",
+        AppMode::Memory => " [q] Quit  [m] Registry Mode  [v] Toggle View  [a] Accept New  [k] Keep Existing ",
+    };
+
+    let base_footer =
+        Paragraph::new(footer_text).style(Style::default().fg(Color::DarkGray));
+    f.render_widget(base_footer, footer_chunks[0]);
+
+    if let Some((ref msg, _)) = app.last_action_status {
+        let status = Paragraph::new(format!(" 📢 {} ", msg))
+            .style(
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .block(Block::default().borders(Borders::ALL));
+        f.render_widget(status, footer_chunks[1]);
+    }
+}
+
+fn render_knowledge_block<'a>(
+    title: &'a str,
+    content: &'a str,
+    border_color: Color,
+) -> Paragraph<'a> {
+    Paragraph::new(content)
+        .block(
+            Block::default()
+                .title(title)
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(border_color)),
+        )
+        .wrap(ratatui::widgets::Wrap { trim: true })
 }

@@ -58,4 +58,39 @@ impl MemorySystem {
     pub fn memory_dir(&self) -> &PathBuf {
         &self.memory_dir
     }
+
+    /// Resolves a knowledge conflict.
+    pub fn resolve_conflict(&self, ticket_id: &str, action: ConflictResolution, content: Option<&str>) -> anyhow::Result<()> {
+        let conflicts_dir = self.memory_dir.join("conflicts");
+        let resolved_dir = conflicts_dir.join("resolved");
+        let _ = std::fs::create_dir_all(&resolved_dir);
+
+        let ticket_path = conflicts_dir.join(ticket_id);
+        if !ticket_path.exists() {
+            anyhow::bail!("Conflict ticket not found: {}", ticket_id);
+        }
+
+        match action {
+            ConflictResolution::AcceptProposed => {
+                if let Some(c) = content {
+                    // Extract topic path from ticket id or pass it in. 
+                    // Simplified: we'll use a placeholder logic or assume the TUI knows the path.
+                    // For now, we'll just log and move. The TUI will handle topic updates via writer.
+                }
+            }
+            _ => {}
+        }
+
+        // Archive the ticket
+        let archive_path = resolved_dir.join(ticket_id);
+        std::fs::rename(ticket_path, archive_path)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ConflictResolution {
+    AcceptProposed,
+    KeepExisting,
+    Archive,
 }

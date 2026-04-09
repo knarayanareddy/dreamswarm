@@ -25,6 +25,7 @@ const MAX_LOG_ENTRIES: usize = 50;
 pub enum AppMode {
     Registry,
     Memory,
+    Global,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -70,6 +71,7 @@ pub struct SwarmApp {
     pub conflicts: Vec<ConflictTicket>,
     pub selected_conflict_index: usize,
     pub conflict_view: ConflictView,
+    pub global_relays: Vec<String>,
 }
 
 impl SwarmApp {
@@ -90,6 +92,7 @@ impl SwarmApp {
             conflicts: Vec::new(),
             selected_conflict_index: 0,
             conflict_view: ConflictView::Stacked,
+            global_relays: Vec::new(),
         }
     }
 
@@ -273,6 +276,35 @@ impl SwarmApp {
         self.last_update = Instant::now();
         Ok(())
     }
+
+    pub fn refresh_global_relays(&mut self) -> anyhow::Result<()> {
+        let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home"))?;
+        let relay_dir = home.join(".dreamswarm").join("relay").join("inboxes");
+        if !relay_dir.exists() {
+            return Ok(());
+        }
+
+        let mut relays = Vec::new();
+        for entry in std::fs::read_dir(relay_dir)?.flatten() {
+            let path = entry.path();
+            if path.extension().is_some_and(|e| e == "jsonl") {
+                let content = std::fs::read_to_string(&path)?;
+                for line in content.lines().rev().take(10) {
+                    if let Ok(msg) = serde_json::from_str::<crate::swarm::AgentMessage>(line) {
+                        relays.push(format!(
+                            "[{}] {} -> {}: {:?}",
+                            msg.timestamp.format("%H:%M:%S"),
+                            msg.from,
+                            msg.to,
+                            msg.content
+                        ));
+                    }
+                }
+            }
+        }
+        self.global_relays = relays;
+        Ok(())
+    }
 }
 
 pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result<()> {
@@ -303,7 +335,11 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                                 let _ = app.refresh_conflicts();
                                 AppMode::Memory
                             }
-                            AppMode::Memory => AppMode::Registry,
+                            AppMode::Memory => {
+                                let _ = app.refresh_global_relays();
+                                AppMode::Global
+                            }
+                            AppMode::Global => AppMode::Registry,
                         };
                     }
                     KeyCode::Char('v') if app.mode == AppMode::Memory => {
@@ -330,6 +366,7 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                                 app.selected_conflict_index -= 1;
                             }
                         }
+                        AppMode::Global => {}
                     },
                     KeyCode::Down => match app.mode {
                         AppMode::Registry => {
@@ -345,6 +382,7 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                                 app.selected_conflict_index += 1;
                             }
                         }
+                        AppMode::Global => {}
                     },
                     KeyCode::Char('k') if app.mode == AppMode::Registry => {
                         if let Some(ref state) = app.state {
@@ -551,6 +589,7 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
     match app.mode {
         AppMode::Registry => render_registry_view(f, app),
         AppMode::Memory => render_memory_view(f, app),
+        AppMode::Global => render_global_view(f, app),
     }
 }
 
@@ -808,8 +847,9 @@ fn render_registry_view(f: &mut ratatui::Frame, app: &SwarmApp) {
             " [q] Quit  [tab] Switch Tab  [m] Memory Mode  [k] Kill  [r] Re-assign "
         }
         AppMode::Memory => {
-            " [q] Quit  [m] Registry Mode  [v] Toggle View  [a] Accept New  [k] Keep Existing "
+            " [q] Quit  [m] Global Mode  [v] Toggle View  [a] Accept New  [k] Keep Existing "
         }
+        AppMode::Global => " [q] Quit  [m] Registry Mode  Relay: ~/.dreamswarm/relay ",
     };
 
     let base_footer = Paragraph::new(footer_text).style(Style::default().fg(Color::DarkGray));
@@ -894,7 +934,7 @@ fn render_memory_view(f: &mut ratatui::Frame, app: &SwarmApp) {
             ConflictView::SideBySide => {
                 let diff_layout = Layout::default()
                     .direction(Direction::Horizontal)
-                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
                     .split(knowledge_area);
 
                 let (left_head, right_head) = match conflict.kind {
@@ -915,7 +955,7 @@ fn render_memory_view(f: &mut ratatui::Frame, app: &SwarmApp) {
             ConflictView::Stacked => {
                 let diff_layout = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
                     .split(knowledge_area);
 
                 let (left_head, right_head) = match conflict.kind {
@@ -1023,8 +1063,9 @@ fn render_footer(f: &mut ratatui::Frame, app: &SwarmApp, area: ratatui::layout::
             " [q] Quit  [tab] Switch Tab  [m] Memory Mode  [k] Kill  [r] Re-assign "
         }
         AppMode::Memory => {
-            " [q] Quit  [m] Registry Mode  [v] Toggle View  [a] Accept New  [k] Keep Existing "
+            " [q] Quit  [m] Global Mode  [v] Toggle View  [a] Accept New  [k] Keep Existing "
         }
+        AppMode::Global => " [q] Quit  [m] Registry Mode  Relay: ~/.dreamswarm/relay ",
     };
 
     let base_footer = Paragraph::new(footer_text).style(Style::default().fg(Color::DarkGray));
@@ -1056,4 +1097,59 @@ fn render_knowledge_block<'a>(
                 .border_style(Style::default().fg(border_color)),
         )
         .wrap(ratatui::widgets::Wrap { trim: true })
+}
+
+fn render_global_view(f: &mut ratatui::Frame, app: &SwarmApp) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .split(f.size());
+
+    let header = Paragraph::new(" 🛸 GLOBAL OVERLORD: INTER-SWARM RELAY ")
+        .block(Block::default().borders(Borders::ALL))
+        .style(
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        );
+    f.render_widget(header, chunks[0]);
+
+    let body = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(chunks[1]);
+
+    // 1. Relay Message Feed
+    let relay_items: Vec<ListItem> = app
+        .global_relays
+        .iter()
+        .map(|line| ListItem::new(line.as_str()))
+        .collect();
+
+    let relay_list = List::new(relay_items).block(
+        Block::default()
+            .title(" 📡 Cross-Swarm Signals ")
+            .borders(Borders::ALL),
+    );
+    f.render_widget(relay_list, body[0]);
+
+    // 2. Active Snapshots / Heartbeats
+    let snapshot_dir = app.base_dir.join("teams");
+
+    let mut swarm_items = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(snapshot_dir) {
+        for entry in entries.flatten() {
+            if entry.path().is_dir() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                swarm_items.push(ListItem::new(format!(" 🐝 Active Swarm: {}", name)));
+            }
+        }
+    }
+
+    let swarm_list = List::new(swarm_items).block(
+        Block::default()
+            .title(" 🏗 Machine-Local Swarms ")
+            .borders(Borders::ALL),
+    );
+    f.render_widget(swarm_list, body[1]);
 }

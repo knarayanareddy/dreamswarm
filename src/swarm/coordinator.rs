@@ -363,4 +363,42 @@ impl SwarmCoordinator {
     pub fn task_list(&self) -> &SharedTaskList {
         &self.task_list
     }
+
+    /// Creates a full cognitive snapshot of the current swarm.
+    pub fn checkpoint(&self) -> anyhow::Result<PathBuf> {
+        let snapshot_dir = self.state_dir.join("snapshots");
+        std::fs::create_dir_all(&snapshot_dir)?;
+        let path = snapshot_dir.join(format!("snapshot_{}.json", Utc::now().timestamp()));
+        let content = serde_json::to_string_pretty(&self.state)?;
+        std::fs::write(&path, content)?;
+        tracing::info!(
+            "Halt & Resume: Created cognitive snapshot at {}",
+            path.display()
+        );
+        Ok(path)
+    }
+
+    /// Attempts to resume a swarm from a state snapshot.
+    pub fn resume(state_dir: PathBuf, snapshot_path: PathBuf) -> anyhow::Result<Self> {
+        let content = std::fs::read_to_string(&snapshot_path)?;
+        let state: TeamState = serde_json::from_str(&content)?;
+
+        let mut coordinator = Self::new(
+            state.config.clone(),
+            state
+                .workers
+                .first()
+                .map_or(".", |w| w.worktree_path.as_deref().unwrap_or(".")),
+            state_dir,
+        )?;
+
+        coordinator.state = state.clone();
+        coordinator.workers = state.workers;
+
+        tracing::info!(
+            "Halt & Resume: Successfully restored swarm '{}' from snapshot",
+            state.config.team_name
+        );
+        Ok(coordinator)
+    }
 }

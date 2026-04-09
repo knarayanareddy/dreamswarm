@@ -5,6 +5,7 @@ use std::path::PathBuf;
 pub struct Mailbox {
     inboxes_dir: PathBuf,
     agent_name: String,
+    relay_dir: Option<PathBuf>,
     pub poll_count: u64,
 }
 
@@ -15,9 +16,17 @@ impl Mailbox {
             .join(Self::sanitize(team_name))
             .join("inboxes");
         std::fs::create_dir_all(&inboxes_dir)?;
+
+        let home = dirs::home_dir();
+        let relay_dir = home.map(|h| h.join(".dreamswarm").join("relay").join("inboxes"));
+        if let Some(ref rd) = relay_dir {
+            let _ = std::fs::create_dir_all(rd);
+        }
+
         Ok(Self {
             inboxes_dir,
             agent_name: agent_name.to_string(),
+            relay_dir,
             poll_count: 0,
         })
     }
@@ -34,12 +43,28 @@ impl Mailbox {
         let inbox_path = self
             .inboxes_dir
             .join(format!("{}.jsonl", Self::sanitize(to)));
+
+        Self::write_to_path(&inbox_path, &msg)?;
+
+        // Global Relay sync: If the message is directed at "coordinator" or "global",
+        // we mirror it to the relay directory so other repo swarms can see it.
+        if to == "lead" || to == "global" {
+            if let Some(ref rd) = self.relay_dir {
+                let relay_path = rd.join("global_relay.jsonl");
+                let _ = Self::write_to_path(&relay_path, &msg);
+            }
+        }
+
+        Ok(())
+    }
+
+    fn write_to_path(path: &PathBuf, msg: &AgentMessage) -> anyhow::Result<()> {
         use std::io::Write;
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
-            .open(&inbox_path)?;
-        let line = serde_json::to_string(&msg)?;
+            .open(path)?;
+        let line = serde_json::to_string(msg)?;
         writeln!(file, "{}", line)?;
         Ok(())
     }

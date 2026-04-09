@@ -1,3 +1,4 @@
+pub mod global;
 pub mod index;
 pub mod loader;
 pub mod search;
@@ -6,6 +7,7 @@ pub mod transcripts;
 pub mod vector;
 pub mod writer;
 
+use self::global::GlobalMemoryStore;
 use std::path::PathBuf;
 
 /// The unified 3-layer memory system.
@@ -20,6 +22,7 @@ pub struct MemorySystem {
     pub writer: writer::MemoryWriter,
     pub search: search::MemorySearch,
     pub loader: loader::MemoryLoader,
+    pub global_store: Option<GlobalMemoryStore>,
     memory_dir: PathBuf,
 }
 
@@ -38,6 +41,7 @@ impl MemorySystem {
         let loader = loader::MemoryLoader::new(memory_dir.clone());
         let writer =
             writer::MemoryWriter::new(memory_dir.join("MEMORY.md"), memory_dir.join("topics"));
+        let global_store = GlobalMemoryStore::new().ok();
 
         Ok(Self {
             index,
@@ -46,6 +50,7 @@ impl MemorySystem {
             writer,
             search,
             loader,
+            global_store,
             memory_dir,
         })
     }

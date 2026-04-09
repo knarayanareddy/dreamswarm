@@ -20,15 +20,18 @@ pub struct TopicInjection {
 pub struct MemoryLoader {
     index: MemoryIndex,
     topics: TopicStore,
+    global_store: Option<super::global::GlobalMemoryStore>,
     max_topic_tokens: usize,
     max_topics_per_turn: usize,
 }
 
 impl MemoryLoader {
     pub fn new(memory_dir: PathBuf) -> Self {
+        let global_store = super::global::GlobalMemoryStore::new().ok();
         Self {
             index: MemoryIndex::new(memory_dir.join("MEMORY.md")),
             topics: TopicStore::new(memory_dir.join("topics")),
+            global_store,
             max_topic_tokens: 5000,
             max_topics_per_turn: 3,
         }
@@ -43,6 +46,8 @@ impl MemoryLoader {
 
         if let Some(query) = user_query {
             let relevant = self.index.find_relevant(query)?;
+
+            // 1. Load Local Topics
             for entry in relevant.iter().take(self.max_topics_per_turn) {
                 if topics_tokens >= self.max_topic_tokens * self.max_topics_per_turn {
                     break;
@@ -58,11 +63,30 @@ impl MemoryLoader {
                     };
 
                     topics.push(TopicInjection {
-                        path: entry.file_path.clone(),
+                        path: format!("local:{}", entry.file_path),
                         content: final_content,
                         tokens: final_tokens,
                     });
                     topics_tokens += final_tokens;
+                }
+            }
+
+            // 2. Load Global Topics (Shift the context window)
+            if let Some(ref gs) = self.global_store {
+                if let Ok(global_relevant) = gs.index.find_relevant(query) {
+                    let relevant_entries: Vec<crate::memory::index::IndexEntry> = global_relevant;
+                    for entry in relevant_entries.iter().take(2) {
+                        // Just a taste of global
+                        if let Ok(Some(content)) = gs.topics.read(&entry.file_path) {
+                            let file_content: String = content;
+                            let tokens: usize = file_content.len() / 4;
+                            topics.push(TopicInjection {
+                                path: format!("global:{}", entry.file_path),
+                                content: file_content,
+                                tokens,
+                            });
+                        }
+                    }
                 }
             }
         }

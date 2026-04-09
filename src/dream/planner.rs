@@ -21,6 +21,7 @@ impl DreamPlanner {
 
     fn priority(kind: &OperationKind) -> u32 {
         match kind {
+            OperationKind::Conflict { .. } => 0,
             OperationKind::Prune { .. } => 1,
             OperationKind::Merge { .. } => 2,
             OperationKind::Update { .. } => 3,
@@ -52,6 +53,10 @@ impl DreamPlanner {
             | OperationKind::Merge { .. }
             | OperationKind::Confirm { .. } => !op.content.is_empty() && op.content.len() <= 2000,
             OperationKind::Prune { .. } => true,
+            OperationKind::Conflict {
+                existing_data,
+                new_data,
+            } => !existing_data.is_empty() && !new_data.is_empty(),
         }
     }
 }

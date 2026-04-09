@@ -785,6 +785,7 @@ dependencies = [
  "ctrlc",
  "dirs 5.0.1",
  "fastembed",
+ "filetime",
  "ndarray",
  "notify",
  "openssl",

@@ -29,8 +29,14 @@ Analyze NEW OBSERVATIONS against CURRENT MEMORY and output a JSON array of opera
 - {{"kind": "merge", "topic": "...", "subtopic": "...", "content": "...", "reasoning": "...", "confidence": 0.0-1.0, "source_entries": ["path1.md", "path2.md"]}}
 - {{"kind": "update", "topic": "...", "subtopic": "...", "content": "...", "reasoning": "...", "confidence": 0.0-1.0, "existing_path": "..."}}
 - {{"kind": "create", "topic": "...", "subtopic": "...", "content": "...", "reasoning": "...", "confidence": 0.0-1.0}}
-- {{"kind": "prune", "topic": "...", "subtopic": "...", "content": "", "reasoning": "...", "confidence": 0.0, "prune_reason": "contradicted|stale|derivable|duplicate|low_confidence"}}
+- {{"kind": "prune", "topic": "...", "subtopic": "...", "content": "", "reasoning": "...", "confidence": 0.0, "prune_reason": "stale|derivable|duplicate|low_confidence"}}
 - {{"kind": "confirm", "topic": "...", "subtopic": "...", "content": "...", "reasoning": "...", "confidence": 0.9, "from_confidence": "observed", "to_confidence": "verified"}}
+- {{"kind": "conflict", "topic": "...", "subtopic": "...", "existing_data": "...", "new_data": "...", "reasoning": "...", "confidence": 1.0}}
+
+## SPECIAL RULES
+1. If NEW observations CONTRADICT CURRENT memory, you MUST output a "conflict" operation. DO NOT prune verified knowledge for unverified observations.
+2. Use [[Topic/Subtopic]] syntax in "content" to create semantic links.
+3. If multiple observations pertain to the same topic, suggest a "merge" into a single high-quality thematic summary.
 
 Output ONLY the JSON array."#,
             current_memory = current_memory_snapshot,
@@ -151,6 +157,22 @@ Output ONLY the JSON array."#,
                     OperationKind::Confirm {
                         from_confidence: from,
                         to_confidence: to,
+                    }
+                }
+                "conflict" => {
+                    let existing = item
+                        .get("existing_data")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let new = item
+                        .get("new_data")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    OperationKind::Conflict {
+                        existing_data: existing,
+                        new_data: new,
                     }
                 }
                 _ => continue,

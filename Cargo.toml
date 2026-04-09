@@ -48,3 +48,6 @@ openssl = { version = "0.10", features = ["vendored"] }
 fastembed = { version = "5.13.0", features = ["ort-download-binaries-rustls-tls"] }
 ort = { version = "=2.0.0-rc.11", features = ["load-dynamic", "download-binaries", "copy-dylibs", "ndarray", "tls-rustls"] }
 ndarray = "0.17.2"
+
+[dev-dependencies]
+filetime = "0.2"

@@ -5,6 +5,7 @@ use std::path::PathBuf;
 #[derive(Debug, Clone)]
 pub struct TopicStore {
     base_dir: PathBuf,
+    archive_dir: PathBuf,
     max_entry_size: usize,
     max_file_size: usize,
 }
@@ -38,11 +39,45 @@ impl std::fmt::Display for Confidence {
 
 impl TopicStore {
     pub fn new(base_dir: PathBuf) -> Self {
+        let archive_dir = base_dir.parent().unwrap_or(&base_dir).join("archive");
+        let _ = std::fs::create_dir_all(&archive_dir);
         Self {
             base_dir,
+            archive_dir,
             max_entry_size: 2000,
             max_file_size: 50_000,
         }
+    }
+
+    /// Prunes files that haven't been touched in `older_than` days.
+    /// If `Verified`, they are kept. Otherwise, they are archived.
+    pub fn apply_decay(&self, older_than_days: u64) -> anyhow::Result<usize> {
+        let mut decayed_count = 0;
+        let files = self.list_all()?;
+        let now = std::time::SystemTime::now();
+        let seconds_in_day = 86400;
+
+        for rel_path in files {
+            let path = self.base_dir.join(&rel_path);
+            let metadata = std::fs::metadata(&path)?;
+            let modified = metadata.modified()?;
+            let age = now.duration_since(modified)?.as_secs();
+
+            if age > older_than_days * seconds_in_day {
+                let content = std::fs::read_to_string(&path)?;
+                // Only decay if not explicitly [✅ verified]
+                if !content.contains("✅ verified") {
+                    let archive_path = self.archive_dir.join(&rel_path);
+                    if let Some(parent) = archive_path.parent() {
+                        std::fs::create_dir_all(parent)?;
+                    }
+                    std::fs::rename(&path, &archive_path)?;
+                    decayed_count += 1;
+                    tracing::info!("Decayed topic to archive: {}", rel_path);
+                }
+            }
+        }
+        Ok(decayed_count)
     }
 
     pub fn read(&self, topic_path: &str) -> anyhow::Result<Option<String>> {
@@ -135,6 +170,7 @@ impl TopicStore {
             return Ok(());
         }
 
+
         for entry in std::fs::read_dir(current)? {
             let entry = entry?;
             let path = entry.path();
@@ -167,5 +203,45 @@ impl TopicStore {
             Some(content) => Ok(content.len() / 4),
             None => Ok(0),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_temporal_decay() -> anyhow::Result<()> {
+        let dir = tempdir()?;
+        let topics_dir = dir.path().join("topics");
+        let store = TopicStore::new(topics_dir);
+
+        // 1. Create a fresh topic
+        store.append("active.md", "This is fresh", None, Confidence::Observed)?;
+
+        // 2. Create an old topic (unverified)
+        let old_path = store.base_dir.join("old_stale.md");
+        store.append("old_stale.md", "This is old", None, Confidence::Observed)?;
+        
+        // Manipulate mtime to 20 days ago
+        let old_time = std::time::SystemTime::now() - std::time::Duration::from_secs(20 * 86400);
+        filetime::set_file_mtime(&old_path, filetime::FileTime::from_system_time(old_time))?;
+
+        // 3. Create an old topic (verified - should be kept)
+        let verified_path = store.base_dir.join("old_verified.md");
+        store.append("old_verified.md", "This is verified ✅ verified", None, Confidence::Verified)?;
+        filetime::set_file_mtime(&verified_path, filetime::FileTime::from_system_time(old_time))?;
+
+        // Run decay (14 day threshold)
+        let decayed = store.apply_decay(14)?;
+        
+        assert_eq!(decayed, 1);
+        assert!(!old_path.exists());
+        assert!(store.archive_dir.join("old_stale.md").exists());
+        assert!(verified_path.exists());
+        assert!(store.base_dir.join("active.md").exists());
+
+        Ok(())
     }
 }

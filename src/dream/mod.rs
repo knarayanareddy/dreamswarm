@@ -81,6 +81,10 @@ pub enum OperationKind {
         from_confidence: String,
         to_confidence: String,
     },
+    Conflict {
+        existing_data: String,
+        new_data: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

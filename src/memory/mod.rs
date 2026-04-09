@@ -28,6 +28,7 @@ impl MemorySystem {
         std::fs::create_dir_all(&memory_dir)?;
         std::fs::create_dir_all(memory_dir.join("topics"))?;
         std::fs::create_dir_all(memory_dir.join("transcripts"))?;
+        std::fs::create_dir_all(memory_dir.join("conflicts"))?;
 
         let index = index::MemoryIndex::new(memory_dir.join("MEMORY.md"));
         let topics = topics::TopicStore::new(memory_dir.join("topics"));
@@ -46,6 +47,11 @@ impl MemorySystem {
             loader,
             memory_dir,
         })
+    }
+
+    /// Triggers temporal decay across the topic store.
+    pub fn manage_decay(&self, older_than_days: u64) -> anyhow::Result<usize> {
+        self.topics.apply_decay(older_than_days)
     }
 
     /// Returns the path to the root memory directory.

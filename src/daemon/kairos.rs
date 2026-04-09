@@ -93,6 +93,7 @@ impl KairosDaemon {
             let current_date = Utc::now().date_naive();
             if current_date != last_date {
                 self.initiative_engine.reset_daily();
+                self.run_maintenance().await.ok();
                 last_date = current_date;
             }
 
@@ -145,6 +146,16 @@ impl KairosDaemon {
         } else {
             anyhow::bail!("No query engine available for autoDream")
         }
+    }
+
+    pub async fn run_maintenance(&self) -> anyhow::Result<()> {
+        tracing::info!("Performing memory maintenance (Temporal Decay)");
+        let mem = self.memory.read().await;
+        let decayed = mem.manage_decay(14)?; // 14 day threshold
+        if decayed > 0 {
+            tracing::info!("Maintenance complete: {} topics archived", decayed);
+        }
+        Ok(())
     }
 
     async fn handle_action(&mut self, action: ProactiveAction) -> anyhow::Result<()> {

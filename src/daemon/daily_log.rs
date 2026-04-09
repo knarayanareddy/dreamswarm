@@ -11,6 +11,7 @@ pub struct LogEntry {
     pub timestamp: DateTime<Utc>,
     pub kind: LogEntryKind,
     pub content: String,
+    pub session_id: Option<String>,
     pub tools_used: Vec<String>,
     pub tokens_consumed: u64,
     pub cost_usd: f64,
@@ -58,11 +59,13 @@ impl DailyLog {
         content: &str,
         signals: Vec<String>,
         trust_level: f64,
+        session_id: Option<String>,
     ) -> anyhow::Result<()> {
         self.append(&LogEntry {
             timestamp: Utc::now(),
             kind: LogEntryKind::Observation,
             content: content.to_string(),
+            session_id,
             tools_used: vec![],
             tokens_consumed: 0,
             cost_usd: 0.0,
@@ -71,11 +74,12 @@ impl DailyLog {
         })
     }
 
-    pub fn log_decision(&self, content: &str, trust_level: f64) -> anyhow::Result<()> {
+    pub fn log_decision(&self, content: &str, trust_level: f64, session_id: Option<String>) -> anyhow::Result<()> {
         self.append(&LogEntry {
             timestamp: Utc::now(),
             kind: LogEntryKind::Decision,
             content: content.to_string(),
+            session_id,
             tools_used: vec![],
             tokens_consumed: 0,
             cost_usd: 0.0,
@@ -91,11 +95,13 @@ impl DailyLog {
         tokens: u64,
         cost: f64,
         trust_level: f64,
+        session_id: Option<String>,
     ) -> anyhow::Result<()> {
         self.append(&LogEntry {
             timestamp: Utc::now(),
             kind: LogEntryKind::Action,
             content: content.to_string(),
+            session_id,
             tools_used,
             tokens_consumed: tokens,
             cost_usd: cost,
@@ -104,11 +110,12 @@ impl DailyLog {
         })
     }
 
-    pub fn log_error(&self, content: &str, trust_level: f64) -> anyhow::Result<()> {
+    pub fn log_error(&self, content: &str, trust_level: f64, session_id: Option<String>) -> anyhow::Result<()> {
         self.append(&LogEntry {
             timestamp: Utc::now(),
             kind: LogEntryKind::Error,
             content: content.to_string(),
+            session_id,
             tools_used: vec![],
             tokens_consumed: 0,
             cost_usd: 0.0,
@@ -117,11 +124,12 @@ impl DailyLog {
         })
     }
 
-    pub fn log_timeout(&self, content: &str, trust_level: f64) -> anyhow::Result<()> {
+    pub fn log_timeout(&self, content: &str, trust_level: f64, session_id: Option<String>) -> anyhow::Result<()> {
         self.append(&LogEntry {
             timestamp: Utc::now(),
             kind: LogEntryKind::Timeout,
             content: content.to_string(),
+            session_id,
             tools_used: vec![],
             tokens_consumed: 0,
             cost_usd: 0.0,

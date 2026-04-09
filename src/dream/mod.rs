@@ -94,6 +94,10 @@ pub enum OperationKind {
         agent_id: String,
         new_instructions: String,
     },
+    HealAgent {
+        agent_id: String,
+        reason: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -131,6 +135,7 @@ pub struct MirrorSnapshot {
     pub total_ops: usize,
     pub conflict_rate: f64,
     pub token_efficiency: f64, // tokens per operation
+    pub trust_score: f64,      // 0.0 to 1.0 based on user approval history
     pub most_volatile_topic: Option<String>,
     pub agent_performance: std::collections::HashMap<String, AgentHealth>,
 }
@@ -140,4 +145,13 @@ pub struct AgentHealth {
     pub success_count: usize,
     pub conflict_count: usize,
     pub avg_confidence: f64,
+    pub vitals: AgentVitals,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AgentVitals {
+    pub last_tool_call: Option<DateTime<Utc>>,
+    pub tool_loop_count: usize,
+    pub entropy_score: f64, // measures "predictability" or staleness of outputs
+    pub is_stalled: bool,
 }

@@ -164,15 +164,25 @@ impl SwarmCoordinator {
         description: &str,
         dependencies: Vec<String>,
         priority: u32,
+        autopilot_ctx: Option<(&crate::memory::MemorySystem, &crate::query::engine::QueryEngine)>,
     ) -> anyhow::Result<()> {
+        let mut final_description = description.to_string();
+
+        if let Some((memory, qe)) = autopilot_ctx {
+            if let Ok(themes) = crate::dream::autopilot::Autopilot::get_relevant_themes(description, memory, qe).await {
+                final_description = crate::dream::autopilot::Autopilot::enrich_task_with_context(description, &themes);
+                tracing::info!("Autopilot: Enriched task '{}' with {} L3 chapters", title, themes.len());
+            }
+        }
+
         let task = self
             .task_list
-            .create_task(title, description, dependencies, priority)?;
+            .create_task(title, &final_description, dependencies, priority)?;
         self.task_list.claim_task(&task.id, worker_id)?;
         self.mailbox.send_task_assignment(
             worker_id,
             &task.id,
-            &format!("{}\n\n{}", title, description),
+            &format!("{}\n\n{}", title, final_description),
         )?;
         tracing::info!(
             "Assigned task '{}' ({}) to worker '{}'",

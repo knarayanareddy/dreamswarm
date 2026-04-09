@@ -170,7 +170,6 @@ impl TopicStore {
             return Ok(());
         }
 
-
         for entry in std::fs::read_dir(current)? {
             let entry = entry?;
             let path = entry.path();
@@ -223,19 +222,27 @@ mod tests {
         // 2. Create an old topic (unverified)
         let old_path = store.base_dir.join("old_stale.md");
         store.append("old_stale.md", "This is old", None, Confidence::Observed)?;
-        
+
         // Manipulate mtime to 20 days ago
         let old_time = std::time::SystemTime::now() - std::time::Duration::from_secs(20 * 86400);
         filetime::set_file_mtime(&old_path, filetime::FileTime::from_system_time(old_time))?;
 
         // 3. Create an old topic (verified - should be kept)
         let verified_path = store.base_dir.join("old_verified.md");
-        store.append("old_verified.md", "This is verified ✅ verified", None, Confidence::Verified)?;
-        filetime::set_file_mtime(&verified_path, filetime::FileTime::from_system_time(old_time))?;
+        store.append(
+            "old_verified.md",
+            "This is verified ✅ verified",
+            None,
+            Confidence::Verified,
+        )?;
+        filetime::set_file_mtime(
+            &verified_path,
+            filetime::FileTime::from_system_time(old_time),
+        )?;
 
         // Run decay (14 day threshold)
         let decayed = store.apply_decay(14)?;
-        
+
         assert_eq!(decayed, 1);
         assert!(!old_path.exists());
         assert!(store.archive_dir.join("old_stale.md").exists());

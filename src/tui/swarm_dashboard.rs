@@ -403,10 +403,11 @@ fn ui(f: &mut ratatui::Frame, app: &SwarmApp) {
                         Row::new(vec!["Branch".to_string(), branch_str]),
                         Row::new(vec!["Worktree".to_string(), worktree_str]),
                     ];
-                    let table = Table::new(rows, [Constraint::Length(10), Constraint::Min(20)]).header(
-                        Row::new(vec!["Property", "Value"])
-                            .style(Style::default().add_modifier(Modifier::UNDERLINED)),
-                    );
+                    let table = Table::new(rows, [Constraint::Length(10), Constraint::Min(20)])
+                        .header(
+                            Row::new(vec!["Property", "Value"])
+                                .style(Style::default().add_modifier(Modifier::UNDERLINED)),
+                        );
                     f.render_widget(table, chunks[1]);
                 }
                 1 => {

@@ -45,5 +45,4 @@ runs:
       shell: bash
       run: |
         cargo binstall sccache --no-confirm --force 2>/dev/null || cargo install sccache
-        echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
         echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV

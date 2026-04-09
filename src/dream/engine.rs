@@ -148,6 +148,7 @@ impl DreamEngine {
                             OperationKind::Conflict { .. }
                             | OperationKind::ConsolidateTheme { .. }
                             | OperationKind::RefineInstructions { .. } => contradictions_count += 1,
+                            OperationKind::HealAgent { .. } => {}
                         }
                     }
                 }
@@ -192,6 +193,7 @@ impl DreamEngine {
             timestamp: Utc::now(),
             kind: LogEntryKind::Dream,
             content: DreamReporter::format_brief(&report),
+            session_id: None,
             tools_used: vec!["MemoryWrite".into()],
             tokens_consumed: tokens_used,
             cost_usd: cost_used,
@@ -327,6 +329,14 @@ impl DreamEngine {
                     agent_id, new_instructions, op.reasoning
                 );
                 std::fs::write(path, content)?;
+                Ok(true)
+            }
+            OperationKind::HealAgent { agent_id, reason } => {
+                tracing::info!(
+                    "Applying autonomous healing to agent {}: {}",
+                    agent_id,
+                    reason
+                );
                 Ok(true)
             }
         }

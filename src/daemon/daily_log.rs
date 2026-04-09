@@ -74,7 +74,12 @@ impl DailyLog {
         })
     }
 
-    pub fn log_decision(&self, content: &str, trust_level: f64, session_id: Option<String>) -> anyhow::Result<()> {
+    pub fn log_decision(
+        &self,
+        content: &str,
+        trust_level: f64,
+        session_id: Option<String>,
+    ) -> anyhow::Result<()> {
         self.append(&LogEntry {
             timestamp: Utc::now(),
             kind: LogEntryKind::Decision,
@@ -110,7 +115,12 @@ impl DailyLog {
         })
     }
 
-    pub fn log_error(&self, content: &str, trust_level: f64, session_id: Option<String>) -> anyhow::Result<()> {
+    pub fn log_error(
+        &self,
+        content: &str,
+        trust_level: f64,
+        session_id: Option<String>,
+    ) -> anyhow::Result<()> {
         self.append(&LogEntry {
             timestamp: Utc::now(),
             kind: LogEntryKind::Error,
@@ -124,7 +134,12 @@ impl DailyLog {
         })
     }
 
-    pub fn log_timeout(&self, content: &str, trust_level: f64, session_id: Option<String>) -> anyhow::Result<()> {
+    pub fn log_timeout(
+        &self,
+        content: &str,
+        trust_level: f64,
+        session_id: Option<String>,
+    ) -> anyhow::Result<()> {
         self.append(&LogEntry {
             timestamp: Utc::now(),
             kind: LogEntryKind::Timeout,

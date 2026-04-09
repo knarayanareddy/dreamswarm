@@ -9,7 +9,7 @@ impl Autopilot {
     pub async fn get_relevant_themes(
         query: &str,
         memory: &crate::memory::MemorySystem,
-        query_engine: &QueryEngine,
+        _query_engine: &QueryEngine,
     ) -> anyhow::Result<Vec<String>> {
         let themes_dir = memory.memory_dir().join("themes");
         if !themes_dir.exists() {
@@ -18,7 +18,7 @@ impl Autopilot {
 
         // 1. Search Memory Index for relevant themes
         let relevant_entries = memory.index.find_relevant(query)?;
-        
+
         // 2. Filter for L3 theme pointers
         let mut theme_paths = Vec::new();
         for entry in relevant_entries {
@@ -50,7 +50,10 @@ impl Autopilot {
             return description.to_string();
         }
 
-        let mut enriched = format!("{}\n\n---\n## 🧠 AUTHOPILOT: ARCHITECTURAL CONTEXT (L3)\n", description);
+        let mut enriched = format!(
+            "{}\n\n---\n## 🧠 AUTHOPILOT: ARCHITECTURAL CONTEXT (L3)\n",
+            description
+        );
         for (i, theme) in themes.iter().enumerate() {
             enriched.push_str(&format!("\n### Perspective {}\n{}\n", i + 1, theme));
         }

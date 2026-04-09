@@ -173,7 +173,7 @@ impl KairosDaemon {
     pub async fn run_maintenance(&self) -> anyhow::Result<()> {
         tracing::info!("Performing memory maintenance (Temporal Decay)");
         let mem = self.memory.read().await;
-        
+
         // Phase 4: Auto-Synthesis for high-trust clusters
         // (Implementation to follow in next steps)
 
@@ -185,20 +185,23 @@ impl KairosDaemon {
     }
 
     async fn check_swarm_health(&self) -> anyhow::Result<()> {
-        if let Some(ref qe) = self.query_engine {
+        if let Some(ref _qe) = self.query_engine {
             let mirror = crate::dream::mirror::MirrorEngine::new(self.config.state_dir.clone());
             let snapshot = mirror.generate_snapshot()?;
 
             for (sid, health) in snapshot.agent_performance {
                 if health.vitals.is_stalled && health.avg_confidence > 0.9 {
-                    tracing::warn!("Kairos: Agent '{}' is stalled. Initiating autonomous healing...", sid);
+                    tracing::warn!(
+                        "Kairos: Agent '{}' is stalled. Initiating autonomous healing...",
+                        sid
+                    );
                     self.daily_log.log_error(
                         &format!("Autonomous Healing: Flagged agent '{}' as stalled (Loop: {}, Entropy: {:.2})", 
                             sid, health.vitals.tool_loop_count, health.vitals.entropy_score),
                         self.initiative_engine.trust().current_level,
                         Some(sid.clone())
                     )?;
-                    
+
                     // In a real implementation, we'd signal the coordinator to re-spawn.
                     // For now, we log the intent and mark for recovery.
                 }
@@ -210,8 +213,11 @@ impl KairosDaemon {
     async fn handle_action(&mut self, action: ProactiveAction) -> anyhow::Result<()> {
         let action_description = format!("{:?}", action);
         let trust = self.initiative_engine.trust().current_level;
-        self.daily_log
-            .log_decision(&format!("Decided to act: {}", action_description), trust, None)?;
+        self.daily_log.log_decision(
+            &format!("Decided to act: {}", action_description),
+            trust,
+            None,
+        )?;
 
         let budget = self.config.blocking_budget;
         let result = tokio::time::timeout(budget, self.execute_action(&action)).await;
@@ -237,8 +243,11 @@ impl KairosDaemon {
                     .log_error(&format!("Action failed: {}", e), trust, None)?;
             }
             Err(_) => {
-                self.daily_log
-                    .log_timeout(&format!("Action timed out: {}", action_description), trust, None)?;
+                self.daily_log.log_timeout(
+                    &format!("Action timed out: {}", action_description),
+                    trust,
+                    None,
+                )?;
             }
         }
         Ok(())

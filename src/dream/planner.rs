@@ -29,6 +29,7 @@ impl DreamPlanner {
             OperationKind::Update { .. } => 5,
             OperationKind::Confirm { .. } => 6,
             OperationKind::Create => 7,
+            OperationKind::HealAgent { .. } => 8,
         }
     }
 
@@ -61,6 +62,7 @@ impl DreamPlanner {
                 existing_data,
                 new_data,
             } => !existing_data.is_empty() && !new_data.is_empty(),
+            OperationKind::HealAgent { .. } => true,
         }
     }
 }

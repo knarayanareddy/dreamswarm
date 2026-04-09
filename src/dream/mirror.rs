@@ -1,6 +1,6 @@
-use crate::daemon::daily_log::{DailyLog, LogEntryKind};
+use crate::daemon::daily_log::{DailyLog, LogEntry, LogEntryKind};
 use crate::dream::sandbox::DreamSandbox;
-use crate::dream::{AgentHealth, MemoryOperation, MirrorSnapshot};
+use crate::dream::{AgentHealth, AgentVitals, MemoryOperation, MirrorSnapshot};
 use crate::query::engine::QueryEngine;
 use chrono::Utc;
 use std::collections::HashMap;
@@ -47,7 +47,10 @@ impl MirrorEngine {
         for entry in &recent_entries {
             total_tokens += entry.tokens_consumed;
             if let Some(ref sid) = entry.session_id {
-                session_map.entry(sid.clone()).or_default().push(entry.clone());
+                session_map
+                    .entry(sid.clone())
+                    .or_default()
+                    .push(entry.clone());
             }
             if entry.kind == LogEntryKind::Error {
                 conflicts += 1;
@@ -86,8 +89,14 @@ impl MirrorEngine {
             agent_stats.insert(
                 sid,
                 AgentHealth {
-                    success_count: entries.iter().filter(|e| e.kind == LogEntryKind::Action).count(),
-                    conflict_count: entries.iter().filter(|e| e.kind == LogEntryKind::Error).count(),
+                    success_count: entries
+                        .iter()
+                        .filter(|e| e.kind == LogEntryKind::Action)
+                        .count() as usize,
+                    conflict_count: entries
+                        .iter()
+                        .filter(|e| e.kind == LogEntryKind::Error)
+                        .count() as usize,
                     avg_confidence: 0.8, // Placeholder
                     vitals,
                 },
@@ -136,14 +145,20 @@ Focus on reducing conflicts and recovering stalled agents."#,
         if let Ok(json_ops) = serde_json::from_str::<Vec<serde_json::Value>>(response) {
             for op in json_ops {
                 let kind = op["kind"].as_str().unwrap_or("");
-                let reasoning = op["reasoning"].as_str().unwrap_or("No reasoning provided").to_string();
+                let reasoning = op["reasoning"]
+                    .as_str()
+                    .unwrap_or("No reasoning provided")
+                    .to_string();
 
                 match kind {
                     "heal_agent" => {
                         insights.push(MemoryOperation {
                             kind: crate::dream::OperationKind::HealAgent {
                                 agent_id: op["agent_id"].as_str().unwrap_or("unknown").to_string(),
-                                reason: op["reason"].as_str().unwrap_or("Unknown stall").to_string(),
+                                reason: op["reason"]
+                                    .as_str()
+                                    .unwrap_or("Unknown stall")
+                                    .to_string(),
                             },
                             topic: "Resilience".into(),
                             subtopic: op["agent_id"].as_str().unwrap_or("unknown").to_string(),
@@ -156,7 +171,10 @@ Focus on reducing conflicts and recovering stalled agents."#,
                         insights.push(MemoryOperation {
                             kind: crate::dream::OperationKind::RefineInstructions {
                                 agent_id: op["agent_id"].as_str().unwrap_or("unknown").to_string(),
-                                new_instructions: op["new_instructions"].as_str().unwrap_or("").to_string(),
+                                new_instructions: op["new_instructions"]
+                                    .as_str()
+                                    .unwrap_or("")
+                                    .to_string(),
                             },
                             topic: "Optimization".into(),
                             subtopic: op["agent_id"].as_str().unwrap_or("unknown").to_string(),

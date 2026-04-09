@@ -92,11 +92,11 @@ impl MirrorEngine {
                     success_count: entries
                         .iter()
                         .filter(|e| e.kind == LogEntryKind::Action)
-                        .count() as usize,
+                        .count(),
                     conflict_count: entries
                         .iter()
                         .filter(|e| e.kind == LogEntryKind::Error)
-                        .count() as usize,
+                        .count(),
                     avg_confidence: 0.8, // Placeholder
                     vitals,
                 },

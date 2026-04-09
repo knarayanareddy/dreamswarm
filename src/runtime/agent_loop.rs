@@ -46,7 +46,11 @@ impl AgentRuntime {
         db: Database,
         mailbox: Option<Arc<RwLock<Mailbox>>>,
     ) -> Self {
-        let permission_gate = PermissionGate::new();
+        let permission_gate = PermissionGate::new(
+            config.permission_mode,
+            &config.allow_patterns,
+            &config.deny_patterns,
+        );
         Self {
             session,
             query_engine,
@@ -163,12 +167,28 @@ impl AgentRuntime {
 
                     // Execute tool
                     if let Some(tool) = self.tool_registry.get_tool(&name) {
-                        let mut allowed = true;
-                        if tool.risk_level() == crate::runtime::permissions::RiskLevel::Dangerous {
-                            allowed = on_tool_approval(name.clone(), input.clone()).await;
+                        let signature = tool.command_signature(&input);
+                        let permission = self.permission_gate.check(&name, tool.risk_level(), &signature);
+
+                        let mut final_allowed = false;
+                        let mut error_content: Option<String> = None;
+
+                        match permission {
+                            crate::runtime::permissions::Permission::Allow => {
+                                final_allowed = true;
+                            }
+                            crate::runtime::permissions::Permission::Deny(reason) => {
+                                error_content = Some(format!("Security blocked: {}", reason));
+                            }
+                            crate::runtime::permissions::Permission::Ask => {
+                                final_allowed = on_tool_approval(name.clone(), input.clone()).await;
+                                if !final_allowed {
+                                    error_content = Some("Permission denied by user.".to_string());
+                                }
+                            }
                         }
 
-                        if allowed {
+                        if final_allowed {
                             match tool.execute(&input).await {
                                 Ok(output) => {
                                     tool_results.push((
@@ -194,7 +214,7 @@ impl AgentRuntime {
                                 id,
                                 name,
                                 input,
-                                "Permission denied by user.".to_string(),
+                                error_content.unwrap_or_else(|| "Execution blocked.".into()),
                                 true,
                             ));
                         }

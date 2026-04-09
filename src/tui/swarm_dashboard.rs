@@ -427,11 +427,9 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                                 }
                                 TicketKind::Synthesis => {
                                     // 1. Write L3 Chapter
-                                    let themes_dir = app
-                                        .base_dir
-                                        .join(".dreamswarm")
-                                        .join("memory")
-                                        .join("themes");
+                                    let memory_dir =
+                                        app.base_dir.join(".dreamswarm").join("memory");
+                                    let themes_dir = memory_dir.join("themes");
                                     let theme_path = themes_dir.join(format!(
                                         "{}.md",
                                         conflict.topic.to_lowercase().replace(' ', "-")
@@ -439,31 +437,62 @@ pub async fn run_dashboard(team_name: &str, base_dir: PathBuf) -> anyhow::Result
                                     let _ = std::fs::write(&theme_path, &conflict.proposed);
 
                                     // 2. Archive Source L2s
-                                    let archive_dir = app
-                                        .base_dir
-                                        .join(".dreamswarm")
-                                        .join("memory")
-                                        .join("archive")
-                                        .join("synthesized");
+                                    let archive_dir =
+                                        memory_dir.join("archive").join("synthesized");
                                     let _ = std::fs::create_dir_all(&archive_dir);
+                                    let topic_dir = memory_dir.join("topics");
+
+                                    // 3. Update L1 Index (MEMORY.md)
+                                    let index_path = memory_dir.join("MEMORY.md");
+                                    let index = crate::memory::index::MemoryIndex::new(index_path);
+
                                     for line in conflict.existing.lines() {
-                                        let source_path = app
-                                            .base_dir
-                                            .join(".dreamswarm")
-                                            .join("memory")
-                                            .join("topics")
-                                            .join(line.trim());
+                                        let source_rel = line.trim();
+                                        if source_rel.is_empty() {
+                                            continue;
+                                        }
+                                        let source_path = topic_dir.join(source_rel);
+
                                         if source_path.exists() {
-                                            let dest = archive_dir.join(line.trim());
+                                            let dest = archive_dir.join(source_rel);
                                             if let Some(p) = dest.parent() {
                                                 let _ = std::fs::create_dir_all(p);
                                             }
-                                            let _ = std::fs::rename(source_path, dest);
+                                            let _ = std::fs::rename(&source_path, dest);
+                                            // Remove from index
+                                            let _ = index.remove_pointer(source_rel);
                                         }
                                     }
+
+                                    // Add L3 theme to index
+                                    let theme_rel = format!(
+                                        "themes/{}.md",
+                                        conflict.topic.to_lowercase().replace(' ', "-")
+                                    );
+                                    let _ = index.upsert_pointer(
+                                        &conflict.topic,
+                                        &theme_rel,
+                                        "Synthesized Chapter (L3)",
+                                    );
                                 }
                                 TicketKind::Refinement => {
-                                    // Just log for now
+                                    // Save refinement to a dedicated store
+                                    let refinements_dir = app
+                                        .base_dir
+                                        .join(".dreamswarm")
+                                        .join("memory")
+                                        .join("refinements");
+                                    let _ = std::fs::create_dir_all(&refinements_dir);
+                                    let ref_path = refinements_dir.join(format!(
+                                        "{}_{}.md",
+                                        conflict.topic.to_lowercase().replace(' ', "-"),
+                                        Utc::now().timestamp()
+                                    ));
+                                    let content = format!(
+                                        "# Agent Refinement: {}\n\n## Instructions\n{}\n\n## Reasoning\n{}\n",
+                                        conflict.topic, conflict.proposed, conflict.reason
+                                    );
+                                    let _ = std::fs::write(ref_path, content);
                                 }
                             }
 

@@ -44,6 +44,18 @@ impl TelemetryHub {
         let _ = self.broadcast_tx.send(event);
     }
 
+    /// Broadcasts an event without persisting to the database.
+    /// Used for high-frequency stress testing (War Room).
+    pub async fn broadcast_event(&self, category: &str, event_type: &str, payload: serde_json::Value) {
+        let event = TelemetryEvent {
+            category: category.to_string(),
+            event_type: event_type.to_string(),
+            payload,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+        };
+        let _ = self.broadcast_tx.send(event);
+    }
+
     pub fn subscribe(&self) -> broadcast::Receiver<TelemetryEvent> {
         self.broadcast_tx.subscribe()
     }

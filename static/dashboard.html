@@ -60,6 +60,9 @@
             <button onclick="control('dream')" class="glass px-6 py-2 neo-cyan border-neo-cyan/20 hover:bg-cyan-500/10 transition-all uppercase text-xs font-bold tracking-widest">
                 <i class="fa-solid fa-moon mr-2"></i> Trigger Deep Dream
             </button>
+            <button onclick="control('war-room')" class="glass px-6 py-2 text-orange-400 border-orange-500/20 hover:bg-orange-500/10 transition-all uppercase text-xs font-bold tracking-widest">
+                <i class="fa-solid fa-radiation mr-2"></i> War Room Stress
+            </button>
         </div>
     </header>
 
@@ -195,18 +198,25 @@
         function handleTelemetryEvent(event) {
             const logContainer = document.getElementById('immune-logs');
             const newLog = document.createElement('div');
-            const time = new Date(event.timestamp).toLocaleTimeString();
+            const time = new Date().toLocaleTimeString();
             
-            if (event.category === 'immune') {
-                newLog.innerHTML = `<span class="opacity-40">[${time}]</span> <span class="neo-cyan">IMMUNE_SYSTEM:</span> ${JSON.stringify(event.payload)}`;
-                newLog.classList.add('animate-pulse');
-            } else if (event.category === 'cognitive') {
-                // Update stats
-                if (event.event_type === 'throughput') {
-                    document.getElementById('stat-throughput').innerText = `${event.payload.ops} ops/sec`;
-                }
+            if (event.event_type === 'flood_signal') {
+                // High frequency optimization: limit logs
+                logContainer.prepend(Object.assign(document.createElement('div'), {
+                    innerHTML: `<span class="opacity-20">[${time}]</span> <span class="text-orange-500 font-bold">STRESS_FLOOD_ACTIVE</span>`,
+                    className: 'border-l-2 border-orange-500 pl-2 my-1'
+                }));
+                if (logContainer.children.length > 20) logContainer.lastChild.remove();
+                return;
+            }
+
+            if (event.category === 'immune' || event.category === 'system') {
+                newLog.innerHTML = `<span class="opacity-40">[${time}]</span> <span class="neo-cyan">IMMUNE_SYSTEM:</span> <span class="text-gray-300">${JSON.stringify(event.payload)}</span>`;
+                if (event.payload.urgency === 'CRITICAL') newLog.classList.add('text-red-400', 'font-bold', 'animate-pulse');
+            } else if (event.category === 'swarm') {
+                newLog.innerHTML = `<span class="opacity-40">[${time}]</span> <span class="text-purple-400">SWARM_INTEL:</span> ${JSON.stringify(event.payload)}`;
             } else {
-                newLog.innerHTML = `<span class="opacity-40">[${time}]</span> <span class="text-purple-400">HIVE_CORE:</span> ${JSON.stringify(event.payload)}`;
+                newLog.innerHTML = `<span class="opacity-40">[${time}]</span> <span class="text-gray-500">HIVE_SIGNAL:</span> ${JSON.stringify(event.payload)}`;
             }
             
             logContainer.prepend(newLog);

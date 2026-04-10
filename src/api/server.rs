@@ -38,6 +38,7 @@ pub async fn start_api_server(state: ApiState, port: u16) -> anyhow::Result<()> 
         .route("/api/v1/telemetry/history", get(handle_telemetry_history))
         .route("/api/v1/control/stop", post(handle_control_stop))
         .route("/api/v1/control/dream", post(handle_control_dream))
+        .route("/api/v1/control/war-room", post(handle_control_war_room))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port)).await?;
@@ -122,4 +123,16 @@ async fn handle_control_dream(State(state): State<ApiState>) -> Json<serde_json:
         )
         .await;
     Json(serde_json::json!({"status": "Manual Deep Dream initiated"}))
+}
+
+async fn handle_control_war_room(State(state): State<ApiState>) -> Json<serde_json::Value> {
+    state
+        .telemetry
+        .log_event(
+            "system",
+            "control_signal",
+            serde_json::json!({"action": "WAR_ROOM", "origin": "dashboard"}),
+        )
+        .await;
+    Json(serde_json::json!({"status": "War Room stress cycle broadcasted"}))
 }

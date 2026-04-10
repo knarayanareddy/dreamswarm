@@ -25,7 +25,12 @@ impl ModelRouter {
             providers.insert("openai".to_string(), Box::new(p));
         }
 
-        // 3. DeepSeek (Cost Optimization)
+        // 3. Featherless (Open-Weights Power)
+        if let Ok(p) = crate::query::providers::featherless::FeatherlessProvider::new("minimax-m25") {
+            providers.insert("featherless".to_string(), Box::new(p));
+        }
+
+        // 4. DeepSeek (Cost Optimization)
         if let Some(ds_conf) = &config.deepseek_config {
             if let Ok(p) = crate::query::providers::deepseek::DeepSeekProvider::new(
                 &ds_conf.model,
@@ -35,7 +40,7 @@ impl ModelRouter {
             }
         }
 
-        // 4. Ollama (Local Resilience)
+        // 5. Ollama (Local Resilience)
         if let Some(ol_conf) = &config.ollama_config {
             let p = crate::query::providers::ollama::OllamaProvider::new(
                 &ol_conf.endpoint,
@@ -50,6 +55,7 @@ impl ModelRouter {
             hierarchy: vec![
                 "anthropic".into(),
                 "openai".into(),
+                "featherless".into(),
                 "deepseek".into(),
                 "ollama".into(),
             ],

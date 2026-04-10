@@ -177,7 +177,7 @@ impl KairosDaemon {
                 tracing::info!("Scheduled job due: {} ({})", job.name, job.action);
                 if job.action == "dream" {
                     self.run_auto_dream().await.ok();
-                    
+
                     // Phase 8: Red Swarm Adversarial Diagnostics (during idle)
                     let _ = self.red_swarm.run_diagnostic(&self.working_dir).await;
                 }

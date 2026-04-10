@@ -1,8 +1,8 @@
 pub mod global;
 pub mod index;
 pub mod loader;
-pub mod search;
 pub mod relay;
+pub mod search;
 pub mod topics;
 pub mod transcripts;
 pub mod vector;

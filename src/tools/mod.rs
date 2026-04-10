@@ -17,8 +17,8 @@ pub mod monitor_tool;
 pub mod push_notification;
 pub mod python_tool;
 pub mod rust_debug;
-pub mod synthesis;
 pub mod swarm_tools;
+pub mod synthesis;
 
 #[derive(Debug, Clone)]
 pub struct ToolCall {

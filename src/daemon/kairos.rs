@@ -2,11 +2,13 @@ use crate::daemon::brief_mode::BriefFormatter;
 use crate::daemon::daily_log::{DailyLog, LogEntry, LogEntryKind};
 use crate::daemon::heartbeat::{Heartbeat, HeartbeatConfig};
 use crate::daemon::initiative::InitiativeEngine;
+use crate::daemon::persistence::PersistenceManager;
 use crate::daemon::schedule::Scheduler;
 use crate::daemon::signals::SignalGatherer;
-use crate::daemon::persistence::PersistenceManager;
 use crate::daemon::{DaemonConfig, Initiative, ProactiveAction, Urgency};
-pub mod relay { pub use crate::memory::relay::S3Relay; }
+pub mod relay {
+    pub use crate::memory::relay::S3Relay;
+}
 use crate::dream::engine::DreamEngine;
 use crate::dream::report::DreamReporter;
 use crate::dream::DreamConfig;
@@ -50,19 +52,25 @@ impl KairosDaemon {
         let initiative_engine = InitiativeEngine::new(config.clone());
         let scheduler = Scheduler::new().with_defaults();
         let daily_log = DailyLog::new(&config.state_dir)?;
-        let persistence = crate::daemon::persistence::PersistenceManager::new(config.state_dir.clone());
-        
+        let persistence =
+            crate::daemon::persistence::PersistenceManager::new(config.state_dir.clone());
+
         let mut relay = None;
         if let Some(s3_conf) = &app_config.s3_relay_config {
-            let mem_dir = memory.try_read().map(|m| m.memory_dir().clone()).unwrap_or_default();
-            if let Ok(r) = tokio::runtime::Handle::current().block_on(crate::memory::relay::S3Relay::new(
-                &s3_conf.endpoint,
-                &s3_conf.bucket,
-                &s3_conf.region,
-                &s3_conf.access_key,
-                &s3_conf.secret_key,
-                mem_dir,
-            )) {
+            let mem_dir = memory
+                .try_read()
+                .map(|m| m.memory_dir().clone())
+                .unwrap_or_default();
+            if let Ok(r) =
+                tokio::runtime::Handle::current().block_on(crate::memory::relay::S3Relay::new(
+                    &s3_conf.endpoint,
+                    &s3_conf.bucket,
+                    &s3_conf.region,
+                    &s3_conf.access_key,
+                    &s3_conf.secret_key,
+                    mem_dir,
+                ))
+            {
                 relay = Some(Arc::new(r));
             }
         }
@@ -104,7 +112,10 @@ impl KairosDaemon {
         // Phase 5/7: Warm-Start Resilience
         if self.persistence.exists() {
             if let Ok(state) = self.persistence.load_last_state() {
-                tracing::info!("Phase 7: Warm-Start detected. Recovering hive state from {} swarms...", state.active_swarms.len());
+                tracing::info!(
+                    "Phase 7: Warm-Start detected. Recovering hive state from {} swarms...",
+                    state.active_swarms.len()
+                );
                 // In a production build, we would re-attach executors to these swarms.
             }
         }
@@ -187,7 +198,7 @@ impl KairosDaemon {
                 });
             }
             // Simplified checkpoint: persist the coordinator state if it were here
-            let _ = self.persistence.checkpoint(vec![]); 
+            let _ = self.persistence.checkpoint(vec![]);
         }
         Ok(())
     }

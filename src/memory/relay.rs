@@ -16,7 +16,7 @@ impl S3Relay {
         secret_key: &str,
         local_dir: PathBuf,
     ) -> anyhow::Result<Self> {
-        // Configure the S3 service using OpenDAL to provide 
+        // Configure the S3 service using OpenDAL to provide
         // a backend-agnostic object storage interface.
         let builder = S3::default()
             .endpoint(endpoint)
@@ -46,7 +46,7 @@ impl S3Relay {
                 self.op.write(&format!("topics/{}", name), content).await?;
             }
         }
-        
+
         // Push the core Memory Index (Layer 1)
         let index_path = self.local_dir.join("MEMORY.md");
         if index_path.exists() {

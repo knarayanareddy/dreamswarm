@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use crate::swarm::TeamState;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize)]
 pub struct DaemonProcessState {
@@ -29,11 +29,14 @@ impl PersistenceManager {
             last_checkpoint: Utc::now(),
             pid: std::process::id(),
         };
-        
+
         let content = serde_json::to_string_pretty(&state)?;
         std::fs::write(&self.checkpoint_path, content)?;
-        
-        tracing::info!("Persistence: Process-level checkpoint created at {}", self.checkpoint_path.display());
+
+        tracing::info!(
+            "Persistence: Process-level checkpoint created at {}",
+            self.checkpoint_path.display()
+        );
         Ok(())
     }
 

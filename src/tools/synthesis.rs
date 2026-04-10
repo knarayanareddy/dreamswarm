@@ -20,15 +20,24 @@ impl ToolSynthesisEngine {
     }
 
     /// Synthesizes a new specialized tool based on the swarm's needs.
-    pub async fn synthesize_tool(&self, meta: ToolMetadata, code_snippet: &str) -> anyhow::Result<PathBuf> {
-        let tool_path = self.dynamic_tools_dir.join(format!("{}.rs", meta.name.to_lowercase().replace(' ', "_")));
-        
+    pub async fn synthesize_tool(
+        &self,
+        meta: ToolMetadata,
+        code_snippet: &str,
+    ) -> anyhow::Result<PathBuf> {
+        let tool_path = self
+            .dynamic_tools_dir
+            .join(format!("{}.rs", meta.name.to_lowercase().replace(' ', "_")));
+
         // Context-Aware Approval Logic:
-        // High-risk tools (filesystem modification, system access) are flagged 
-        // for one-time manual approval. Low-risk analytical tools inherit 
+        // High-risk tools (filesystem modification, system access) are flagged
+        // for one-time manual approval. Low-risk analytical tools inherit
         // Consensus Trust and can be used immediately after audit.
         if meta.risk_level >= RiskLevel::Moderate {
-            tracing::warn!("Tool Synthesis: Gating high-risk tool '{}' for one-time user approval.", meta.name);
+            tracing::warn!(
+                "Tool Synthesis: Gating high-risk tool '{}' for one-time user approval.",
+                meta.name
+            );
         }
 
         let full_code = format!(
@@ -59,12 +68,16 @@ impl Tool for {name} {{
         );
 
         std::fs::write(&tool_path, full_code)?;
-        
-        // In a production build, we would now trigger `cargo build` and use 
+
+        // In a production build, we would now trigger `cargo build` and use
         // a dynamic loader (like `libloading`) to register the binary.
         // For this build, we manifest the tool in the dynamic registry.
-        
-        tracing::info!("Tool Synthesis: Successfully engineered specialized tool '{}' at {}", meta.name, tool_path.display());
+
+        tracing::info!(
+            "Tool Synthesis: Successfully engineered specialized tool '{}' at {}",
+            meta.name,
+            tool_path.display()
+        );
         Ok(tool_path)
     }
 }

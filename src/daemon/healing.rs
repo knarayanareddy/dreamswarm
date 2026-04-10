@@ -1,38 +1,40 @@
-use crate::daemon::daily_log::{DailyLog, LogEntry, LogEntryKind};
-use crate::runtime::permissions::RiskLevel;
 use crate::tools::synthesis::ToolSynthesisEngine;
 use std::path::PathBuf;
 use tokio::process::Command;
 
 pub struct HealingManager {
     working_dir: PathBuf,
-    synthesis_engine: ToolSynthesisEngine,
+    _synthesis_engine: ToolSynthesisEngine,
 }
 
 impl HealingManager {
     pub fn new(working_dir: PathBuf, state_dir: PathBuf) -> Self {
         Self {
             working_dir: working_dir.clone(),
-            synthesis_engine: ToolSynthesisEngine::new(state_dir),
+            _synthesis_engine: ToolSynthesisEngine::new(state_dir),
         }
     }
 
     /// Attempts to repair the system when a build failure or vulnerability is detected.
     pub async fn attempt_self_heal(&self, error_signal: &str) -> anyhow::Result<bool> {
-        tracing::warn!("Immune System: High-Priority Signal Triggered Self-Healing for: '{}'", error_signal);
+        tracing::warn!(
+            "Immune System: High-Priority Signal Triggered Self-Healing for: '{}'",
+            error_signal
+        );
 
         // 1. Create a staging branch for the repair
         let branch_name = format!("heal/{}", chrono::Utc::now().timestamp());
         Command::new("git")
             .args(["checkout", "-b", &branch_name])
             .current_dir(&self.working_dir)
-            .output().await?;
+            .output()
+            .await?;
 
         // 2. Synthesize a fix (simplified for this build: attempting 'cargo fmt' or basic fix)
-        // In a full implementation, this would involve a specialized Healing Agent 
+        // In a full implementation, this would involve a specialized Healing Agent
         // to analyze the error root cause and produce a diff.
         let fix_applied = self.generate_automated_patch(error_signal).await?;
-        
+
         if fix_applied {
             // 3. Test verification
             let tests_passed = self.verify_staging().await?;
@@ -47,23 +49,26 @@ impl HealingManager {
         Command::new("git")
             .args(["checkout", "main"])
             .current_dir(&self.working_dir)
-            .output().await?;
-            
+            .output()
+            .await?;
+
         Ok(false)
     }
 
-    async fn generate_automated_patch(&self, error: &str) -> anyhow::Result<bool> {
+    async fn generate_automated_patch(&self, _error: &str) -> anyhow::Result<bool> {
         // Implementation: Apply 'cargo fmt' and 'cargo fix' as baseline immunity
         Command::new("cargo")
             .args(["fmt"])
             .current_dir(&self.working_dir)
-            .output().await?;
-            
+            .output()
+            .await?;
+
         Command::new("cargo")
             .args(["fix", "--allow-dirty"])
             .current_dir(&self.working_dir)
-            .output().await?;
-            
+            .output()
+            .await?;
+
         Ok(true)
     }
 

@@ -96,7 +96,7 @@ impl KairosDaemon {
             red_swarm: crate::swarm::adversarial::RedSwarmExecutor::new(
                 config.state_dir.clone(),
                 crate::runtime::permissions::PermissionGate::new(
-                    app_config.permission_mode.clone(),
+                    app_config.permission_mode,
                     &app_config.allow_patterns,
                     &app_config.deny_patterns,
                 ),

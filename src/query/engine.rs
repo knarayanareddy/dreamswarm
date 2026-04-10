@@ -106,17 +106,20 @@ pub struct QueryEngine {
 }
 
 impl QueryEngine {
-    pub fn new(provider_name: &str, model: &str, _config: &AppConfig) -> anyhow::Result<Self> {
+    pub fn new(provider_name: &str, _model: &str, config: &AppConfig) -> anyhow::Result<Self> {
         let provider: Box<dyn LLMProvider> = match provider_name {
+            "galactic" | "router" => Box::new(crate::query::router::ModelRouter::new(config)),
             "anthropic" => Box::new(crate::query::providers::anthropic::AnthropicProvider::new(
-                model,
+                &config.model,
             )?),
-            "openai" => Box::new(crate::query::providers::openai::OpenAIProvider::new(model)?),
+            "openai" => Box::new(crate::query::providers::openai::OpenAIProvider::new(
+                &config.model,
+            )?),
             "mock" => Box::new(MockProvider {
-                model: model.to_string(),
+                model: config.model.clone(),
             }),
             _ => anyhow::bail!(
-                "Unknown provider: {}. Supported: anthropic, openai, mock",
+                "Unknown provider: {}. Supported: galactic, anthropic, openai, mock",
                 provider_name
             ),
         };

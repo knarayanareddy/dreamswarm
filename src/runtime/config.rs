@@ -11,6 +11,29 @@ pub struct AppConfig {
     pub working_dir: PathBuf,
     pub state_dir: PathBuf,
     pub s3_relay_config: Option<S3RelayConfig>,
+    pub routing_policy: RoutingPolicy,
+    pub deepseek_config: Option<DeepSeekConfig>,
+    pub ollama_config: Option<OllamaConfig>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub enum RoutingPolicy {
+    Performance,   // Always high-tier models
+    Cost,          // Dynamic complexity estimation
+    Resilient,     // Aggressive fallback to secondary/local
+    ProviderLock,  // Respect 'provider' field strictly
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct DeepSeekConfig {
+    pub api_key: String,
+    pub model: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct OllamaConfig {
+    pub endpoint: String,
+    pub model: String,
 }
 
 #[derive(Debug, Clone)]
@@ -45,6 +68,12 @@ impl Default for AppConfig {
             working_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             state_dir: home.join(".dreamswarm"),
             s3_relay_config: None,
+            routing_policy: RoutingPolicy::Resilient,
+            deepseek_config: None,
+            ollama_config: Some(OllamaConfig {
+                endpoint: "http://localhost:11434".to_string(),
+                model: "llama3.1:8b".to_string(),
+            }),
         }
     }
 }

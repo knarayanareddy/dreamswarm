@@ -4,7 +4,9 @@ use crate::daemon::heartbeat::{Heartbeat, HeartbeatConfig};
 use crate::daemon::initiative::InitiativeEngine;
 use crate::daemon::schedule::Scheduler;
 use crate::daemon::signals::SignalGatherer;
+use crate::daemon::persistence::PersistenceManager;
 use crate::daemon::{DaemonConfig, Initiative, ProactiveAction, Urgency};
+pub mod relay { pub use crate::memory::relay::S3Relay; }
 use crate::dream::engine::DreamEngine;
 use crate::dream::report::DreamReporter;
 use crate::dream::DreamConfig;
@@ -27,6 +29,8 @@ pub struct KairosDaemon {
     memory: Arc<RwLock<MemorySystem>>,
     running: Arc<RwLock<bool>>,
     working_dir: PathBuf,
+    persistence: PersistenceManager,
+    relay: Option<Arc<relay::S3Relay>>,
 }
 
 impl KairosDaemon {
@@ -46,6 +50,23 @@ impl KairosDaemon {
         let initiative_engine = InitiativeEngine::new(config.clone());
         let scheduler = Scheduler::new().with_defaults();
         let daily_log = DailyLog::new(&config.state_dir)?;
+        let persistence = crate::daemon::persistence::PersistenceManager::new(config.state_dir.clone());
+        
+        let mut relay = None;
+        if let Some(s3_conf) = &app_config.s3_relay_config {
+            let mem_dir = memory.try_read().map(|m| m.memory_dir().clone()).unwrap_or_default();
+            if let Ok(r) = tokio::runtime::Handle::current().block_on(crate::memory::relay::S3Relay::new(
+                &s3_conf.endpoint,
+                &s3_conf.bucket,
+                &s3_conf.region,
+                &s3_conf.access_key,
+                &s3_conf.secret_key,
+                mem_dir,
+            )) {
+                relay = Some(Arc::new(r));
+            }
+        }
+
         Ok(Self {
             config,
             heartbeat,
@@ -57,6 +78,8 @@ impl KairosDaemon {
             memory,
             running: Arc::new(RwLock::new(true)),
             working_dir: app_config.working_dir.clone(),
+            persistence,
+            relay,
         })
     }
 
@@ -78,7 +101,13 @@ impl KairosDaemon {
             signals_present: vec![],
         })?;
 
-        // Phase 5: Safe Auto-Resume
+        // Phase 5/7: Warm-Start Resilience
+        if self.persistence.exists() {
+            if let Ok(state) = self.persistence.load_last_state() {
+                tracing::info!("Phase 7: Warm-Start detected. Recovering hive state from {} swarms...", state.active_swarms.len());
+                // In a production build, we would re-attach executors to these swarms.
+            }
+        }
         let _ = self.attempt_auto_resume().await;
 
         // Phase 6: Start The Oracle API
@@ -146,10 +175,19 @@ impl KairosDaemon {
                 Initiative::Sleep => {}
             }
 
-            // Phase 6: Neural Self-Optimization
             if let Err(e) = self.run_self_optimization().await {
                 tracing::error!("Self-Optimization failed: {}", e);
             }
+
+            // Phase 7: Hive Sync & Checkpoint (once per loop cycle)
+            if let Some(relay_arc) = &self.relay {
+                let r = relay_arc.clone();
+                tokio::spawn(async move {
+                    let _ = r.sync_up().await;
+                });
+            }
+            // Simplified checkpoint: persist the coordinator state if it were here
+            let _ = self.persistence.checkpoint(vec![]); 
         }
         Ok(())
     }

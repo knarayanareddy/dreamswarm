@@ -8,6 +8,7 @@ pub mod daily_log;
 pub mod heartbeat;
 pub mod initiative;
 pub mod kairos;
+pub mod persistence;
 pub mod process;
 pub mod schedule;
 pub mod signals;

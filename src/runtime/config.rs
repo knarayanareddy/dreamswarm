@@ -10,6 +10,16 @@ pub struct AppConfig {
     pub deny_patterns: Vec<String>,
     pub working_dir: PathBuf,
     pub state_dir: PathBuf,
+    pub s3_relay_config: Option<S3RelayConfig>,
+}
+
+#[derive(Debug, Clone)]
+pub struct S3RelayConfig {
+    pub endpoint: String,
+    pub bucket: String,
+    pub region: String,
+    pub access_key: String,
+    pub secret_key: String,
 }
 
 impl Default for AppConfig {
@@ -34,6 +44,7 @@ impl Default for AppConfig {
             ],
             working_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             state_dir: home.join(".dreamswarm"),
+            s3_relay_config: None,
         }
     }
 }

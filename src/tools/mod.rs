@@ -17,6 +17,7 @@ pub mod monitor_tool;
 pub mod push_notification;
 pub mod python_tool;
 pub mod rust_debug;
+pub mod synthesis;
 pub mod swarm_tools;
 
 #[derive(Debug, Clone)]

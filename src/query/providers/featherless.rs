@@ -13,7 +13,9 @@ pub struct FeatherlessProvider {
 impl FeatherlessProvider {
     pub fn new(model: &str) -> anyhow::Result<Self> {
         let api_key = std::env::var("FEATHERLESS_API_KEY").map_err(|_| {
-            anyhow::anyhow!("FEATHERLESS_API_KEY not set. Export it: export FEATHERLESS_API_KEY=...")
+            anyhow::anyhow!(
+                "FEATHERLESS_API_KEY not set. Export it: export FEATHERLESS_API_KEY=..."
+            )
         })?;
         Ok(Self {
             client: Client::new(),
@@ -26,8 +28,7 @@ impl FeatherlessProvider {
     fn estimate_cost(&self, input_tokens: u64, output_tokens: u64) -> f64 {
         // Featherless pricing varies by model, but often around $0.20-0.50 per 1M tokens
         // Defaulting to a conservative estimate.
-        (input_tokens as f64 * 0.30 / 1_000_000.0)
-            + (output_tokens as f64 * 0.60 / 1_000_000.0)
+        (input_tokens as f64 * 0.30 / 1_000_000.0) + (output_tokens as f64 * 0.60 / 1_000_000.0)
     }
 
     fn convert_response(&self, response_json: &Value) -> anyhow::Result<CompletionResponse> {
@@ -45,7 +46,7 @@ impl FeatherlessProvider {
         let usage_json = &response_json["usage"];
         let input_tokens = usage_json["prompt_tokens"].as_u64().unwrap_or(0);
         let output_tokens = usage_json["completion_tokens"].as_u64().unwrap_or(0);
-        
+
         Ok(CompletionResponse {
             content,
             usage: Usage {
@@ -56,7 +57,10 @@ impl FeatherlessProvider {
                 cache_read_tokens: 0,
                 cache_creation_tokens: 0,
             },
-            stop_reason: choice["finish_reason"].as_str().unwrap_or("stop").to_string(),
+            stop_reason: choice["finish_reason"]
+                .as_str()
+                .unwrap_or("stop")
+                .to_string(),
             model: self.model.clone(),
         })
     }
@@ -99,7 +103,11 @@ impl LLMProvider for FeatherlessProvider {
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
-            return Err(anyhow::anyhow!("Featherless API error {}: {}", status, text));
+            return Err(anyhow::anyhow!(
+                "Featherless API error {}: {}",
+                status,
+                text
+            ));
         }
 
         let response_json: Value = response.json().await?;

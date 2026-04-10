@@ -137,7 +137,10 @@ impl KairosDaemon {
                         }
                         "WAR_ROOM" => {
                             tracing::warn!("Sovereign Interface: WAR ROOM Stress Cycle initiated.");
-                            let tester = crate::swarm::diagnostics::war_room::WarRoomStressTester::new(telemetry.clone());
+                            let tester =
+                                crate::swarm::diagnostics::war_room::WarRoomStressTester::new(
+                                    telemetry.clone(),
+                                );
                             tokio::spawn(async move {
                                 let _ = tester.simulate_cascading_failure().await;
                                 tester.flood_telemetry(100, 10).await;

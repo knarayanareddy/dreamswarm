@@ -22,18 +22,21 @@ impl WarRoomStressTester {
 
         while std::time::Instant::now() < end {
             interval.tick().await;
-            
+
             // Broadcast only (skip persistence)
-            let _ = self.telemetry.broadcast_event(
-                "stress_test",
-                "flood_signal",
-                serde_json::json!({
-                    "timestamp": chrono::Utc::now().to_rfc3339(),
-                    "seq": 0, // In practice we could increment this
-                    "load": "HIGH",
-                    "entropy": rand::random::<u32>()
-                })
-            ).await;
+            let _ = self
+                .telemetry
+                .broadcast_event(
+                    "stress_test",
+                    "flood_signal",
+                    serde_json::json!({
+                        "timestamp": chrono::Utc::now().to_rfc3339(),
+                        "seq": 0, // In practice we could increment this
+                        "load": "HIGH",
+                        "entropy": rand::random::<u32>()
+                    }),
+                )
+                .await;
         }
 
         tracing::info!("War Room: Telemetry Flood Stress Test Complete.");
@@ -45,36 +48,60 @@ impl WarRoomStressTester {
         tracing::warn!("War Room: Simulating Cascading Hive Failure...");
 
         // 1. Initial Error
-        self.telemetry.log_event("system", "error", serde_json::json!({
-            "component": "KAIROS",
-            "error": "UNEXPECTED_HEARTBEAT_HALT",
-            "urgency": "CRITICAL"
-        })).await;
+        self.telemetry
+            .log_event(
+                "system",
+                "error",
+                serde_json::json!({
+                    "component": "KAIROS",
+                    "error": "UNEXPECTED_HEARTBEAT_HALT",
+                    "urgency": "CRITICAL"
+                }),
+            )
+            .await;
 
         tokio::time::sleep(Duration::from_millis(500)).await;
 
         // 2. Healing Attempt
-        self.telemetry.log_event("healing", "attempt", serde_json::json!({
-            "strategy": "WORKTREE_RECOVERY",
-            "target": "src/daemon/heartbeat.rs"
-        })).await;
+        self.telemetry
+            .log_event(
+                "healing",
+                "attempt",
+                serde_json::json!({
+                    "strategy": "WORKTREE_RECOVERY",
+                    "target": "src/daemon/heartbeat.rs"
+                }),
+            )
+            .await;
 
         tokio::time::sleep(Duration::from_millis(800)).await;
 
         // 3. Healing Failure
-        self.telemetry.log_event("healing", "failure", serde_json::json!({
-            "error": "GIT_WORKTREE_LOCK_CONTENTION",
-            "retries_exhausted": true
-        })).await;
+        self.telemetry
+            .log_event(
+                "healing",
+                "failure",
+                serde_json::json!({
+                    "error": "GIT_WORKTREE_LOCK_CONTENTION",
+                    "retries_exhausted": true
+                }),
+            )
+            .await;
 
         tokio::time::sleep(Duration::from_millis(300)).await;
 
         // 4. Secondary System Failure (Adversarial)
-        self.telemetry.log_event("swarm", "adversarial_alert", serde_json::json!({
-            "origin": "RedSwarm",
-            "vulnerability_type": "REMOTE_CODE_INJECTION_SIMULATED",
-            "status": "CONTAINMENT_FAIL"
-        })).await;
+        self.telemetry
+            .log_event(
+                "swarm",
+                "adversarial_alert",
+                serde_json::json!({
+                    "origin": "RedSwarm",
+                    "vulnerability_type": "REMOTE_CODE_INJECTION_SIMULATED",
+                    "status": "CONTAINMENT_FAIL"
+                }),
+            )
+            .await;
 
         tracing::error!("War Room: Cascading Failure Simulation peak reached.");
         Ok(())

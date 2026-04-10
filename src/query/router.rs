@@ -26,7 +26,8 @@ impl ModelRouter {
         }
 
         // 3. Featherless (Open-Weights Power)
-        if let Ok(p) = crate::query::providers::featherless::FeatherlessProvider::new("minimax-m25") {
+        if let Ok(p) = crate::query::providers::featherless::FeatherlessProvider::new("minimax-m25")
+        {
             providers.insert("featherless".to_string(), Box::new(p));
         }
 

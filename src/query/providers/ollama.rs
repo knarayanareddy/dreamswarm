@@ -30,7 +30,7 @@ impl LLMProvider for OllamaProvider {
     ) -> anyhow::Result<CompletionResponse> {
         // Ollama uses an OpenAI-compatible /v1/chat/completions endpoint in recent versions,
         // or its native /api/chat. We use /api/chat for better compatibility with all Ollama versions.
-        
+
         let mut ollama_messages: Vec<Value> = vec![serde_json::json!({
             "role": "system",
             "content": system_prompt
@@ -59,7 +59,7 @@ impl LLMProvider for OllamaProvider {
 
         let response_json: Value = response.json().await?;
         let message = &response_json["message"];
-        
+
         let mut content: Vec<Value> = Vec::new();
         if let Some(text) = message["content"].as_str() {
             content.push(serde_json::json!({ "type": "text", "text": text }));

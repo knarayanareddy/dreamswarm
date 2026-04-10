@@ -85,15 +85,23 @@ impl LLMProvider for ModelRouter {
         let target = self.select_provider(complexity);
         
         // Attempt hierarchy fallback starting from target or primary
-        let mut start_idx = self.hierarchy.iter().position(|r| r == &target).unwrap_or(0);
-        
+        let start_idx = self
+            .hierarchy
+            .iter()
+            .position(|r| r == &target)
+            .unwrap_or(0);
+
         for i in start_idx..self.hierarchy.len() {
             let provider_name = &self.hierarchy[i];
             if let Some(provider) = self.providers.get(provider_name) {
                 match provider.complete(system_prompt, messages, tools).await {
                     Ok(resp) => return Ok(resp),
                     Err(e) => {
-                        tracing::warn!("Galactic Router: Provider '{}' failed: {}. Falling back...", provider_name, e);
+                        tracing::warn!(
+                            "Galactic Router: Provider '{}' failed: {}. Falling back...",
+                            provider_name,
+                            e
+                        );
                         continue;
                     }
                 }

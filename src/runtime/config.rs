@@ -18,10 +18,10 @@ pub struct AppConfig {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub enum RoutingPolicy {
-    Performance,   // Always high-tier models
-    Cost,          // Dynamic complexity estimation
-    Resilient,     // Aggressive fallback to secondary/local
-    ProviderLock,  // Respect 'provider' field strictly
+    Performance,  // Always high-tier models
+    Cost,         // Dynamic complexity estimation
+    Resilient,    // Aggressive fallback to secondary/local
+    ProviderLock, // Respect 'provider' field strictly
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

@@ -13,9 +13,10 @@ pub struct DeepSeekProvider {
 
 impl DeepSeekProvider {
     pub fn new(model: &str, api_key: Option<String>) -> anyhow::Result<Self> {
-        let api_key = api_key.or_else(|| std::env::var("DEEPSEEK_API_KEY").ok())
+        let api_key = api_key
+            .or_else(|| std::env::var("DEEPSEEK_API_KEY").ok())
             .ok_or_else(|| anyhow::anyhow!("DEEPSEEK_API_KEY not set"))?;
-            
+
         Ok(Self {
             client: Client::new(),
             api_key,
@@ -26,8 +27,7 @@ impl DeepSeekProvider {
 
     fn estimate_cost(&self, input_tokens: u64, output_tokens: u64) -> f64 {
         // DeepSeek-V3/R1 pricing (Estimated at $0.14/$0.28 per 1M tokens)
-        (input_tokens as f64 * 0.14 / 1_000_000.0)
-            + (output_tokens as f64 * 0.28 / 1_000_000.0)
+        (input_tokens as f64 * 0.14 / 1_000_000.0) + (output_tokens as f64 * 0.28 / 1_000_000.0)
     }
 
     fn convert_response(&self, response_json: &Value) -> anyhow::Result<CompletionResponse> {
@@ -44,7 +44,7 @@ impl DeepSeekProvider {
         let usage_json = &response_json["usage"];
         let input_tokens = usage_json["prompt_tokens"].as_u64().unwrap_or(0);
         let output_tokens = usage_json["completion_tokens"].as_u64().unwrap_or(0);
-        
+
         Ok(CompletionResponse {
             content,
             usage: Usage {
@@ -55,7 +55,10 @@ impl DeepSeekProvider {
                 cache_read_tokens: usage_json["prompt_cache_hit_tokens"].as_u64().unwrap_or(0),
                 cache_creation_tokens: usage_json["prompt_cache_miss_tokens"].as_u64().unwrap_or(0),
             },
-            stop_reason: choice["finish_reason"].as_str().unwrap_or("stop").to_string(),
+            stop_reason: choice["finish_reason"]
+                .as_str()
+                .unwrap_or("stop")
+                .to_string(),
             model: self.model.clone(),
         })
     }
@@ -93,7 +96,10 @@ impl LLMProvider for DeepSeekProvider {
             .await?;
 
         if !response.status().is_success() {
-            return Err(anyhow::anyhow!("DeepSeek Error: {}", response.text().await?));
+            return Err(anyhow::anyhow!(
+                "DeepSeek Error: {}",
+                response.text().await?
+            ));
         }
 
         let response_json: Value = response.json().await?;

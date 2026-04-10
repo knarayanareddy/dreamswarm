@@ -140,6 +140,7 @@ pub enum TeamStatus {
     Failed(String),
 }
 
+pub mod adversarial;
 pub mod coordinator;
 pub mod executors;
 pub mod lifecycle;

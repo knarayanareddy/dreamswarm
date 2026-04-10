@@ -6,6 +6,7 @@ use std::time::Duration;
 pub mod brief_mode;
 pub mod daily_log;
 pub mod heartbeat;
+pub mod healing;
 pub mod initiative;
 pub mod kairos;
 pub mod persistence;

@@ -33,6 +33,8 @@ pub struct KairosDaemon {
     working_dir: PathBuf,
     persistence: PersistenceManager,
     relay: Option<Arc<relay::S3Relay>>,
+    healing: crate::daemon::healing::HealingManager,
+    red_swarm: crate::swarm::adversarial::RedSwarmExecutor,
 }
 
 impl KairosDaemon {
@@ -76,7 +78,6 @@ impl KairosDaemon {
         }
 
         Ok(Self {
-            config,
             heartbeat,
             signal_gatherer,
             initiative_engine,
@@ -88,6 +89,19 @@ impl KairosDaemon {
             working_dir: app_config.working_dir.clone(),
             persistence,
             relay,
+            healing: crate::daemon::healing::HealingManager::new(
+                app_config.working_dir.clone(),
+                config.state_dir.clone(),
+            ),
+            red_swarm: crate::swarm::adversarial::RedSwarmExecutor::new(
+                config.state_dir.clone(),
+                crate::runtime::permissions::PermissionGate::new(
+                    app_config.permission_mode.clone(),
+                    &app_config.allow_patterns,
+                    &app_config.deny_patterns,
+                ),
+            ),
+            config,
         })
     }
 
@@ -163,6 +177,9 @@ impl KairosDaemon {
                 tracing::info!("Scheduled job due: {} ({})", job.name, job.action);
                 if job.action == "dream" {
                     self.run_auto_dream().await.ok();
+                    
+                    // Phase 8: Red Swarm Adversarial Diagnostics (during idle)
+                    let _ = self.red_swarm.run_diagnostic(&self.working_dir).await;
                 }
             }
 
@@ -171,7 +188,10 @@ impl KairosDaemon {
 
             match initiative {
                 Initiative::Act(action) => {
-                    self.handle_action(action).await?;
+                    if let Err(e) = self.handle_action(action.clone()).await {
+                        // Phase 8: Trigger Self-Healing on action failures
+                        let _ = self.healing.attempt_self_heal(&e.to_string()).await;
+                    }
                 }
                 Initiative::Observe(observation) => {
                     let signal_names: Vec<String> =

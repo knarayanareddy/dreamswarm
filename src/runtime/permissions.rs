@@ -55,6 +55,36 @@ pub struct PermissionGate {
     pub mode: AgentMode,
     pub allow_patterns: Vec<GlobPattern>,
     pub deny_patterns: Vec<GlobPattern>,
+    pub hardware_gate: Option<HardwareGate>,
+}
+
+#[derive(Debug, Clone)]
+pub struct HardwareGate {
+    pub constitutional_token_id: String,
+}
+
+impl HardwareGate {
+    pub fn new(id: &str) -> Self {
+        Self {
+            constitutional_token_id: id.to_string(),
+        }
+    }
+
+    /// Verifies the presence of a hardware-backed security token.
+    /// In this macOS simulation, we check for a specific Keychain entry.
+    pub fn verify(&self) -> bool {
+        #[cfg(target_os = "macos")]
+        {
+            let output = std::process::Command::new("security")
+                .args(["find-generic-password", "-l", &self.constitutional_token_id])
+                .output();
+            if let Ok(o) = output {
+                return o.status.success();
+            }
+        }
+        // Fallback for development/testing without keychain entry
+        false
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -103,6 +133,7 @@ impl PermissionGate {
             mode,
             allow_patterns,
             deny_patterns,
+            hardware_gate: Some(HardwareGate::new("DreamSwarmConstitutionalToken")),
         }
     }
 
@@ -137,6 +168,18 @@ impl PermissionGate {
 
         // LAYER 4: Risk-based fallback
         match (&self.mode, risk) {
+            (_, RiskLevel::Critical) => {
+                // Critical risk MUST pass the Hardware Gate if configured
+                if let Some(ref gate) = self.hardware_gate {
+                    if gate.verify() {
+                        Permission::Allow
+                    } else {
+                        Permission::Deny("Hardware Gate Violation: External authorization required for CRITICAL risk.".into())
+                    }
+                } else {
+                    Permission::Ask
+                }
+            }
             (_, RiskLevel::Safe) => Permission::Allow,
             (AgentMode::AcceptEdits, RiskLevel::Moderate) => {
                 if tool_name == "FileWrite" {

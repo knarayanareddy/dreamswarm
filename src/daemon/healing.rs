@@ -76,14 +76,27 @@ impl HealingManager {
         let output = Command::new("cargo")
             .args(["check"])
             .current_dir(&self.working_dir)
-            .output().await?;
+            .output()
+            .await?;
         Ok(output.status.success())
     }
 
     async fn merge_to_main(&self, branch: &str) -> anyhow::Result<()> {
-        Command::new("git").args(["checkout", "main"]).current_dir(&self.working_dir).output().await?;
-        Command::new("git").args(["merge", branch]).current_dir(&self.working_dir).output().await?;
-        Command::new("git").args(["branch", "-D", branch]).current_dir(&self.working_dir).output().await?;
+        Command::new("git")
+            .args(["checkout", "main"])
+            .current_dir(&self.working_dir)
+            .output()
+            .await?;
+        Command::new("git")
+            .args(["merge", branch])
+            .current_dir(&self.working_dir)
+            .output()
+            .await?;
+        Command::new("git")
+            .args(["branch", "-D", branch])
+            .current_dir(&self.working_dir)
+            .output()
+            .await?;
         Ok(())
     }
 }

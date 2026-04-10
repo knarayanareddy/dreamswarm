@@ -48,7 +48,11 @@ impl TelemetryHub {
         self.broadcast_tx.subscribe()
     }
 
-    pub async fn get_history(&self, category: Option<&str>, limit: usize) -> anyhow::Result<Vec<serde_json::Value>> {
+    pub async fn get_history(
+        &self,
+        category: Option<&str>,
+        limit: usize,
+    ) -> anyhow::Result<Vec<serde_json::Value>> {
         let db = self.db.read().await;
         db.get_telemetry_history(category, limit)
     }

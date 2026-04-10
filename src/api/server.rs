@@ -90,20 +90,36 @@ async fn handle_telemetry_stream(
     Sse::new(stream)
 }
 
-async fn handle_telemetry_history(
-    State(state): State<ApiState>,
-) -> Json<Vec<serde_json::Value>> {
-    let history = state.telemetry.get_history(None, 100).await.unwrap_or_default();
+async fn handle_telemetry_history(State(state): State<ApiState>) -> Json<Vec<serde_json::Value>> {
+    let history = state
+        .telemetry
+        .get_history(None, 100)
+        .await
+        .unwrap_or_default();
     Json(history)
 }
 
 async fn handle_control_stop(State(state): State<ApiState>) -> Json<serde_json::Value> {
-    state.telemetry.log_event("system", "control_signal", serde_json::json!({"action": "STOP", "origin": "dashboard"})).await;
+    state
+        .telemetry
+        .log_event(
+            "system",
+            "control_signal",
+            serde_json::json!({"action": "STOP", "origin": "dashboard"}),
+        )
+        .await;
     // Note: The actual daemon stop logic will listen to this event or use a shared atomic flag.
     Json(serde_json::json!({"status": "Stop signal broadcasted to hive"}))
 }
 
 async fn handle_control_dream(State(state): State<ApiState>) -> Json<serde_json::Value> {
-    state.telemetry.log_event("system", "control_signal", serde_json::json!({"action": "DREAM", "origin": "dashboard"})).await;
+    state
+        .telemetry
+        .log_event(
+            "system",
+            "control_signal",
+            serde_json::json!({"action": "DREAM", "origin": "dashboard"}),
+        )
+        .await;
     Json(serde_json::json!({"status": "Manual Deep Dream initiated"}))
 }

@@ -27,17 +27,17 @@ impl Database {
     pub fn new(data_dir: &PathBuf) -> anyhow::Result<Self> {
         std::fs::create_dir_all(data_dir)?;
         let db_path = data_dir.join("dreamswarm.db");
-        
+
         let manager = SqliteConnectionManager::file(db_path);
         let pool = Pool::new(manager)?;
-        
+
         {
             let conn = pool.get()?;
             // Enable WAL mode for better concurrent access
             conn.execute_batch("PRAGMA journal_mode=WAL;")?;
             conn.execute_batch("PRAGMA foreign_keys=ON;")?;
         }
-        
+
         Ok(Self { pool })
     }
 
@@ -130,14 +130,15 @@ impl Database {
         limit: usize,
     ) -> anyhow::Result<Vec<serde_json::Value>> {
         let conn = self.pool.get()?;
-        let mut query = "SELECT category, event_type, payload, timestamp FROM telemetry_events".to_string();
+        let mut query =
+            "SELECT category, event_type, payload, timestamp FROM telemetry_events".to_string();
         if category.is_some() {
             query.push_str(" WHERE category = ?1");
         }
         query.push_str(" ORDER BY timestamp DESC LIMIT ?2");
 
         let mut stmt = conn.prepare(&query)?;
-        
+
         let map_row = |row: &rusqlite::Row| {
             Ok(serde_json::json!({
                 "category": row.get::<_, String>(0)?,

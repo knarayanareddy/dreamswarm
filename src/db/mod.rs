@@ -1,12 +1,14 @@
 pub mod schema;
 
 use crate::runtime::session::Session;
-use rusqlite::{params, Connection};
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 pub struct Database {
-    conn: Connection,
+    pool: Pool<SqliteConnectionManager>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -25,22 +27,30 @@ impl Database {
     pub fn new(data_dir: &PathBuf) -> anyhow::Result<Self> {
         std::fs::create_dir_all(data_dir)?;
         let db_path = data_dir.join("dreamswarm.db");
-        let conn = Connection::open(&db_path)?;
-
-        // Enable WAL mode for better concurrent access
-        conn.execute_batch("PRAGMA journal_mode=WAL;")?;
-        conn.execute_batch("PRAGMA foreign_keys=ON;")?;
-        Ok(Self { conn })
+        
+        let manager = SqliteConnectionManager::file(db_path);
+        let pool = Pool::new(manager)?;
+        
+        {
+            let conn = pool.get()?;
+            // Enable WAL mode for better concurrent access
+            conn.execute_batch("PRAGMA journal_mode=WAL;")?;
+            conn.execute_batch("PRAGMA foreign_keys=ON;")?;
+        }
+        
+        Ok(Self { pool })
     }
 
     pub fn migrate(&self) -> anyhow::Result<()> {
-        self.conn.execute_batch(schema::INITIAL_SCHEMA)?;
+        let conn = self.pool.get()?;
+        conn.execute_batch(schema::INITIAL_SCHEMA)?;
         Ok(())
     }
 
     pub fn save_session(&self, session: &Session) -> anyhow::Result<()> {
+        let conn = self.pool.get()?;
         let messages_json = serde_json::to_string(&session.messages)?;
-        self.conn.execute(
+        conn.execute(
             "INSERT INTO sessions (id, messages, created_at, updated_at, turn_count, total_tokens, total_cost_usd, summary)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
              ON CONFLICT(id) DO UPDATE SET
@@ -65,7 +75,8 @@ impl Database {
     }
 
     pub fn load_session(&self, session_id: &str) -> anyhow::Result<Session> {
-        let mut stmt = self.conn.prepare(
+        let conn = self.pool.get()?;
+        let mut stmt = conn.prepare(
             "SELECT id, messages, created_at, updated_at, turn_count, total_tokens, total_cost_usd, summary
              FROM sessions WHERE id LIKE ?1 || '%' LIMIT 1"
         )?;
@@ -90,5 +101,61 @@ impl Database {
         })?;
 
         Ok(session)
+    }
+
+    pub fn log_telemetry_event(
+        &self,
+        category: &str,
+        event_type: &str,
+        payload: &serde_json::Value,
+    ) -> anyhow::Result<()> {
+        let conn = self.pool.get()?;
+        let payload_json = serde_json::to_string(payload)?;
+        conn.execute(
+            "INSERT INTO telemetry_events (category, event_type, payload, timestamp)
+             VALUES (?1, ?2, ?3, ?4)",
+            params![
+                category,
+                event_type,
+                payload_json,
+                chrono::Utc::now().to_rfc3339()
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_telemetry_history(
+        &self,
+        category: Option<&str>,
+        limit: usize,
+    ) -> anyhow::Result<Vec<serde_json::Value>> {
+        let conn = self.pool.get()?;
+        let mut query = "SELECT category, event_type, payload, timestamp FROM telemetry_events".to_string();
+        if category.is_some() {
+            query.push_str(" WHERE category = ?1");
+        }
+        query.push_str(" ORDER BY timestamp DESC LIMIT ?2");
+
+        let mut stmt = conn.prepare(&query)?;
+        
+        let map_row = |row: &rusqlite::Row| {
+            Ok(serde_json::json!({
+                "category": row.get::<_, String>(0)?,
+                "event_type": row.get::<_, String>(1)?,
+                "payload": serde_json::from_str::<serde_json::Value>(&row.get::<_, String>(2)?).unwrap_or_default(),
+                "timestamp": row.get::<_, String>(3)?
+            }))
+        };
+
+        let rows = if let Some(cat) = category {
+            stmt.query_map(params![cat, limit as i64], map_row)?
+        } else {
+            stmt.query_map(params![limit as i64], map_row)?
+        };
+        let mut events = Vec::new();
+        for row in rows {
+            events.push(row?);
+        }
+        Ok(events)
     }
 }

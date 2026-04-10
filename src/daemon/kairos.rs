@@ -35,6 +35,7 @@ pub struct KairosDaemon {
     relay: Option<Arc<relay::S3Relay>>,
     healing: crate::daemon::healing::HealingManager,
     red_swarm: crate::swarm::adversarial::RedSwarmExecutor,
+    telemetry: Arc<crate::api::telemetry::TelemetryHub>,
 }
 
 impl KairosDaemon {
@@ -43,6 +44,7 @@ impl KairosDaemon {
         app_config: &AppConfig,
         query_engine: Option<Arc<QueryEngine>>,
         memory: Arc<RwLock<MemorySystem>>,
+        db: Arc<RwLock<crate::db::Database>>,
     ) -> anyhow::Result<Self> {
         std::fs::create_dir_all(&config.state_dir)?;
         let heartbeat = Heartbeat::new(HeartbeatConfig {
@@ -56,6 +58,8 @@ impl KairosDaemon {
         let daily_log = DailyLog::new(&config.state_dir)?;
         let persistence =
             crate::daemon::persistence::PersistenceManager::new(config.state_dir.clone());
+
+        let telemetry = Arc::new(crate::api::telemetry::TelemetryHub::new(db.clone()));
 
         let mut relay = None;
         if let Some(s3_conf) = &app_config.s3_relay_config {
@@ -102,10 +106,41 @@ impl KairosDaemon {
                 ),
             ),
             config,
+            telemetry,
         })
     }
 
     pub async fn run(&mut self) -> anyhow::Result<()> {
+        let telemetry = self.telemetry.clone();
+        telemetry
+            .log_event(
+                "system",
+                "startup",
+                serde_json::json!({"status": "KAIROS_STARTING"}),
+            )
+            .await;
+
+        // Phase 10: Control Signal Listener
+        let running_ctrl = self.running.clone();
+        let mut control_rx = self.telemetry.subscribe();
+        tokio::spawn(async move {
+            while let Ok(event) = control_rx.recv().await {
+                if event.category == "system" && event.event_type == "control_signal" {
+                    let action = event.payload["action"].as_str().unwrap_or_default();
+                    match action {
+                        "STOP" => {
+                            tracing::warn!("Sovereign Interface: EMERGENCY STOP received.");
+                            *running_ctrl.write().await = false;
+                        }
+                        "DREAM" => {
+                            tracing::info!("Sovereign Interface: MANUAL DREAM triggered.");
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        });
+
         tracing::info!("KAIROS daemon starting...");
         self.daily_log.append(&LogEntry {
             timestamp: Utc::now(),
@@ -130,7 +165,6 @@ impl KairosDaemon {
                     "Phase 7: Warm-Start detected. Recovering hive state from {} swarms...",
                     state.active_swarms.len()
                 );
-                // In a production build, we would re-attach executors to these swarms.
             }
         }
         let _ = self.attempt_auto_resume().await;
@@ -139,6 +173,7 @@ impl KairosDaemon {
         if self.config.api_enabled {
             let api_state = crate::api::server::ApiState {
                 memory: self.memory.clone(),
+                telemetry: self.telemetry.clone(),
             };
             let port = self.config.api_port;
             tokio::spawn(async move {

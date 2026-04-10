@@ -147,8 +147,16 @@ async fn main() -> anyhow::Result<()> {
                 DaemonAction::Run => {
                     let query_engine =
                         Arc::new(QueryEngine::new(&config.provider, &config.model, &config)?);
-                    let mut daemon =
-                        KairosDaemon::new(daemon_config, &config, Some(query_engine), memory)?;
+                    let db = Arc::new(RwLock::new(Database::new(&config.state_dir)?));
+                    db.read().await.migrate()?;
+
+                    let mut daemon = KairosDaemon::new(
+                        daemon_config,
+                        &config,
+                        Some(query_engine),
+                        memory,
+                        db.clone(),
+                    )?;
                     daemon.run().await?;
                 }
                 DaemonAction::Log { count } => {

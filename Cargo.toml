@@ -17,7 +17,7 @@ tokio-util = { version = "0.7", features = ["full"] }
 
 # API / HTTP
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
-axum = "0.7"
+axum = { version = "0.7", features = ["macros"] }
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 opendal = { version = "0.50", features = ["services-s3", "layers-tracing"] }
 aws-config = "1.1"
@@ -52,6 +52,10 @@ openssl = { version = "0.10", features = ["vendored"] }
 fastembed = { version = "5.13.0", features = ["ort-download-binaries-rustls-tls"] }
 ort = { version = "=2.0.0-rc.11", features = ["load-dynamic", "download-binaries", "copy-dylibs", "ndarray", "tls-rustls"] }
 ndarray = "0.17.2"
+futures = "0.3.32"
+tokio-stream = { version = "0.1.18", features = ["sync"] }
+r2d2 = "0.8.10"
+r2d2_sqlite = "0.24.0"
 
 [dev-dependencies]
 filetime = "0.2"

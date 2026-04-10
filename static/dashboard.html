@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DreamSwarm | Sovereign Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono:wght@300;400&display=swap');
+        
+        body {
+            background: radial-gradient(circle at center, #0a192f 0%, #020c1b 100%);
+            color: #e6f1ff;
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .glass {
+            background: rgba(16, 33, 65, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(100, 255, 218, 0.1);
+            border-radius: 16px;
+        }
+
+        .neo-cyan { color: #64ffda; }
+        .bg-neo-cyan { background: #64ffda; }
+        .border-neo-cyan { border-color: #64ffda; }
+        .shadow-neon { box-shadow: 0 0 20px rgba(100, 255, 218, 0.2); }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(100, 255, 218, 0.2); border-radius: 10px; }
+        
+        .node-active { filter: drop-shadow(0 0 8px #64ffda); }
+    </style>
+</head>
+<body class="p-6">
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight">DREAMSWARM <span class="text-sm font-light neo-cyan ml-2 opacity-60">| Autonomous Multi-Agent Hive</span></h1>
+            <p class="text-gray-400 text-sm mt-1 uppercase tracking-widest">Sovereign Command Center_</p>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="control('stop')" class="glass px-6 py-2 text-red-400 border-red-500/20 hover:bg-red-500/10 transition-all uppercase text-xs font-bold tracking-widest">
+                <i class="fa-solid fa-circle-stop mr-2"></i> Emergency Stop
+            </button>
+            <button onclick="control('dream')" class="glass px-6 py-2 neo-cyan border-neo-cyan/20 hover:bg-cyan-500/10 transition-all uppercase text-xs font-bold tracking-widest">
+                <i class="fa-solid fa-moon mr-2"></i> Trigger Deep Dream
+            </button>
+        </div>
+    </header>
+
+    <main class="grid grid-cols-12 gap-6">
+        <!-- Swarm Visualization -->
+        <div class="col-span-12 lg:col-span-8 glass p-6 min-h-[500px] relative overflow-hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xs font-bold uppercase tracking-widest opacity-60">Swarm Topology / Real-Time Mesh</h2>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-neo-cyan rounded-full pulse shadow-neon"></span>
+                    <span class="text-[10px] neo-cyan uppercase">Live Visualization</span>
+                </div>
+            </div>
+            <div id="swarm-viz" class="w-full h-[450px]"></div>
+        </div>
+
+        <!-- Right Panels -->
+        <div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+            <!-- Cognitive Health -->
+            <div class="glass p-6">
+                <h2 class="text-xs font-bold uppercase tracking-widest opacity-60 mb-6">Cognitive Health</h2>
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-xs opacity-60">Throughput</span>
+                            <span class="text-xs neo-cyan mono" id="stat-throughput">0 ops/sec</span>
+                        </div>
+                        <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-neo-cyan w-[45%]" id="bar-throughput"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-xs opacity-60">Token Utilization</span>
+                            <span class="text-xs text-orange-400 mono" id="stat-cost">$0.00 / hr</span>
+                        </div>
+                        <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-orange-500 w-[68%]" id="bar-cost"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                        <div class="text-center">
+                            <div class="text-xl neo-cyan mono" id="stat-success">99.8%</div>
+                            <div class="text-[10px] uppercase opacity-40">Success Rate</div>
+                        </div>
+                        <div class="text-center border-l border-white/5">
+                            <div class="text-xl text-purple-400 mono">Active</div>
+                            <div class="text-[10px] uppercase opacity-40">Immune Status</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Immune System Logs -->
+            <div class="glass p-6 flex-grow">
+                <h2 class="text-xs font-bold uppercase tracking-widest opacity-60 mb-4">Immune System Log</h2>
+                <div id="immune-logs" class="h-[250px] overflow-y-auto space-y-3 mono text-[10px]">
+                    <div class="text-gray-500">[SYSTEM] Initializing telemetry stream...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer / Constitutional Signature -->
+        <div class="col-span-12 glass p-4 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <div class="text-[10px] font-bold uppercase tracking-widest opacity-40">Constitutional Signature:</div>
+                <div class="flex gap-2">
+                    <span class="text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded border border-green-500/20">ALIGNMENT: PASS (94%)</span>
+                    <span class="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded border border-cyan-500/20">RESILIENCE: ACTIVE</span>
+                    <span class="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-1 rounded border border-purple-500/20">HIVE SYNC: VALIDATED</span>
+                </div>
+            </div>
+            <div class="text-[10px] mono opacity-40" id="current-time">24 OCT 2077 | 12:08:42 UTC</div>
+        </div>
+    </main>
+
+    <script>
+        // --- Swarm Visualization (D3.js) ---
+        const width = document.getElementById('swarm-viz').clientWidth;
+        const height = 450;
+        const nodes = Array.from({length: 30}, (_, i) => ({ id: i, group: Math.floor(i/10) }));
+        const links = Array.from({length: 45}, () => ({
+            source: Math.floor(Math.random() * nodes.length),
+            target: Math.floor(Math.random() * nodes.length)
+        }));
+
+        const svg = d3.select("#swarm-viz").append("svg")
+            .attr("width", "100%")
+            .attr("height", height);
+
+        const simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+            .force("charge", d3.forceManyBody().strength(-150))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+        const link = svg.append("g")
+            .attr("stroke", "rgba(100, 255, 218, 0.1)")
+            .attr("stroke-width", 1)
+            .selectAll("line")
+            .data(links)
+            .join("line");
+
+        const node = svg.append("g")
+            .selectAll("circle")
+            .data(nodes)
+            .join("circle")
+            .attr("r", 4)
+            .attr("fill", d => d.group === 0 ? "#64ffda" : "#48bb78")
+            .attr("class", "node-active")
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        simulation.on("tick", () => {
+            link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+            node.attr("cx", d => d.x).attr("cy", d => d.y);
+        });
+
+        function dragstarted(event) { if (!event.active) simulation.alphaTarget(0.3).restart(); event.subject.fx = event.subject.x; event.subject.fy = event.subject.y; }
+        function dragged(event) { event.subject.fx = event.x; event.subject.fy = event.y; }
+        function dragended(event) { if (!event.active) simulation.alphaTarget(0); event.subject.fx = null; event.subject.fy = null; }
+
+        // --- Telemetry Connection (SSE) ---
+        const evtSource = new EventSource("/api/v1/telemetry/stream");
+        
+        evtSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            handleTelemetryEvent(data);
+        };
+
+        function handleTelemetryEvent(event) {
+            const logContainer = document.getElementById('immune-logs');
+            const newLog = document.createElement('div');
+            const time = new Date(event.timestamp).toLocaleTimeString();
+            
+            if (event.category === 'immune') {
+                newLog.innerHTML = `<span class="opacity-40">[${time}]</span> <span class="neo-cyan">IMMUNE_SYSTEM:</span> ${JSON.stringify(event.payload)}`;
+                newLog.classList.add('animate-pulse');
+            } else if (event.category === 'cognitive') {
+                // Update stats
+                if (event.event_type === 'throughput') {
+                    document.getElementById('stat-throughput').innerText = `${event.payload.ops} ops/sec`;
+                }
+            } else {
+                newLog.innerHTML = `<span class="opacity-40">[${time}]</span> <span class="text-purple-400">HIVE_CORE:</span> ${JSON.stringify(event.payload)}`;
+            }
+            
+            logContainer.prepend(newLog);
+            if (logContainer.children.length > 50) logContainer.lastChild.remove();
+        }
+
+        // --- Controls ---
+        async function control(action) {
+            try {
+                const response = await fetch(`/api/v1/control/${action}`, { method: 'POST' });
+                const result = await response.json();
+                console.log(`${action} triggered:`, result);
+                
+                const logContainer = document.getElementById('immune-logs');
+                const log = document.createElement('div');
+                log.innerHTML = `<span class="text-orange-400 font-bold uppercase tracking-widest">[COMMAND] ${action.toUpperCase()} INITIATED BY OPERATOR</span>`;
+                logContainer.prepend(log);
+            } catch (err) {
+                console.error('Action failed:', err);
+            }
+        }
+
+        // Update Clock
+        setInterval(() => {
+            document.getElementById('current-time').innerText = new Date().toUTCString().toUpperCase() + " | SOVEREIGN NODE";
+        }, 1000);
+    </script>
+</body>
+</html>

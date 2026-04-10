@@ -170,4 +170,22 @@ CREATE TABLE IF NOT EXISTS dream_reports (
     memory_after_hash TEXT,
     dreamed_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS telemetry_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT NOT NULL, -- cognitive, immune, swarm, system
+    event_type TEXT NOT NULL, -- throughput, cost, healing, node_update
+    payload TEXT NOT NULL, -- JSON data
+    timestamp TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_telemetry_cat ON telemetry_events(category);
+CREATE INDEX IF NOT EXISTS idx_telemetry_time ON telemetry_events(timestamp);
+
+CREATE TABLE IF NOT EXISTS hub_control_states (
+    id TEXT PRIMARY KEY,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 "#;

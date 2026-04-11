@@ -9,6 +9,7 @@ use crate::daemon::{DaemonConfig, Initiative, ProactiveAction, Urgency};
 pub mod relay {
     pub use crate::memory::relay::S3Relay;
 }
+use crate::api::telemetry::TelemetryHub;
 use crate::dream::engine::DreamEngine;
 use crate::dream::report::DreamReporter;
 use crate::dream::DreamConfig;
@@ -35,6 +36,7 @@ pub struct KairosDaemon {
     relay: Option<Arc<relay::S3Relay>>,
     healing: crate::daemon::healing::HealingManager,
     red_swarm: crate::swarm::adversarial::RedSwarmExecutor,
+    evolution: Arc<crate::swarm::evolution::coordinator::EvolutionCoordinator>,
     telemetry: Arc<crate::api::telemetry::TelemetryHub>,
 }
 
@@ -45,6 +47,7 @@ impl KairosDaemon {
         query_engine: Option<Arc<QueryEngine>>,
         memory: Arc<RwLock<MemorySystem>>,
         db: Arc<RwLock<crate::db::Database>>,
+        telemetry: Option<Arc<TelemetryHub>>,
     ) -> anyhow::Result<Self> {
         std::fs::create_dir_all(&config.state_dir)?;
         let heartbeat = Heartbeat::new(HeartbeatConfig {
@@ -59,7 +62,17 @@ impl KairosDaemon {
         let persistence =
             crate::daemon::persistence::PersistenceManager::new(config.state_dir.clone());
 
-        let telemetry = Arc::new(crate::api::telemetry::TelemetryHub::new(db.clone()));
+        let telemetry = telemetry.unwrap_or_else(|| Arc::new(TelemetryHub::new(db.clone())));
+
+        let evolution_analyzer = crate::swarm::evolution::prompt_evolution::PromptAnalyzer::new(
+            query_engine.clone().unwrap(),
+            telemetry.clone(),
+        );
+        let evolution = Arc::new(crate::swarm::evolution::coordinator::EvolutionCoordinator::new(
+            evolution_analyzer,
+            db,
+            telemetry.clone(),
+        ));
 
         let mut relay = None;
         if let Some(s3_conf) = &app_config.s3_relay_config {
@@ -105,6 +118,7 @@ impl KairosDaemon {
                     &app_config.deny_patterns,
                 ),
             ),
+            evolution,
             config,
             telemetry,
         })
@@ -255,6 +269,9 @@ impl KairosDaemon {
             if let Err(e) = self.run_self_optimization().await {
                 tracing::error!("Self-Optimization failed: {}", e);
             }
+
+            // Phase 12: Neural Evolution Cycle
+            self.evolution.run_cycle_if_due().await.ok();
 
             // Phase 7: Hive Sync & Checkpoint (once per loop cycle)
             if let Some(relay_arc) = &self.relay {

@@ -18,7 +18,7 @@ tokio-util = { version = "0.7", features = ["full"] }
 # API / HTTP
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
 axum = { version = "0.7", features = ["macros"] }
-tower-http = { version = "0.5", features = ["cors", "trace"] }
+tower-http = { version = "0.5", features = ["cors", "fs", "trace"] }
 opendal = { version = "0.50", features = ["services-s3", "layers-tracing"] }
 aws-config = "1.1"
 

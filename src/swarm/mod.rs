@@ -143,6 +143,7 @@ pub enum TeamStatus {
 pub mod adversarial;
 pub mod coordinator;
 pub mod diagnostics;
+pub mod evolution;
 pub mod executors;
 pub mod lifecycle;
 pub mod mailbox;

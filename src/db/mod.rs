@@ -1,5 +1,7 @@
 pub mod schema;
 
+use crate::api::telemetry::TelemetryHub;
+
 use crate::runtime::session::Session;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
@@ -27,7 +29,6 @@ impl Database {
     pub fn new(data_dir: &PathBuf) -> anyhow::Result<Self> {
         std::fs::create_dir_all(data_dir)?;
         let db_path = data_dir.join("dreamswarm.db");
-
         let manager = SqliteConnectionManager::file(db_path);
         let pool = Pool::new(manager)?;
 
@@ -39,6 +40,10 @@ impl Database {
         }
 
         Ok(Self { pool })
+    }
+
+    pub fn pool(&self) -> &Pool<SqliteConnectionManager> {
+        &self.pool
     }
 
     pub fn migrate(&self) -> anyhow::Result<()> {
@@ -158,5 +163,34 @@ impl Database {
             events.push(row?);
         }
         Ok(events)
+    }
+
+    pub fn save_prompt_variant(
+        &self,
+        variant_name: &str,
+        prompt_text: &str,
+        parent_version: Option<i64>,
+    ) -> anyhow::Result<i64> {
+        let conn = self.pool.get()?;
+        conn.execute(
+            "INSERT INTO prompt_lineage (parent_version, variant_name, prompt_text, created_at)
+             VALUES (?1, ?2, ?3, ?4)",
+            params![
+                parent_version,
+                variant_name,
+                prompt_text,
+                chrono::Utc::now().to_rfc3339()
+            ],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    pub fn get_active_prompt(&self) -> anyhow::Result<Option<String>> {
+        let conn = self.pool.get()?;
+        let mut stmt = conn.prepare(
+            "SELECT prompt_text FROM prompt_lineage WHERE is_active = 1 LIMIT 1"
+        )?;
+        let prompt = stmt.query_row([], |row| row.get(0)).ok();
+        Ok(prompt)
     }
 }

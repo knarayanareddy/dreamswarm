@@ -6,6 +6,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use tower_http::services::ServeDir;
 use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -39,6 +40,7 @@ pub async fn start_api_server(state: ApiState, port: u16) -> anyhow::Result<()> 
         .route("/api/v1/control/stop", post(handle_control_stop))
         .route("/api/v1/control/dream", post(handle_control_dream))
         .route("/api/v1/control/war-room", post(handle_control_war_room))
+        .fallback_service(ServeDir::new("static"))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port)).await?;

@@ -188,4 +188,19 @@ CREATE TABLE IF NOT EXISTS hub_control_states (
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS prompt_lineage (
+    version INTEGER PRIMARY KEY AUTOINCREMENT,
+    parent_version INTEGER,
+    variant_name TEXT NOT NULL, -- 'base', 'challenger_a', etc.
+    prompt_text TEXT NOT NULL,
+    success_rate REAL DEFAULT 0.0,
+    avg_tokens INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT 0,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (parent_version) REFERENCES prompt_lineage(version)
+);
+
+CREATE INDEX IF NOT EXISTS idx_prompt_variant ON prompt_lineage(variant_name);
+CREATE INDEX IF NOT EXISTS idx_prompt_active ON prompt_lineage(is_active) WHERE is_active = 1;
 "#;

@@ -156,6 +156,7 @@ async fn main() -> anyhow::Result<()> {
                         Some(query_engine),
                         memory,
                         db.clone(),
+                        None,
                     )?;
                     daemon.run().await?;
                 }

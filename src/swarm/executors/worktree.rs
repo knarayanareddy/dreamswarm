@@ -13,7 +13,11 @@ pub struct WorktreeExecutor {
 }
 
 impl WorktreeExecutor {
-    pub fn new(repo_root: PathBuf, tmux_session: &str, linked_repositories: Vec<String>) -> anyhow::Result<Self> {
+    pub fn new(
+        repo_root: PathBuf,
+        tmux_session: &str,
+        linked_repositories: Vec<String>,
+    ) -> anyhow::Result<Self> {
         let worktrees_dir = repo_root.join(".dreamswarm-worktrees");
         std::fs::create_dir_all(&worktrees_dir)?;
         Ok(Self {
@@ -54,8 +58,13 @@ impl TeammateExecutor for WorktreeExecutor {
         );
         let mega_workspace = self.worktrees_dir.join(&config.id);
         std::fs::create_dir_all(&mega_workspace)?;
-        
-        let primary_repo_name = self.repo_root.file_name().unwrap_or_default().to_string_lossy().to_string();
+
+        let primary_repo_name = self
+            .repo_root
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
         let worktree_path = mega_workspace.join(&primary_repo_name);
         let base_branch = self.current_branch().await?;
 
@@ -83,16 +92,22 @@ impl TeammateExecutor for WorktreeExecutor {
             if !repo_path.exists() {
                 continue;
             }
-            let repo_name = repo_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+            let repo_name = repo_path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
             let linked_wt_path = mega_workspace.join(&repo_name);
-            
+
             let branch_cmd = Command::new("git")
                 .args(["branch", "--show-current"])
                 .current_dir(&repo_path)
                 .output()
                 .await?;
-            let linked_base_branch = String::from_utf8_lossy(&branch_cmd.stdout).trim().to_string();
-            
+            let linked_base_branch = String::from_utf8_lossy(&branch_cmd.stdout)
+                .trim()
+                .to_string();
+
             Command::new("git")
                 .args([
                     "worktree",

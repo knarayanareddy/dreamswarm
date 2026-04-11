@@ -56,6 +56,26 @@ impl InitiativeEngine {
     }
 
     fn rule_based_evaluation(&self, signals: &[Signal]) -> Option<Initiative> {
+        if let Some(conflict) = signals.iter().find(|s| s.kind == SignalKind::ConflictImminent) {
+            let branches = conflict
+                .metadata
+                .get("branches")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .unwrap_or_default();
+            let files = conflict
+                .metadata
+                .get("overlapping_files")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .unwrap_or_default();
+            
+            return Some(Initiative::Act(ProactiveAction::ResolveConflict {
+                branches,
+                files,
+            }));
+        }
+
         let build_failures: Vec<&Signal> = signals
             .iter()
             .filter(|s| {

@@ -86,6 +86,10 @@ pub enum ProactiveAction {
         description: String,
         tool_calls: Vec<String>,
     },
+    ResolveConflict {
+        branches: Vec<String>,
+        files: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]

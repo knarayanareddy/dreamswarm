@@ -31,6 +31,7 @@ pub enum SignalKind {
     IdleTimeout,
     CronTrigger,
     DependencyUpdate,
+    ConflictImminent,
     Custom(String),
 }
 
@@ -116,6 +117,66 @@ impl FileWatcher {
         fw
     }
 
+    fn check_for_conflicts(&self) -> Option<Signal> {
+        let output = std::process::Command::new("git")
+            .args(["branch", "--list", "dreamswarm/*"])
+            .current_dir(&self.working_dir)
+            .output()
+            .ok()?;
+            
+        let out_str = String::from_utf8_lossy(&output.stdout);
+        let branches: Vec<&str> = out_str
+            .lines()
+            .map(|l| l.trim().trim_start_matches("* "))
+            .filter(|l| !l.is_empty())
+            .collect();
+            
+        if branches.len() < 2 {
+            return None;
+        }
+        
+        let mut changes_by_branch: std::collections::HashMap<String, std::collections::HashSet<String>> = std::collections::HashMap::new();
+        
+        for branch in &branches {
+            let diff_out = std::process::Command::new("git")
+                .args(["diff", &format!("main...{}", branch), "--name-only"])
+                .current_dir(&self.working_dir)
+                .output()
+                .ok()?;
+            let files: std::collections::HashSet<String> = String::from_utf8_lossy(&diff_out.stdout)
+                .lines()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            changes_by_branch.insert(branch.to_string(), files);
+        }
+        
+        for i in 0..branches.len() {
+            for j in (i+1)..branches.len() {
+                let b1 = &branches[i];
+                let b2 = &branches[j];
+                let files1 = changes_by_branch.get(*b1)?;
+                let files2 = changes_by_branch.get(*b2)?;
+                
+                let overlap: Vec<String> = files1.intersection(files2).cloned().collect();
+                if !overlap.is_empty() {
+                    return Some(Signal {
+                        kind: SignalKind::ConflictImminent,
+                        source: "file_watcher_predictive".to_string(),
+                        description: format!("Imminent merge conflict predicted"),
+                        timestamp: Utc::now(),
+                        severity: SignalSeverity::Critical,
+                        metadata: serde_json::json!({
+                            "branches": [b1.to_string(), b2.to_string()],
+                            "overlapping_files": overlap
+                        })
+                    });
+                }
+            }
+        }
+        None
+    }
+
     fn should_ignore(&self, path: &std::path::Path) -> bool {
         let path_str = path.to_string_lossy();
         let ignore_patterns = [
@@ -142,6 +203,7 @@ impl FileWatcher {
 impl SignalSource for FileWatcher {
     fn poll(&mut self) -> Vec<Signal> {
         let mut signals = Vec::new();
+        let mut file_changed = false;
         if let Some(ref rx_mutex) = self.receiver {
             if let Ok(rx) = rx_mutex.lock() {
                 while let Ok(event_result) = rx.try_recv() {
@@ -178,14 +240,23 @@ impl SignalSource for FileWatcher {
                                 severity: SignalSeverity::Info,
                                 metadata: serde_json::json!({ "path": relative }),
                             });
+                            file_changed = true;
                         }
                     }
                 }
             }
         }
         signals.dedup_by(|a, b| a.metadata == b.metadata && a.kind == b.kind);
+        
+        if file_changed {
+            if let Some(conflict_signal) = self.check_for_conflicts() {
+                signals.push(conflict_signal);
+            }
+        }
+        
         signals
     }
+
     fn name(&self) -> &str {
         "file_watcher"
     }

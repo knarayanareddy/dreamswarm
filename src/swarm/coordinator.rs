@@ -37,6 +37,7 @@ impl SwarmCoordinator {
             SpawnStrategy::GitWorktree => Box::new(WorktreeExecutor::new(
                 PathBuf::from(working_dir),
                 "dreamswarm",
+                config.linked_repositories.clone(),
             )?),
             SpawnStrategy::SSH => Box::new(SshExecutor::new(config.remote_hosts.clone())),
         };

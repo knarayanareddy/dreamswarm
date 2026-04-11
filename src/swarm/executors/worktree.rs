@@ -9,16 +9,18 @@ pub struct WorktreeExecutor {
     repo_root: PathBuf,
     worktrees_dir: PathBuf,
     tmux_session: String,
+    linked_repositories: Vec<String>,
 }
 
 impl WorktreeExecutor {
-    pub fn new(repo_root: PathBuf, tmux_session: &str) -> anyhow::Result<Self> {
+    pub fn new(repo_root: PathBuf, tmux_session: &str, linked_repositories: Vec<String>) -> anyhow::Result<Self> {
         let worktrees_dir = repo_root.join(".dreamswarm-worktrees");
         std::fs::create_dir_all(&worktrees_dir)?;
         Ok(Self {
             repo_root,
             worktrees_dir,
             tmux_session: tmux_session.to_string(),
+            linked_repositories,
         })
     }
 
@@ -50,7 +52,11 @@ impl TeammateExecutor for WorktreeExecutor {
             config.team_name,
             config.name.to_lowercase().replace(' ', "-")
         );
-        let worktree_path = self.worktrees_dir.join(&config.id);
+        let mega_workspace = self.worktrees_dir.join(&config.id);
+        std::fs::create_dir_all(&mega_workspace)?;
+        
+        let primary_repo_name = self.repo_root.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let worktree_path = mega_workspace.join(&primary_repo_name);
         let base_branch = self.current_branch().await?;
 
         let output = Command::new("git")
@@ -68,14 +74,44 @@ impl TeammateExecutor for WorktreeExecutor {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("Failed to create git worktree: {}", stderr);
+            anyhow::bail!("Failed to create git worktree for primary repo: {}", stderr);
+        }
+
+        // Handle linked repositories
+        for repo_path_str in &self.linked_repositories {
+            let repo_path = PathBuf::from(repo_path_str);
+            if !repo_path.exists() {
+                continue;
+            }
+            let repo_name = repo_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+            let linked_wt_path = mega_workspace.join(&repo_name);
+            
+            let branch_cmd = Command::new("git")
+                .args(["branch", "--show-current"])
+                .current_dir(&repo_path)
+                .output()
+                .await?;
+            let linked_base_branch = String::from_utf8_lossy(&branch_cmd.stdout).trim().to_string();
+            
+            Command::new("git")
+                .args([
+                    "worktree",
+                    "add",
+                    "-b",
+                    &branch_name,
+                    linked_wt_path.to_str().unwrap(),
+                    &linked_base_branch,
+                ])
+                .current_dir(&repo_path)
+                .output()
+                .await?;
         }
 
         let worker_cmd = format!(
             "cd {} && dreamswarm --mode {} --directory {} --prompt '{}'",
-            worktree_path.to_string_lossy(),
+            mega_workspace.to_string_lossy(),
             config.permission_mode,
-            worktree_path.to_string_lossy(),
+            mega_workspace.to_string_lossy(),
             config.instructions.replace('\'', "'\\''"),
         );
 

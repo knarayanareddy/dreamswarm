@@ -11,6 +11,7 @@ pub struct TeamConfig {
     pub worker_model: Option<String>,
     pub timeout_seconds: u64,
     pub remote_hosts: Vec<String>,
+    pub linked_repositories: Vec<String>,
 }
 
 impl Default for TeamConfig {
@@ -24,6 +25,7 @@ impl Default for TeamConfig {
             worker_model: None,
             timeout_seconds: 600,
             remote_hosts: vec![],
+            linked_repositories: vec![],
         }
     }
 }

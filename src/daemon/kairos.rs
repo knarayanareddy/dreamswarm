@@ -68,11 +68,13 @@ impl KairosDaemon {
             query_engine.clone().unwrap(),
             telemetry.clone(),
         );
-        let evolution = Arc::new(crate::swarm::evolution::coordinator::EvolutionCoordinator::new(
-            evolution_analyzer,
-            db,
-            telemetry.clone(),
-        ));
+        let evolution = Arc::new(
+            crate::swarm::evolution::coordinator::EvolutionCoordinator::new(
+                evolution_analyzer,
+                db,
+                telemetry.clone(),
+            ),
+        );
 
         let mut relay = None;
         if let Some(s3_conf) = &app_config.s3_relay_config {

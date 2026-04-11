@@ -1,9 +1,9 @@
-use crate::swarm::evolution::prompt_evolution::PromptAnalyzer;
 use crate::api::telemetry::TelemetryHub;
 use crate::db::Database;
+use crate::swarm::evolution::prompt_evolution::PromptAnalyzer;
+use chrono::{Duration, Utc};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use chrono::{Utc, Duration};
 
 pub struct EvolutionCoordinator {
     analyzer: PromptAnalyzer,
@@ -12,8 +12,16 @@ pub struct EvolutionCoordinator {
 }
 
 impl EvolutionCoordinator {
-    pub fn new(analyzer: PromptAnalyzer, db: Arc<RwLock<Database>>, telemetry: Arc<TelemetryHub>) -> Self {
-        Self { analyzer, db, telemetry }
+    pub fn new(
+        analyzer: PromptAnalyzer,
+        db: Arc<RwLock<Database>>,
+        telemetry: Arc<TelemetryHub>,
+    ) -> Self {
+        Self {
+            analyzer,
+            db,
+            telemetry,
+        }
     }
 
     /// Checks if a daily optimization cycle is due and runs it.
@@ -41,11 +49,17 @@ impl EvolutionCoordinator {
             &challenger_text
         };
 
-        self.telemetry.log_event("swarm", "evolution_variant_created", serde_json::json!({
-            "variant": "challenger_alpha",
-            "reason": "Daily Optimization Cycle",
-            "prompt_preview": preview
-        })).await;
+        self.telemetry
+            .log_event(
+                "swarm",
+                "evolution_variant_created",
+                serde_json::json!({
+                    "variant": "challenger_alpha",
+                    "reason": "Daily Optimization Cycle",
+                    "prompt_preview": preview
+                }),
+            )
+            .await;
 
         Ok(())
     }
@@ -53,13 +67,13 @@ impl EvolutionCoordinator {
     async fn get_last_evolution_time(&self) -> anyhow::Result<chrono::DateTime<Utc>> {
         let db = self.db.read().await;
         let conn = db.pool().get()?;
-        let mut stmt = conn.prepare("SELECT created_at FROM prompt_lineage ORDER BY created_at DESC LIMIT 1")?;
+        let mut stmt =
+            conn.prepare("SELECT created_at FROM prompt_lineage ORDER BY created_at DESC LIMIT 1")?;
         let last_time: Option<String> = stmt.query_row([], |row| row.get::<_, String>(0)).ok();
-        
+
         match last_time {
             Some(t) => {
-                let dt = chrono::DateTime::parse_from_rfc3339(&t)?
-                    .with_timezone(&Utc);
+                let dt = chrono::DateTime::parse_from_rfc3339(&t)?.with_timezone(&Utc);
                 Ok(dt)
             }
             None => Ok(Utc::now() - Duration::days(2)), // First time

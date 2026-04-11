@@ -1,7 +1,6 @@
-use crate::query::engine::QueryEngine;
 use crate::api::telemetry::TelemetryHub;
+use crate::query::engine::QueryEngine;
 use std::sync::Arc;
-use serde_json::Value;
 
 pub struct PromptAnalyzer {
     engine: Arc<QueryEngine>,
@@ -35,20 +34,32 @@ impl PromptAnalyzer {
         );
 
         let messages = serde_json::json!({"role": "user", "content": system_critique_prompt});
-        let response = self.engine.complete("You are a prompt engineer.", &[messages], &[]).await?;
-        
+        let response = self
+            .engine
+            .complete("You are a prompt engineer.", &[messages], &[])
+            .await?;
+
         // Use MiniMax-2.5 via galactic router (configured in router.rs)
         tracing::info!("Neural Evolution: Generated new Challenger variant.");
-        Ok(response.content.first().and_then(|c| c["content"].as_str()).unwrap_or("Fallback Prompt").to_string())
+        Ok(response
+            .content
+            .first()
+            .and_then(|c| c["content"].as_str())
+            .unwrap_or("Fallback Prompt")
+            .to_string())
     }
 
     fn extract_stats(&self, history: &[serde_json::Value]) -> String {
         // Simple extraction for the prompt context
-        let errors = history.iter()
+        let errors = history
+            .iter()
             .filter(|e| e["category"] == "immune" || e["event_type"] == "error")
             .count();
         let total = history.len();
-        
-        format!("Total Events: {}, Critical Errors: {}. Common fail signals: GIT_LOCK, TIMEOUT.", total, errors)
+
+        format!(
+            "Total Events: {}, Critical Errors: {}. Common fail signals: GIT_LOCK, TIMEOUT.",
+            total, errors
+        )
     }
 }

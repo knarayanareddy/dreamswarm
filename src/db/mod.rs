@@ -1,7 +1,5 @@
 pub mod schema;
 
-use crate::api::telemetry::TelemetryHub;
-
 use crate::runtime::session::Session;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
@@ -187,9 +185,8 @@ impl Database {
 
     pub fn get_active_prompt(&self) -> anyhow::Result<Option<String>> {
         let conn = self.pool.get()?;
-        let mut stmt = conn.prepare(
-            "SELECT prompt_text FROM prompt_lineage WHERE is_active = 1 LIMIT 1"
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT prompt_text FROM prompt_lineage WHERE is_active = 1 LIMIT 1")?;
         let prompt = stmt.query_row([], |row| row.get(0)).ok();
         Ok(prompt)
     }

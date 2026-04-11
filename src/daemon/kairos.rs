@@ -503,11 +503,17 @@ impl KairosDaemon {
                     "🚨 CONFLICT IMMINENT 🚨\nBranches {:?} are modifying the same files:\n{:?}\n\nPlease pull main and resolve before merging.",
                     branches, files
                 );
-                self.send_system_notification(&format!("Merge conflict predicted! {:?}", branches), &Urgency::Critical).await?;
-                
+                self.send_system_notification(
+                    &format!("Merge conflict predicted! {:?}", branches),
+                    &Urgency::Critical,
+                )
+                .await?;
+
                 let warning_path = self.working_dir.join("DREAMSWARM_CONFLICT_WARNING.txt");
-                tokio::fs::write(&warning_path, &msg).await.unwrap_or_default();
-                
+                tokio::fs::write(&warning_path, &msg)
+                    .await
+                    .unwrap_or_default();
+
                 self.telemetry
                     .log_event(
                         "system",
@@ -518,7 +524,7 @@ impl KairosDaemon {
                         }),
                     )
                     .await;
-                    
+
                 Ok(format!("Predicted conflict across branches {:?}", branches))
             }
             _ => Ok("Action partially implemented".into()),

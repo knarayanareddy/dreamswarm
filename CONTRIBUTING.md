@@ -1,48 +1,89 @@
 # Contributing to DreamSwarm 🐝
 
-Thank you for your interest in contributing to DreamSwarm! We are building the future of autonomous software engineering, and we're excited to have you join us.
+Thank you for your interest in contributing to DreamSwarm! We are building the next generation of autonomous engineering, and we're excited to have you join us.
 
-## 🚀 How to Contribute
+---
 
-### 1. Find an Issue
-- Browse our [Issue Tracker](https://github.com/dreamswarm/dreamswarm/issues).
-- Look for `good first issue` for small, well-scoped tasks.
-- Look for `mentored` issues if you'd like guidance from a maintainer.
+## 🧭 Contribution Path
 
-### 2. Fork & Setup
-- Fork the repository and clone it locally.
-- Run `./install.sh` to set up the development environment.
-- Run `make test` to ensure your initial setup is working correctly.
+1.  **Exploration**: Read the [README.md](README.md) and [ARCHITECTURE.md](ARCHITECTURE.md).
+2.  **Setup**: Follow the [Development Guide](DEVELOPMENT.md) to set up your local environment.
+3.  **Communication**: Open an issue to discuss major changes before starting work.
+4.  **Implementation**: Submit a PR from a feature branch.
+5.  **Review**: Collaborate with the core maintainers on the PR.
 
-### 3. Development Workflow
-- Create a new branch: `git checkout -b feature/your-feature-name`.
-- **Async First**: DreamSwarm is built on `tokio`. Ensure all new code adheres to async best practices.
-- **Safety First**: Any changes to `runtime/permissions.rs` or `tools/bash_tool.rs` require a security review.
-- **Documentation**: If you're adding a new tool or feature, please update the relevant documentation in `docs/` or `README.md`.
+---
 
-### 4. Quality Standards
-Before submitting a PR, please ensure:
-- [ ] Code compiles without warnings.
-- [ ] All tests pass (`make test`).
-- [ ] Code is formatted (`cargo fmt`).
-- [ ] New code has unit or integration tests.
-- [ ] Doc comments are added to all public items.
+## 🛠 Developer Setup
 
-### 5. Submit a PR
-- Open a Pull Request against the `main` branch.
-- Follow the [PULL_REQUEST_TEMPLATE](.github/PULL_REQUEST_TEMPLATE.md).
-- Be prepared to discuss your implementation and make follow-up changes based on review.
+### Prerequisites
+- **Rust Toolchain**: [Install Rust](https://rustup.rs/) (latest stable).
+- **Git**: Required for worktree isolation features.
+- **Tmux**: Required for the `TmuxExecutor`.
+- **Database**: SQLite (usually included with most modern OSs).
 
-## 🧠 Technical Requirements
-DreamSwarm is a high-performance Rust project. Contributors should ideally be comfortable with:
-- **Async Rust**: `tokio`, `async-trait`, `std::future`.
-- **System Architecture**: Multi-agent systems, file-based IPC (Mailboxes).
-- **Tooling**: `cargo`, `make`, `ratatui` (for TUI changes).
+### Getting Started
+```bash
+# Clone the repo
+git clone https://github.com/dreamswarm/dreamswarm.git
+cd dreamswarm
 
-## 🌱 Mentorship Policy
-We are committed to helping new contributors! If you're new to Rust or open-source, just ask for help in your PR or in an issue. We provide:
-- **Detailed Reviews**: Not just "what" to change, but "why" from an architectural perspective.
-- **Pair Programming**: On complex features, maintainers are happy to jump on a call.
-- **Educational Issues**: Some issues are tagged `learn-rust` specifically to help you explore the language features.
+# Run tests to ensure everything is green
+cargo test
+```
 
-**Happy Coding!** 🐝
+---
+
+## 📐 Coding Standards
+
+### 1. Safety First
+- We prioritize memory safety. Avoid `unsafe` blocks unless absolutely necessary for external bindings.
+- All tool executions must be gated through the `PermissionGate`.
+
+### 2. Error Handling
+- Use `anyhow::Result` for application-level errors.
+- Use `thiserror` for library-level error definitions.
+- Never use `unwrap()` or `expect()` in production code pathways; handle errors gracefully.
+
+### 3. Asynchrony
+- DreamSwarm is built on **Tokio**. Use `tokio::spawn` for background tasks and `tokio::sync` for communication.
+
+### 4. Logging & Telemetry
+- Use the `tracing` crate for all logging.
+- Any autonomous action taken by the KAIROS daemon MUST be logged at the `INFO` level and recorded in the SQLite telemetry table.
+
+---
+
+## 🧪 Testing Requirements
+
+We maintain a strict testing culture:
+- **Unit Tests**: Required for every new module in `src/`.
+- **Integration Tests**: Required for any change to the Swarm Coordination or Memory layers.
+- **Documentation Tests**: We encourage using doc-comments with examples.
+
+Run the full suite:
+```bash
+cargo test --all-features
+```
+
+---
+
+## 📝 Pull Request Template
+
+When opening a PR, please include:
+1.  **Context**: What problem does this solve?
+2.  **Changes**: A high-level bullet list of what was added/modified.
+3.  **Verification**: Links to test results or screenshots showing the feature in action.
+4.  **Safety**: Confirmation that no security boundaries were bypassed.
+
+---
+
+## 📜 Code of Conduct
+
+Please be respectful and professional in all communications. We follow the [Contributor Covenant](CODE_OF_CONDUCT.md).
+
+---
+
+## 🏅 Recognition
+
+Contributors who land significant features or architectural improvements will be invited to the **DreamSwarm Core Hive**.

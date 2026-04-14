@@ -1,113 +1,122 @@
-# DreamSwarm Architecture
-This document explains how DreamSwarm is built, why each component exists, and how they interact. Read this before making architectural changes.
+# DreamSwarm Architecture: The Kinetic Engine
+
+This document provides a deep-dive into the internals of the DreamSwarm autonomous platform. It is intended for core contributors and architects looking to understand the interplay between cognitive memory, background daemons, and parallel orchestration.
 
 ---
 
-## System Overview
-DreamSwarm is an autonomous multi-agent coding platform with five major subsystems:
+## 🏛 High-Level Topology
 
-```text
-User Input │
-           ▼
-  ┌────────────────┐
-  │   Agent Loop   │ ◄── The beating heart
-  └───────┬────────┘
-          │
-  ┌───────┴───────┐
-  │     Tools     │ ◄── Plugin System
-  └───────────────┘
-          │
-          ▼
-  ┌────────────────┐
-  │     Swarm      │ ◄── Multi-Agent Orchestration
-  └────────────────┘
-          │
-  ┌───────┴───────┐
-  │    Memory     │ ◄── 3-Layer System
-  └───────────────┘
-          │
-          ▼
-  ┌────────────────┐
-  │     KAIROS     │ ◄── Background Daemon
-  └────────────────┘
+DreamSwarm is architected as a **Kinetic AI Real-time Operational System (KAIROS)**. Unlike traditional CLI tools that wait for user commands, KAIROS is designed for proactive autonomy.
+
+```mermaid
+graph TB
+    subgraph "The Hive (Control Plane)"
+        K[KAIROS Daemon]
+        EC[Evolution Coordinator]
+        SC[Swarm Coordinator]
+    end
+
+    subgraph "Intelligence Plane"
+        DB[(Persistent SQLite)]
+        L1[L1 Index]
+        L2[L2 Topics]
+        L3[L3 Transcripts]
+    end
+
+    subgraph "Execution Plane"
+        W1[Worker Agent A]
+        W2[Worker Agent B]
+        T[Tools Registry]
+    end
+
+    K -->|Triggers| SC
+    K -->|Syncs| DB
+    EC -->|Optimizes| L1
+    SC -->|Spawns| W1
+    SC -->|Spawns| W2
+    W1 -->|Tool Calls| T
+    W2 -->|Tool Calls| T
+    T -->|Updates| L2
+    T -->|Writes| L3
 ```
 
 ---
 
-## Module Map
+## 🧠 Cognitive Memory Architecture
 
-### `runtime/` — The Core
-**Files**: `agent_loop.rs`, `session.rs`, `permissions.rs`, `config.rs`
-The agent loop is the central component. Every other module serves it. It handles the single-turn logic:
-- `AgentLoop`: Manages the step-by-step reasoning cycle.
-- `Permissions`: Enforces the 5-layer safety model.
-- `Session`: Manages the dialogue and token budget.
+DreamSwarm uses a **Bio-mimetic Tiered Memory** system to manage multi-gigabyte codebases without overwhelming the LLM's context window.
 
-### `tools/` — The Plugin System
-**Files**: `mod.rs` + individual tool files
-Every capability DreamSwarm has is a tool. Tools are stateless plugins that implement the `Tool` trait. 
-- **Rule**: If a feature requires making a change to the filesystem, network, or external process, it should be a tool.
+### 1. Layer 1 (L1): The Semantic Index
+*   **Purpose**: Immediate situational awareness.
+*   **Content**: High-level map of the codebase, project rules, and recently resolved issues.
+*   **Mechanism**: Compressed JSON format, always injected into the system prompt.
 
-### `memory/` — 3-Layer Storage
-**Files**: `index.rs`, `topics.rs`, `transcripts.rs`, `writer.rs`
-Memory is designed to be bandwidth-aware:
-- **Layer 1 (Index)**: Always loaded. Contains pointers and summaries.
-- **Layer 2 (Topics)**: Loaded on-demand when the index matches a query.
-- **Layer 3 (Transcripts)**: Never loaded directly by the agent; used only by autoDream for background consolidation.
+### 2. Layer 2 (L2): Just-In-Time Topic Files
+*   **Purpose**: Expert-level knowledge on demand.
+*   **Content**: Detailed function signatures, implementation notes, and dependency graphs.
+*   **Mechanism**: Latent retrieval. When the agent discusses "authentication," the coordinator pulls `auth.md` into context.
 
-### `swarm/` — Multi-Agent Orchestration
-**Files**: `coordinator.rs`, `task_list.rs`, `mailbox.rs`, `executors/`
-The swarm layer allows the agent to delegate work to parallel sub-agents and specialized teams.
-- Uses **Tmux**, **Worktree**, and **In-Process** backends for execution.
-- Inter-agent communication is achieved via an asynchronous **Mailbox** pattern on the filesystem.
-
-### `daemon/` — KAIROS Daemon
-**Files**: `kairos.rs`, `heartbeat.rs`, `signals.rs`, `trust.rs`
-A persistent background process that takes initiative based on system signals.
-- **Trust System**: Autonomy scales dynamically (AutoAct -> AskFirst -> ObserveOnly -> Paused) based on user interaction history.
-- **Daily Log**: An immutable, append-only JSONL log of every action taken by the daemon.
+### 3. Layer 3 (L3): Long-Term Transcripts
+*   **Purpose**: Historical tracing and learning.
+*   **Content**: Full history of all agent/user interactions and tool outputs.
+*   **Mechanism**: Append-only log files used by the `autoDream` engine to synthesize new L1/L2 knowledge during sleep cycles.
 
 ---
 
-## Data Flow: Single Turn (Agent Loop)
-1. **Input**: User prompt is added to the session.
-2. **Compression**: `ContextManager` runs `MicroCompact` to trim history.
-3. **Prompt Build**: `SystemPromptBuilder` injects memory pointers and instructions.
-4. **LLM Call**: `QueryEngine` streams the response.
-5. **Tool Execution**: If tool calls are found:
-   - `PermissionGate` checks against the 5-layer model.
-   - `Tool.execute()` is called.
-   - Result is added back to the session, and the loop repeats.
+## 🕒 KAIROS Heartbeat Loop
 
----
+The KAIROS daemon runs an asynchronous loop that processes internal and external signals.
 
-## Security Boundaries
-1. **Trust Boundary 1 (User → Agent)**: Tool execution gated by the Permission System. Tools cannot bypass permissions or access other sessions.
-2. **Trust Boundary 2 (Agent → Workers)**: The Mailbox pattern ensures workers request approval for dangerous operations from the lead coordinator.
-3. **Trust Boundary 3 (Daemon → System)**: Proactive actions are throttled by the Trust Level. Trust degrades fast on denial and recovers slowly on approval.
-4. **Trust Boundary 4 (autoDream → Memory)**: Memory consolidation runs in a **Sandbox** that cannot access the network or write to source files.
+```mermaid
+sequence_sequence
+    participant FW as FileWatcher
+    participant KD as KairosDaemon
+    participant TC as TrustController
+    participant SC as SwarmCoordinator
+    participant W as Worker
 
----
-
-## Module Dependency Graph
-```text
-main.rs
-└── runtime/agent_loop
-    ├── runtime/session
-    ├── runtime/permissions
-    ├── runtime/config
-    ├── query/engine
-    │   └── query/providers/*
-    ├── tools/*
-    ├── memory/loader (context injection)
-    ├── context/manager (compression)
-    └── prompts/system (prompt builder)
-
-daemon (KAIROS)
-    ├── daemon/heartbeat
-    ├── daemon/signals
-    ├── daemon/initiative
-    ├── daemon/trust
-    └── dream (autoDream)
+    FW ->> KD: FileSystem Signal (src/lib.rs changed)
+    KD ->> TC: Request Risk Assessment
+    TC -->> KD: Trust Score: 0.85 (AutoAct)
+    KD ->> SC: Initiate "Conflict Scan" Swarm
+    SC ->> W: Spawn GitWorktree Worker
+    W ->> SC: Report "No Conflict Found"
+    SC -->> KD: Task Complete
+    KD ->> TC: Update Trust (+0.01)
 ```
-**Rule**: Dependencies flow downward. No circular dependencies are allowed.
+
+---
+
+## 🕸 Parallel Orchestration (Phase 11)
+
+DreamSwarm implements a **Mega-Workspace** strategy for multi-repository tasks.
+
+### The Worktree Isolation Pattern
+When a swarm is initiated across multiple linked repositories, the `WorktreeExecutor`:
+1.  Creates a unique root directory in `.dreamswarm-worktrees/`.
+2.  Executes `git worktree add` for the **primary** repository.
+3.  Executes `git worktree add` for all **linked** repositories side-by-side.
+4.  Standardizes the environment so relative paths just work.
+
+### Predictive Conflict Resolution (Phase 14)
+The `FileWatcher` maintains a hash-map of current file states across all active `dreamswarm/*` branches. If two agents are assigned tasks that modify the same line-range of a file in different worktrees, the daemon issues a pre-emptive **Conflict Event** before the merge ever occurs.
+
+---
+
+## 🛡 Security: The 5-Layer Permission Gate
+
+DreamSwarm operates with a restrictive security model:
+1.  **Mode Check**: Is the agent in `Autonomous` or `AskFirst` mode?
+2.  **Deny List**: Blocked commands (e.g., `rm -rf /`, `curl` to internal metadata).
+3.  **Allow List**: Pre-approved scripts and tools.
+4.  **Risk Scoring**: Does this change affect critical infra?
+5.  **User Approval**: The final human-in-the-loop gate for High-Risk actions.
+
+---
+
+## 🧬 Neural Evolution System
+
+The `EvolutionCoordinator` runs in the background to refine the agent's effectiveness:
+1.  **Extraction**: Pulls successful "interaction patterns" from L3 Transcripts.
+2.  **Synthesis**: Uses a high-reasoning model (Claude Opus/Sonnet) to generate variants of successful prompts.
+3.  **Deployment**: Replaces outdated system prompts with "Challenger" variants that have higher success probabilities.

@@ -1,96 +1,102 @@
-# Development Guide
-This document explains how to set up your environment and contribute to DreamSwarm.
+# DreamSwarm Development Guide 🛠️
+
+This guide covers everything you need to build, test, and debug the DreamSwarm platform.
 
 ---
 
-## 🛠️ Environment Setup
+## 🏛 Project Structure
 
-### Quick Setup (Recommended)
+DreamSwarm is a monolithic Rust project with a clear separation of concerns:
+
+- `src/main.rs`: Entry point and CLI command definitions.
+- `src/daemon/`: The KAIROS background daemon logic.
+- `src/swarm/`: Multi-agent coordination and execution strategies.
+- `src/memory/`: 3-layer biological memory implementation.
+- `src/runtime/`: The core autonomous agent reasoning loop.
+- `src/tools/`: Extension system for file, web, and shell access.
+
+---
+
+## 🚀 Building from Source
+
+### Standard Build
 ```bash
-# Clone and enter the repo
-git clone https://github.com/dreamswarm/dreamswarm.git
-cd dreamswarm
+cargo build --release
+```
+The binary will be located at `./target/release/dreamswarm`.
 
-# Run the setup script
-./install.sh
-
-# Verify
-make check test
+### Development Build with Full Logging
+```bash
+# Enable trace-level logging during development
+RUST_LOG=trace cargo run -- daemon run
 ```
 
-### Manual Setup
-1. **Rust Toolchain**: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-2. **System Dependencies**:
-   - `tmux`: For Multi-Agent swarm testing.
-   - `ripgrep`: For `GrepTool` functionality.
-   - `git`: For version control and worktree support.
-3. **API Keys**:
-   - `ANTHROPIC_API_KEY`: Required for Claude.
-   - `OPENAI_API_KEY`: Required for GPT-4.
-   - `OLLAMA_BASE_URL`: For local models (Ollama).
+---
+
+## 🧪 Testing Strategy
+
+DreamSwarm utilizes three tiers of testing to ensure hive stability.
+
+### Tier 1: Unit Tests
+Focus on individual logic components (e.g., memory compression, trust math).
+```bash
+cargo test --lib
+```
+
+### Tier 2: Integration Tests (`tests/`)
+Verify the interaction between subsystems (e.g., Peer-to-Peer communication, Coordinator lifecycle).
+```bash
+cargo test --test swarm_integration
+cargo test --test daemon_integration
+```
+
+### Tier 3: E2E Verification Suite
+Run a full daemon cycle with mock providers to verify the entire stack.
+```bash
+# Run the end-to-end verification script
+# (Requires tmux and git installed locally)
+./scripts/verify_e2e.sh
+```
 
 ---
 
-## 🏗️ Common Development Workflows
+## 🛰 The War Room: Diagnostics
+
+The **War Room** is a specialized diagnostic mode designed to stress the system. Use this to verify stability under high-load or failure scenarios.
+
+### Initiating a Stress Test
+```bash
+# Start the daemon
+dreamswarm daemon start
+
+# Trigger the War Room via the API
+curl -X POST http://127.0.0.1:8080/api/v1/control/war-room
+```
+
+---
+
+## 🧬 Neural Evolution Debugging
+
+To inspect how prompts are evolving:
+
+1.  **Check the Database**:
+    ```bash
+    sqlite3 ~/.dreamswarm/daemon/dreamswarm.db "SELECT * FROM prompt_lineage;"
+    ```
+2.  **Monitor Telemetry**:
+    ```bash
+    curl http://127.0.0.1:8080/api/v1/telemetry/history
+    ```
+
+---
+
+## 🩹 Common Development Tasks
 
 ### Adding a New Tool
-1. **Create the tool file**: `src/tools/my_new_tool.rs`.
-2. **Implement the `Tool` trait**:
-   - Define a unique `name`.
-   - Provide a clear `description` for the LLM.
-   - Define a JSON `input_schema`.
-   - Implement the `execute` method.
-3. **Register the tool**: Add it to `ToolRegistry::default_phaseN()` in `src/tools/mod.rs`.
-4. **Add tests**: Always include tests for both success and error cases.
+1.  Create a new file in `src/tools/`.
+2.  Implement the `Tool` trait.
+3.  Register the tool in `src/tools/mod.rs`.
+4.  Add a unit test in the tool's module.
 
-### Adding a New LLM Provider
-1. **Create the provider file**: `src/query/providers/my_provider.rs`.
-2. **Implement the `LLMProvider` trait**.
-3. **Register in `QueryEngine::new()`**.
-
----
-
-## 🧪 Testing
-
-### Test Organization
-- **Unit tests**: Located in the same file as the code they test (`#[cfg(test)]`).
-- **Integration tests**: Located in the `tests/` directory.
-
-### Running Tests
-```bash
-# All tests
-make test
-
-# Unit tests only (fast)
-make test-unit
-
-# Integration tests only
-make test-integration
-
-# With coverage (requires cargo-llvm-cov)
-make coverage
-```
-
----
-
-## 📜 Code Style
-- **Formatting**: `cargo fmt` is non-negotiable.
-- **Lints**: `cargo clippy --pedantic` is required. All warnings must be resolved.
-- **Doc Comments**: Every public function, struct, and trait must have `///` comments.
-- **Async**: Use the `tokio` runtime.
-- **Errors**: use `anyhow::Result` in application code, `thiserror` for library errors. Never `unwrap()` in non-test code.
-
----
-
-## 🐞 Debugging
-- **Verbose logging**: `RUST_LOG=dreamswarm=debug cargo run`.
-- **Module-specific**: `RUST_LOG=dreamswarm::daemon=trace,dreamswarm::tools=debug cargo run`.
-- **Log to file**: `RUST_LOG=dreamswarm=debug cargo run 2>&1 | tee debug.log`.
-
----
-
-## ❓ Common Issues
-- **"ANTHROPIC_API_KEY not set"**: `export ANTHROPIC_API_KEY="sk-ant-..."`.
-- **"tmux not found"**: Integration tests will fail. Install `tmux`.
-- **"ripgrep not found"**: Grep tool will fail. Install `ripgrep`.
-- **"Tests hang/timeout"**: Run with `--test-threads=1` to isolate sequential issues.
+### Modifying the System Prompt
+The system prompt is built dynamically. See `src/prompts/system.rs` and the evolution logic in `src/swarm/evolution/`.

@@ -68,7 +68,7 @@ DreamSwarm uses a **Bio-mimetic Tiered Memory** system to manage multi-gigabyte 
 The KAIROS daemon runs an asynchronous loop that processes internal and external signals.
 
 ```mermaid
-sequence_sequence
+sequenceDiagram
     participant FW as FileWatcher
     participant KD as KairosDaemon
     participant TC as TrustController

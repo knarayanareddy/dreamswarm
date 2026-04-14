@@ -11,27 +11,17 @@ permissions:
   id-token: write
 
 jobs:
-  build-docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-rust
-        with:
-          toolchain: nightly
-      - name: Build docs
-        run: cargo +nightly doc --all-features --no-deps --document-private-items
-      - name: Upload docs
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: target/doc/
-
-  deploy-docs:
-    needs: build-docs
+  deploy-landing:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v4
+      - name: Upload landing page
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
       - name: Deploy to Pages
         id: deployment
         uses: actions/deploy-pages@v4

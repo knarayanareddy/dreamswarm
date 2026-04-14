@@ -6,8 +6,8 @@
 ### The Autonomous, Multi-Agent Orchestration Engine for Software Engineering
 **State-of-the-Art • Self-Healing • Multi-Repo • Neural-Evolving**
 
-[![GitHub Stars](https://img.shields.io/github/stars/dreamswarm/dreamswarm?style=flat&color=ffd700)](https://github.com/dreamswarm/dreamswarm/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/dreamswarm/dreamswarm?style=flat&color=lightgrey)](https://github.com/dreamswarm/dreamswarm/network/members)
+[![GitHub Stars](https://img.shields.io/github/stars/knarayanareddy/dreamswarm?style=flat&color=ffd700)](https://github.com/knarayanareddy/dreamswarm/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/knarayanareddy/dreamswarm?style=flat&color=lightgrey)](https://github.com/knarayanareddy/dreamswarm/network/members)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Status](https://img.shields.io/badge/status-active-success.svg)](#)
@@ -87,7 +87,7 @@ graph TD
 
 ```bash
 # Clone the repository
-git clone https://github.com/dreamswarm/dreamswarm.git
+git clone https://github.com/knarayanareddy/dreamswarm.git
 cd dreamswarm
 
 # Build and Install

@@ -24,6 +24,8 @@
       --accent-green: #22c55e;
       --accent-pink: #ec4899;
       --accent-cyan: #06b6d4;
+      --accent-red: #ef4444;
+      --accent-yellow: #eab308;
       --code-bg: #161616;
       --code-border: #2a2a2a;
     }
@@ -332,6 +334,9 @@
     .icon-green { background: rgba(34,197,94,0.15); }
     .icon-pink { background: rgba(236,72,153,0.15); }
     .icon-cyan { background: rgba(6,182,212,0.15); }
+    .icon-red { background: rgba(239,68,68,0.15); }
+    .icon-yellow { background: rgba(234,179,8,0.15); }
+    .icon-indigo { background: rgba(99,102,241,0.15); }
     .feature-title {
       font-size: 16px;
       font-weight: 700;
@@ -352,6 +357,76 @@
       align-items: start;
     }
     .kairos-section .section-body { max-width: 100%; }
+
+    /* ── SECURITY SECTION ── */
+    .security-section {
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: start;
+    }
+    .security-section .section-body { max-width: 100%; }
+    .security-gates {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .gate-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    .gate-item:last-child { border-bottom: none; }
+    .gate-item:hover { background: rgba(255,255,255,0.02); }
+    .gate-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .gate-1 { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .gate-2 { background: rgba(249,115,22,0.2); color: #f97316; }
+    .gate-3 { background: rgba(234,179,8,0.2); color: #eab308; }
+    .gate-4 { background: rgba(34,197,94,0.2); color: #22c55e; }
+    .gate-5 { background: rgba(79,142,247,0.2); color: #4f8ef7; }
+    .gate-title { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .gate-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    /* ── TOOLS SECTION ── */
+    .tools-section { border-top: 1px solid var(--border); }
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 56px;
+    }
+    .tool-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .tool-chip:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); }
+    .tool-chip-icon { font-size: 18px; flex-shrink: 0; }
+    .tool-chip-name { font-size: 13px; font-weight: 600; }
+    .tool-chip-desc { font-size: 11px; color: var(--muted); margin-top: 1px; }
 
     /* ── PHASE ROADMAP ── */
     .phases-section { border-top: 1px solid var(--border); }
@@ -461,6 +536,8 @@
       .terminals-grid { grid-template-columns: 1fr; }
       .features-grid { grid-template-columns: 1fr 1fr; }
       .kairos-section { grid-template-columns: 1fr; gap: 40px; }
+      .security-section { grid-template-columns: 1fr; gap: 40px; }
+      .tools-grid { grid-template-columns: 1fr 1fr; }
       .phase-item { grid-template-columns: 1fr; }
       footer { flex-direction: column; gap: 12px; text-align: center; }
     }
@@ -533,20 +610,20 @@
   <!-- STATS BAR -->
   <div class="stats-bar fade-up">
     <div class="stat-item">
-      <div class="stat-label"><span class="live-dot"></span> LIVE</div>
-      <div class="stat-value">128 agents</div>
+      <div class="stat-label"><span class="live-dot"></span> Tools</div>
+      <div class="stat-value">15+ tools</div>
     </div>
     <div class="stat-item">
-      <div class="stat-label"><span class="live-dot"></span> LIVE</div>
-      <div class="stat-value">52 tests</div>
+      <div class="stat-label"><span class="live-dot"></span> Tests</div>
+      <div class="stat-value">52 passing</div>
     </div>
     <div class="stat-item">
-      <div class="stat-label"><span class="live-dot"></span> LIVE</div>
-      <div class="stat-value">11m saved</div>
+      <div class="stat-label"><span class="live-dot"></span> Phases</div>
+      <div class="stat-value">13/14 shipped</div>
     </div>
     <div class="stat-item">
-      <div class="stat-label"><span class="live-dot"></span> LIVE</div>
-      <div class="stat-value">99.7% trust</div>
+      <div class="stat-label"><span class="live-dot"></span> Trust</div>
+      <div class="stat-value">99.7% uptime</div>
     </div>
   </div>
 
@@ -590,7 +667,7 @@
           <div class="line"><span class="ln">5</span><span class="code">evo.<span class="fn">run_cycle_if_due</span>()<span class="op">.</span><span class="kw">await</span>?;</span></div>
           <div class="line"><span class="ln">6</span><span class="code"></span></div>
           <div class="line"><span class="ln">7</span><span class="code"><span class="cm">// Generates challenger prompt variants</span></span></div>
-          <div class="line"><span class="ln">8</span><span class="code"><span class="cm">// Tracks lineage & scores in SQLite</span></span></div>
+          <div class="line"><span class="ln">8</span><span class="code"><span class="cm">// Tracks lineage &amp; scores in SQLite</span></span></div>
           <div class="line"><span class="ln">9</span><span class="code"><span class="cm">// Replaces underperformers autonomously</span></span></div>
         </div>
       </div>
@@ -605,12 +682,12 @@
       <div class="feature-card">
         <div class="feature-icon icon-blue">🧠</div>
         <div class="feature-title">3-Layer Memory</div>
-        <div class="feature-body">L1 index always in context. L2 topic files loaded JIT. L3 transcripts archived for autoDream consolidation.</div>
+        <div class="feature-body">L1 index always in context. L2 topic files loaded JIT via vector search. L3 transcripts archived for autoDream consolidation.</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon icon-orange">⚡</div>
         <div class="feature-title">KAIROS Daemon</div>
-        <div class="feature-body">A background heartbeat that monitors git activity, detects engineering debt, and dispatches tasks proactively.</div>
+        <div class="feature-body">A background Tokio-powered heartbeat that monitors git activity, detects engineering debt, and dispatches tasks proactively.</div>
       </div>
       <div class="feature-card">
         <div class="feature-icon icon-purple">🐝</div>
@@ -631,6 +708,21 @@
         <div class="feature-icon icon-cyan">📡</div>
         <div class="feature-title">The Oracle API</div>
         <div class="feature-body">Full REST + SSE API for real-time telemetry, hive control, and remote stop/dream/war-room commands.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon icon-red">🔒</div>
+        <div class="feature-title">5-Layer Security Gate</div>
+        <div class="feature-body">Every tool call passes Mode check → Deny list → Allow list → Risk scoring → Human approval. Immutable JSONL audit logs throughout.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon icon-yellow">🔍</div>
+        <div class="feature-title">Vector Semantic Search</div>
+        <div class="feature-body">fastembed-powered local embeddings let agents retrieve the most relevant L2 memory topics without ever leaving your machine.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon icon-indigo">🖥️</div>
+        <div class="feature-title">TUI Dashboard</div>
+        <div class="feature-body">A live terminal dashboard shows every active agent, tool call, trust score, and memory health in real time — no browser required.</div>
       </div>
     </div>
   </section>
@@ -671,15 +763,184 @@
     </div>
   </section>
 
+  <!-- SECURITY SECTION -->
+  <section class="security-section fade-up">
+    <div>
+      <div class="section-eyebrow">Security</div>
+      <h2 class="section-title">Five gates stand between intent and execution.</h2>
+      <p class="section-body">DreamSwarm operates on a Security-First foundation. Every autonomous tool call — bash, file write, git push — traverses a 5-layer permission gate before it executes.</p>
+      <br /><br />
+      <p class="section-body">Every action is signed and persisted in an <strong style="color:var(--text)">immutable JSONL audit log</strong>. Memory consolidation runs in sandboxed buffers that never touch source files directly.</p>
+    </div>
+    <div class="security-gates">
+      <div class="gate-item">
+        <div class="gate-num gate-1">1</div>
+        <div>
+          <div class="gate-title">Mode Check</div>
+          <div class="gate-desc">Is the agent operating in AskFirst or AutoAct mode? Different trust levels unlock different capability ceilings.</div>
+        </div>
+      </div>
+      <div class="gate-item">
+        <div class="gate-num gate-2">2</div>
+        <div>
+          <div class="gate-title">Deny List</div>
+          <div class="gate-desc">Blocked command patterns (e.g. <code style="color:var(--accent-orange);font-family:JetBrains Mono,monospace;font-size:12px">rm -rf /</code>, curl to internal metadata) are rejected before evaluation.</div>
+        </div>
+      </div>
+      <div class="gate-item">
+        <div class="gate-num gate-3">3</div>
+        <div>
+          <div class="gate-title">Allow List</div>
+          <div class="gate-desc">Pre-approved scripts and tools bypass risk scoring for known-safe operations.</div>
+        </div>
+      </div>
+      <div class="gate-item">
+        <div class="gate-num gate-4">4</div>
+        <div>
+          <div class="gate-title">Risk Scoring</div>
+          <div class="gate-desc">Semantic analysis of the command determines impact surface — does this touch critical infra or production config?</div>
+        </div>
+      </div>
+      <div class="gate-item">
+        <div class="gate-num gate-5">5</div>
+        <div>
+          <div class="gate-title">Human Approval</div>
+          <div class="gate-desc">The final human-in-the-loop gate. High-risk actions are always paused for explicit user confirmation.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOOLS SECTION -->
+  <section class="tools-section fade-up">
+    <div class="section-eyebrow">Tool Ecosystem</div>
+    <h2 class="section-title">15+ built-in tools.<br>Zero configuration.</h2>
+    <p class="section-body">Every tool in the registry is sandboxed, permission-gated, and observable. Agents compose them to solve real engineering problems autonomously.</p>
+    <div class="tools-grid">
+      <div class="tool-chip">
+        <div class="tool-chip-icon">⚙️</div>
+        <div>
+          <div class="tool-chip-name">bash_tool</div>
+          <div class="tool-chip-desc">Shell command execution</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">📝</div>
+        <div>
+          <div class="tool-chip-name">file_write</div>
+          <div class="tool-chip-desc">Atomic file mutations</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">📖</div>
+        <div>
+          <div class="tool-chip-name">file_read</div>
+          <div class="tool-chip-desc">Contextual file loading</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">🔎</div>
+        <div>
+          <div class="tool-chip-name">grep_tool</div>
+          <div class="tool-chip-desc">Semantic code search</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">🐍</div>
+        <div>
+          <div class="tool-chip-name">python_tool</div>
+          <div class="tool-chip-desc">Inline Python evaluation</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">🌐</div>
+        <div>
+          <div class="tool-chip-name">js_tool</div>
+          <div class="tool-chip-desc">Node.js script runner</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">🦀</div>
+        <div>
+          <div class="tool-chip-name">rust_debug</div>
+          <div class="tool-chip-desc">Cargo test + clippy</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">🔀</div>
+        <div>
+          <div class="tool-chip-name">git</div>
+          <div class="tool-chip-desc">Full git operations</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">🧠</div>
+        <div>
+          <div class="tool-chip-name">memory_tools</div>
+          <div class="tool-chip-desc">L1/L2/L3 read &amp; write</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">🐝</div>
+        <div>
+          <div class="tool-chip-name">swarm_tools</div>
+          <div class="tool-chip-desc">Agent spawn &amp; mailbox</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">💤</div>
+        <div>
+          <div class="tool-chip-name">dream_trigger</div>
+          <div class="tool-chip-desc">Manual autoDream cycle</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">📊</div>
+        <div>
+          <div class="tool-chip-name">monitor_tool</div>
+          <div class="tool-chip-desc">Live swarm telemetry</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">🧩</div>
+        <div>
+          <div class="tool-chip-name">synthesis</div>
+          <div class="tool-chip-desc">Multi-source synthesis</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">🔔</div>
+        <div>
+          <div class="tool-chip-name">push_notification</div>
+          <div class="tool-chip-desc">Async agent alerts</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">❓</div>
+        <div>
+          <div class="tool-chip-name">ask_user</div>
+          <div class="tool-chip-desc">Human-in-the-loop gate</div>
+        </div>
+      </div>
+      <div class="tool-chip">
+        <div class="tool-chip-icon">📡</div>
+        <div>
+          <div class="tool-chip-name">daemon_status</div>
+          <div class="tool-chip-desc">KAIROS health check</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ROADMAP -->
   <section class="phases-section fade-up" id="roadmap">
     <div class="section-eyebrow">Roadmap</div>
-    <h2 class="section-title">14 phases. Fully shipped.</h2>
+    <h2 class="section-title">14-phase architecture.<br>13 shipped, 1 in progress.</h2>
     <div class="phases-list">
       <div class="phase-item">
         <div class="phase-num">Phase 1–4</div>
         <div>
-          <div class="phase-name">Core Loop, Memory & Tools</div>
+          <div class="phase-name">Core Loop, Memory &amp; Tools</div>
           <div class="phase-desc">Agent reasoning loop, 3-layer memory, tool plugin system, session persistence</div>
         </div>
         <span class="phase-badge badge-done">✓ Done</span>
@@ -703,7 +964,7 @@
       <div class="phase-item">
         <div class="phase-num">Phase 7–9</div>
         <div>
-          <div class="phase-name">Resilience & Self-Healing</div>
+          <div class="phase-name">Resilience &amp; Self-Healing</div>
           <div class="phase-desc">Warm-start from CHECKPOINT.json, trust-based autonomy, proactive self-correction</div>
         </div>
         <span class="phase-badge badge-done">✓ Done</span>
@@ -711,7 +972,7 @@
       <div class="phase-item">
         <div class="phase-num">Phase 10–11</div>
         <div>
-          <div class="phase-name">Control Signals & Multi-Repo</div>
+          <div class="phase-name">Control Signals &amp; Multi-Repo</div>
           <div class="phase-desc">War Room stress testing, mega-workspace orchestration across linked repositories</div>
         </div>
         <span class="phase-badge badge-done">✓ Done</span>
@@ -730,7 +991,7 @@
           <div class="phase-name">P2P HiveMind Consensus</div>
           <div class="phase-desc">Distributed multi-node agent mesh with Raft-inspired coordination</div>
         </div>
-        <span class="phase-badge badge-planned">Planned</span>
+        <span class="phase-badge badge-building">In Progress</span>
       </div>
       <div class="phase-item">
         <div class="phase-num">Phase 14</div>

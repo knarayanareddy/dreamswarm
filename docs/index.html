@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DreamSwarm — Autonomous Multi-Agent Orchestration</title>
+  <meta name="description" content="DreamSwarm is a self-healing, autonomous multi-agent platform for software engineering. Deploy specialized AI agent swarms with full observability and safety guardrails." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --bg2: #111111;
+      --bg3: #1a1a1a;
+      --border: rgba(255,255,255,0.08);
+      --text: #ffffff;
+      --muted: #a1a1aa;
+      --accent-blue: #4f8ef7;
+      --accent-orange: #f97316;
+      --accent-purple: #a855f7;
+      --accent-green: #22c55e;
+      --accent-pink: #ec4899;
+      --accent-cyan: #06b6d4;
+      --code-bg: #161616;
+      --code-border: #2a2a2a;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 48px;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+    .nav-logo span { color: var(--muted); font-weight: 400; }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-github {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--text);
+      color: #000;
+      border: none;
+      border-radius: 9999px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-github:hover { opacity: 0.85; }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 80px 48px 100px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 80% 60% at 20% 50%, rgba(79,78,180,0.35) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(249,115,22,0.25) 0%, transparent 55%),
+        url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1'/%3E%3C/svg%3E");
+      background-size: auto, auto, 40px 40px;
+      border-radius: 16px;
+      margin: 12px;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 9999px;
+      padding: 6px 16px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+    .hero-badge span { width: 6px; height: 6px; background: var(--accent-green); border-radius: 50%; margin-right: 8px; display: inline-block; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.9)} }
+    .hero h1 {
+      font-size: clamp(40px, 5vw, 64px);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      color: var(--text);
+    }
+    .hero p {
+      font-size: 17px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 40px;
+      max-width: 480px;
+    }
+    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--text);
+      color: #000;
+      border: none;
+      border-radius: 9999px;
+      padding: 12px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-secondary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 9999px;
+      padding: 12px 24px;
+      font-size: 15px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.05); }
+
+    /* ── TERMINAL ── */
+    .hero-terminal {
+      position: relative;
+      z-index: 1;
+    }
+    .terminal-window {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 40px 80px rgba(0,0,0,0.6);
+    }
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 16px;
+      background: #1c1c1c;
+      border-bottom: 1px solid var(--code-border);
+    }
+    .traffic-light { width: 12px; height: 12px; border-radius: 50%; }
+    .tl-red { background: #ff5f57; }
+    .tl-yellow { background: #ffbd2e; }
+    .tl-green { background: #28ca41; }
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .terminal-body {
+      padding: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      counter-reset: line;
+    }
+    .line {
+      display: flex;
+      gap: 16px;
+    }
+    .ln {
+      color: #444;
+      min-width: 20px;
+      text-align: right;
+      user-select: none;
+      counter-increment: line;
+    }
+    .code { flex: 1; white-space: pre; }
+    .kw { color: #c678dd; }
+    .fn { color: #61afef; }
+    .str { color: #98c379; }
+    .cm { color: #5c6370; font-style: italic; }
+    .num { color: #d19a66; }
+    .cls { color: #e5c07b; }
+    .op { color: #56b6c2; }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .stat-item {
+      padding: 32px 48px;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .live-dot { width: 6px; height: 6px; background: var(--accent-green); border-radius: 50%; animation: pulse 2s infinite; }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    /* ── SECTION ── */
+    section { padding: 100px 48px; }
+    .section-eyebrow {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+    .section-body {
+      font-size: 17px;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 560px;
+    }
+
+    /* ── BUILT BY ── */
+    .built-by { border-top: 1px solid var(--border); }
+    .built-by .section-body { max-width: 640px; }
+    .terminals-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 56px;
+    }
+
+    /* ── FEATURES GRID ── */
+    .features-section { background: var(--bg); }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 64px;
+    }
+    .feature-card {
+      padding: 40px 36px;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      transition: background 0.2s;
+    }
+    .feature-card:hover { background: rgba(255,255,255,0.03); }
+    .feature-card:nth-child(3n) { border-right: none; }
+    .feature-card:nth-last-child(-n+3) { border-bottom: none; }
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+    .icon-blue { background: rgba(79,142,247,0.15); }
+    .icon-orange { background: rgba(249,115,22,0.15); }
+    .icon-purple { background: rgba(168,85,247,0.15); }
+    .icon-green { background: rgba(34,197,94,0.15); }
+    .icon-pink { background: rgba(236,72,153,0.15); }
+    .icon-cyan { background: rgba(6,182,212,0.15); }
+    .feature-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .feature-body {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ── KAIROS SECTION ── */
+    .kairos-section {
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: start;
+    }
+    .kairos-section .section-body { max-width: 100%; }
+
+    /* ── PHASE ROADMAP ── */
+    .phases-section { border-top: 1px solid var(--border); }
+    .phases-list {
+      margin-top: 56px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .phase-item {
+      display: grid;
+      grid-template-columns: 200px 1fr auto;
+      gap: 24px;
+      padding: 24px 32px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+      transition: background 0.2s;
+    }
+    .phase-item:last-child { border-bottom: none; }
+    .phase-item:hover { background: rgba(255,255,255,0.02); }
+    .phase-num {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .phase-name {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .phase-desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .phase-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      white-space: nowrap;
+    }
+    .badge-done { background: rgba(34,197,94,0.12); color: var(--accent-green); }
+    .badge-building { background: rgba(249,115,22,0.12); color: var(--accent-orange); }
+    .badge-planned { background: rgba(255,255,255,0.06); color: var(--muted); }
+
+    /* ── CTA FOOTER ── */
+    .cta-footer {
+      position: relative;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      padding: 120px 48px;
+      text-align: center;
+    }
+    .cta-footer::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 70% 60% at 50% 100%, rgba(79,78,180,0.3) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 0%, rgba(249,115,22,0.2) 0%, transparent 50%);
+    }
+    .cta-footer > * { position: relative; z-index: 1; }
+    .cta-footer h2 {
+      font-size: clamp(36px, 5vw, 64px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    .cta-footer p {
+      font-size: 17px;
+      color: var(--muted);
+      margin-bottom: 40px;
+    }
+    .cta-footer .cta-btns { display: flex; justify-content: center; gap: 12px; }
+
+    /* ── SITE FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-logo { font-size: 14px; font-weight: 700; }
+    .footer-copy { font-size: 13px; color: var(--muted); }
+
+    /* ── ANIMATIONS ── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: none; }
+
+    @media (max-width: 900px) {
+      nav { padding: 16px 24px; }
+      .hero { grid-template-columns: 1fr; padding: 60px 24px; min-height: auto; }
+      .hero-terminal { display: none; }
+      section { padding: 64px 24px; }
+      .stats-bar { grid-template-columns: 1fr 1fr; }
+      .stat-item { padding: 24px; }
+      .terminals-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .kairos-section { grid-template-columns: 1fr; gap: 40px; }
+      .phase-item { grid-template-columns: 1fr; }
+      footer { flex-direction: column; gap: 12px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">DreamSwarm <span>by knarayanareddy</span></a>
+    <div class="nav-links">
+      <a href="https://github.com/dreamswarm/dreamswarm" class="btn-github" id="nav-github-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        Give us a star
+      </a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-content fade-up">
+      <div class="hero-badge">
+        <span></span>
+        Introducing DreamSwarm v0.9
+      </div>
+      <h1>The best way to orchestrate autonomous AI agents.</h1>
+      <p>DreamSwarm coordinates planners, researchers, builders, and critics across multi-repo mega-workspaces. Deploy swarms with guardrails, full observability, and zero configuration.</p>
+      <div class="hero-ctas">
+        <a href="https://github.com/dreamswarm/dreamswarm" class="btn-primary" id="hero-github-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          Give us a star
+        </a>
+        <a href="#roadmap" class="btn-secondary" id="hero-docs-btn">View roadmap →</a>
+      </div>
+    </div>
+    <div class="hero-terminal fade-up" style="transition-delay:0.15s">
+      <div class="terminal-window">
+        <div class="terminal-header">
+          <div class="traffic-light tl-red"></div>
+          <div class="traffic-light tl-yellow"></div>
+          <div class="traffic-light tl-green"></div>
+          <div class="terminal-title">DreamSwarm</div>
+        </div>
+        <div class="terminal-body">
+          <div class="line"><span class="ln">1</span><span class="code"><span class="kw">use</span> dreamswarm<span class="op">::</span>{Swarm, TeamConfig, Agent};</span></div>
+          <div class="line"><span class="ln">2</span><span class="code"><span class="kw">use</span> dreamswarm<span class="op">::</span>providers<span class="op">::</span>Claude;</span></div>
+          <div class="line"><span class="ln">3</span><span class="code"></span></div>
+          <div class="line"><span class="ln">4</span><span class="code"><span class="cm">// Configure your swarm mission</span></span></div>
+          <div class="line"><span class="ln">5</span><span class="code"><span class="kw">let</span> config = TeamConfig {</span></div>
+          <div class="line"><span class="ln">6</span><span class="code">    strategy<span class="op">:</span> SpawnStrategy<span class="op">::</span>GitWorktree,</span></div>
+          <div class="line"><span class="ln">7</span><span class="code">    max_workers<span class="op">:</span> <span class="num">4</span>,</span></div>
+          <div class="line"><span class="ln">8</span><span class="code">    linked_repositories<span class="op">:</span> <span class="fn">vec!</span>[</span></div>
+          <div class="line"><span class="ln">9</span><span class="code">        <span class="str">"/path/to/frontend"</span>.into(),</span></div>
+          <div class="line"><span class="ln">10</span><span class="code">    ],</span></div>
+          <div class="line"><span class="ln">11</span><span class="code">};</span></div>
+          <div class="line"><span class="ln">12</span><span class="code"></span></div>
+          <div class="line"><span class="ln">13</span><span class="code"><span class="cm">// Spawn a parallel swarm</span></span></div>
+          <div class="line"><span class="ln">14</span><span class="code"><span class="kw">let</span> swarm = Swarm<span class="op">::</span><span class="fn">new</span>(config, Claude<span class="op">::</span>Sonnet);</span></div>
+          <div class="line"><span class="ln">15</span><span class="code">swarm.<span class="fn">run</span>(<span class="str">"Implement OAuth2 login flow"</span>).<span class="kw">await</span>?;</span></div>
+          <div class="line"><span class="ln">16</span><span class="code"></span></div>
+          <div class="line"><span class="ln">17</span><span class="code"><span class="cm">// Results stream in real-time</span></span></div>
+          <div class="line"><span class="ln">18</span><span class="code"><span class="kw">while let</span> <span class="cls">Some</span>(event) = swarm.<span class="fn">next</span>().<span class="kw">await</span> {</span></div>
+          <div class="line"><span class="ln">19</span><span class="code">    <span class="fn">println!</span>(<span class="str">"[{}] {}"</span>, event.agent, event.msg);</span></div>
+          <div class="line"><span class="ln">20</span><span class="code">}</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar fade-up">
+    <div class="stat-item">
+      <div class="stat-label"><span class="live-dot"></span> LIVE</div>
+      <div class="stat-value">128 agents</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label"><span class="live-dot"></span> LIVE</div>
+      <div class="stat-value">52 tests</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label"><span class="live-dot"></span> LIVE</div>
+      <div class="stat-value">11m saved</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label"><span class="live-dot"></span> LIVE</div>
+      <div class="stat-value">99.7% trust</div>
+    </div>
+  </div>
+
+  <!-- BUILT BY -->
+  <section class="built-by fade-up">
+    <div class="section-eyebrow">The Philosophy</div>
+    <h2 class="section-title">Built by AI engineers,<br>for AI engineers.</h2>
+    <p class="section-body">We are builders who needed an autonomous orchestration layer that didn't require choosing between power and predictability. DreamSwarm is the open platform we always wished existed — persistent, self-healing, and fully observable.</p>
+    <div class="terminals-grid">
+      <div class="terminal-window" style="margin-top:0">
+        <div class="terminal-header">
+          <div class="traffic-light tl-red"></div>
+          <div class="traffic-light tl-yellow"></div>
+          <div class="traffic-light tl-green"></div>
+          <div class="terminal-title">DreamSwarm — conflict detection</div>
+        </div>
+        <div class="terminal-body" style="font-size:12px">
+          <div class="line"><span class="ln">$</span><span class="code"> dreamswarm daemon start</span></div>
+          <div class="line"><span class="ln"></span><span class="code" style="color:#444">===== KAIROS Daemon v0.9 =====</span></div>
+          <div class="line"><span class="ln"></span><span class="code"><span style="color:var(--accent-green)">✓</span> FileWatcher active on 3 branches</span></div>
+          <div class="line"><span class="ln"></span><span class="code"><span style="color:var(--accent-green)">✓</span> Evolution Coordinator armed</span></div>
+          <div class="line"><span class="ln"></span><span class="code"></span></div>
+          <div class="line"><span class="ln"></span><span class="code"><span style="color:var(--accent-orange)">⚠</span> Conflict predicted: src/auth.rs</span></div>
+          <div class="line"><span class="ln"></span><span class="code">  Branches: [feature/oauth, fix/tokens]</span></div>
+          <div class="line"><span class="ln"></span><span class="code"><span style="color:var(--accent-pink)">→</span> Writing DREAMSWARM_CONFLICT_WARNING.txt</span></div>
+          <div class="line"><span class="ln"></span><span class="code" style="color:#444">= 1 conflict predicted, 0 merges blocked =</span></div>
+        </div>
+      </div>
+      <div class="terminal-window">
+        <div class="terminal-header">
+          <div class="traffic-light tl-red"></div>
+          <div class="traffic-light tl-yellow"></div>
+          <div class="traffic-light tl-green"></div>
+          <div class="terminal-title">DreamSwarm — evolution cycle</div>
+        </div>
+        <div class="terminal-body" style="font-size:12px">
+          <div class="line"><span class="ln">1</span><span class="code"><span class="kw">use</span> dreamswarm<span class="op">::</span>evolution<span class="op">::</span>EvolutionCoordinator;</span></div>
+          <div class="line"><span class="ln">2</span><span class="code"></span></div>
+          <div class="line"><span class="ln">3</span><span class="code"><span class="cm">// Neural evolution runs autonomously</span></span></div>
+          <div class="line"><span class="ln">4</span><span class="code"><span class="kw">let</span> evo = EvolutionCoordinator<span class="op">::</span><span class="fn">new</span>(db);</span></div>
+          <div class="line"><span class="ln">5</span><span class="code">evo.<span class="fn">run_cycle_if_due</span>()<span class="op">.</span><span class="kw">await</span>?;</span></div>
+          <div class="line"><span class="ln">6</span><span class="code"></span></div>
+          <div class="line"><span class="ln">7</span><span class="code"><span class="cm">// Generates challenger prompt variants</span></span></div>
+          <div class="line"><span class="ln">8</span><span class="code"><span class="cm">// Tracks lineage & scores in SQLite</span></span></div>
+          <div class="line"><span class="ln">9</span><span class="code"><span class="cm">// Replaces underperformers autonomously</span></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features-section fade-up">
+    <div class="section-eyebrow">Capabilities</div>
+    <h2 class="section-title">Everything a swarm needs<br>to operate autonomously.</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon icon-blue">🧠</div>
+        <div class="feature-title">3-Layer Memory</div>
+        <div class="feature-body">L1 index always in context. L2 topic files loaded JIT. L3 transcripts archived for autoDream consolidation.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon icon-orange">⚡</div>
+        <div class="feature-title">KAIROS Daemon</div>
+        <div class="feature-body">A background heartbeat that monitors git activity, detects engineering debt, and dispatches tasks proactively.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon icon-purple">🐝</div>
+        <div class="feature-title">Parallel Swarms</div>
+        <div class="feature-body">Multiple specialized agents work simultaneously on isolated git worktrees, communicating via async mailboxes.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon icon-green">🔗</div>
+        <div class="feature-title">Multi-Repo Workspaces</div>
+        <div class="feature-body">Link multiple repositories into a single mega-workspace. Agents have full context across your entire codebase.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon icon-pink">🧬</div>
+        <div class="feature-title">Neural Evolution</div>
+        <div class="feature-body">EvolutionCoordinator autonomously generates challenger prompt variants and promotes winners based on telemetry.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon icon-cyan">📡</div>
+        <div class="feature-title">The Oracle API</div>
+        <div class="feature-body">Full REST + SSE API for real-time telemetry, hive control, and remote stop/dream/war-room commands.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- KAIROS SECTION -->
+  <section class="kairos-section fade-up">
+    <div>
+      <div class="section-eyebrow">KAIROS Daemon</div>
+      <h2 class="section-title">A heartbeat that never stops.</h2>
+      <p class="section-body">KAIROS (Kinetic AI Real-time Operational System) is a persistent Tokio-powered daemon that monitors your workspace 24/7. When it detects a missing test, an anti-pattern, or a predicted merge conflict, it acts — with trust-gated autonomy.</p>
+      <br /><br />
+      <p class="section-body">As KAIROS proves its competence, it graduates from <strong style="color:var(--text)">AskFirst → AutoAct</strong> — handling low-risk improvements without interrupting your flow.</p>
+    </div>
+    <div class="terminal-window">
+      <div class="terminal-header">
+        <div class="traffic-light tl-red"></div>
+        <div class="traffic-light tl-yellow"></div>
+        <div class="traffic-light tl-green"></div>
+        <div class="terminal-title">DreamSwarm — oracle API</div>
+      </div>
+      <div class="terminal-body" style="font-size:12px">
+        <div class="line"><span class="ln"></span><span class="code"><span style="color:var(--muted)">GET</span>  /consensus</span></div>
+        <div class="line"><span class="ln"></span><span class="code" style="color:#444">{ "status": "Oracle Online",</span></div>
+        <div class="line"><span class="ln"></span><span class="code" style="color:#444">  "trust_index": 0.92,</span></div>
+        <div class="line"><span class="ln"></span><span class="code" style="color:#444">  "layer_3_health": "Optimal" }</span></div>
+        <div class="line"><span class="ln"></span><span class="code"></span></div>
+        <div class="line"><span class="ln"></span><span class="code"><span style="color:var(--muted)">GET</span>  /api/v1/telemetry/stream  <span style="color:var(--accent-green)">← SSE</span></span></div>
+        <div class="line"><span class="ln"></span><span class="code" style="color:#444">data: {"agent":"worker-1","action":"edit"}</span></div>
+        <div class="line"><span class="ln"></span><span class="code" style="color:#444">data: {"agent":"worker-2","action":"test"}</span></div>
+        <div class="line"><span class="ln"></span><span class="code"></span></div>
+        <div class="line"><span class="ln"></span><span class="code"><span style="color:var(--muted)">POST</span> /api/v1/control/war-room</span></div>
+        <div class="line"><span class="ln"></span><span class="code"><span style="color:var(--accent-orange)">⚠</span>  Cascading failure simulation active</span></div>
+        <div class="line"><span class="ln"></span><span class="code"><span style="color:var(--accent-green)">✓</span>  100Hz telemetry flood: stable</span></div>
+        <div class="line"><span class="ln"></span><span class="code"></span></div>
+        <div class="line"><span class="ln"></span><span class="code"><span style="color:var(--muted)">POST</span> /api/v1/control/stop</span></div>
+        <div class="line"><span class="ln"></span><span class="code" style="color:#444">{ "status": "Stop signal broadcasted" }</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section class="phases-section fade-up" id="roadmap">
+    <div class="section-eyebrow">Roadmap</div>
+    <h2 class="section-title">14 phases. Fully shipped.</h2>
+    <div class="phases-list">
+      <div class="phase-item">
+        <div class="phase-num">Phase 1–4</div>
+        <div>
+          <div class="phase-name">Core Loop, Memory & Tools</div>
+          <div class="phase-desc">Agent reasoning loop, 3-layer memory, tool plugin system, session persistence</div>
+        </div>
+        <span class="phase-badge badge-done">✓ Done</span>
+      </div>
+      <div class="phase-item">
+        <div class="phase-num">Phase 5</div>
+        <div>
+          <div class="phase-name">Swarm Coordinator</div>
+          <div class="phase-desc">Multi-agent spawning with worktree isolation and async mailbox communication</div>
+        </div>
+        <span class="phase-badge badge-done">✓ Done</span>
+      </div>
+      <div class="phase-item">
+        <div class="phase-num">Phase 6</div>
+        <div>
+          <div class="phase-name">The Oracle REST API</div>
+          <div class="phase-desc">Axum-powered HTTP + SSE API for telemetry, control signals, and hive state</div>
+        </div>
+        <span class="phase-badge badge-done">✓ Done</span>
+      </div>
+      <div class="phase-item">
+        <div class="phase-num">Phase 7–9</div>
+        <div>
+          <div class="phase-name">Resilience & Self-Healing</div>
+          <div class="phase-desc">Warm-start from CHECKPOINT.json, trust-based autonomy, proactive self-correction</div>
+        </div>
+        <span class="phase-badge badge-done">✓ Done</span>
+      </div>
+      <div class="phase-item">
+        <div class="phase-num">Phase 10–11</div>
+        <div>
+          <div class="phase-name">Control Signals & Multi-Repo</div>
+          <div class="phase-desc">War Room stress testing, mega-workspace orchestration across linked repositories</div>
+        </div>
+        <span class="phase-badge badge-done">✓ Done</span>
+      </div>
+      <div class="phase-item">
+        <div class="phase-num">Phase 12</div>
+        <div>
+          <div class="phase-name">Neural Evolution</div>
+          <div class="phase-desc">Autonomous prompt optimization, challenger generation, and lineage tracking in SQLite</div>
+        </div>
+        <span class="phase-badge badge-done">✓ Done</span>
+      </div>
+      <div class="phase-item">
+        <div class="phase-num">Phase 13</div>
+        <div>
+          <div class="phase-name">P2P HiveMind Consensus</div>
+          <div class="phase-desc">Distributed multi-node agent mesh with Raft-inspired coordination</div>
+        </div>
+        <span class="phase-badge badge-planned">Planned</span>
+      </div>
+      <div class="phase-item">
+        <div class="phase-num">Phase 14</div>
+        <div>
+          <div class="phase-name">Predictive Conflict Resolution</div>
+          <div class="phase-desc">Pre-emptive merge conflict detection via FileWatcher branch diffing</div>
+        </div>
+        <span class="phase-badge badge-done">✓ Done</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FOOTER -->
+  <div class="cta-footer fade-up">
+    <h2>Start orchestrating<br>your dream team.</h2>
+    <p>Open source. Built in Rust. Zero configuration required.</p>
+    <div class="cta-btns">
+      <a href="https://github.com/dreamswarm/dreamswarm" class="btn-primary" id="cta-github-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        Star on GitHub
+      </a>
+      <a href="https://github.com/dreamswarm/dreamswarm/blob/main/ARCHITECTURE.md" class="btn-secondary" id="cta-docs-btn">Read the docs →</a>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">DreamSwarm 🐝</div>
+    <div class="footer-copy">© 2026 knarayanareddy. Open source under Apache 2.0.</div>
+  </footer>
+
+  <script>
+    // Intersection observer for fade-up animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('visible'); }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>

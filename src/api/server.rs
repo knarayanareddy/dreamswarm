@@ -4,7 +4,10 @@ use crate::runtime::config::{AppConfig, OllamaConfig, RoutingPolicy};
 use crate::swarm::{TeamConfig, WorkerInfo};
 use axum::{
     extract::{Query, State},
-    response::{Html, sse::{Event, Sse}},
+    response::{
+        sse::{Event, Sse},
+        Html,
+    },
     routing::{get, post},
     Json, Router,
 };
@@ -81,7 +84,10 @@ pub async fn start_api_server(state: ApiState, port: u16) -> anyhow::Result<()> 
         .route("/api/v1/control/dream", post(handle_control_dream))
         .route("/api/v1/control/war-room", post(handle_control_war_room))
         // New: Config
-        .route("/api/v1/config", get(handle_get_config).post(handle_update_config))
+        .route(
+            "/api/v1/config",
+            get(handle_get_config).post(handle_update_config),
+        )
         // New: Swarm management
         .route("/api/v1/swarm/workers", get(handle_get_workers))
         .route("/api/v1/swarm/launch", post(handle_swarm_launch))
@@ -207,14 +213,24 @@ async fn handle_update_config(
 ) -> Json<serde_json::Value> {
     let mut cfg = state.config.write().await;
 
-    if let Some(model) = patch.model { cfg.model = model; }
-    if let Some(provider) = patch.provider { cfg.provider = provider; }
+    if let Some(model) = patch.model {
+        cfg.model = model;
+    }
+    if let Some(provider) = patch.provider {
+        cfg.provider = provider;
+    }
     if let Some(mode) = patch.permission_mode {
         cfg.permission_mode = mode.parse().unwrap_or(cfg.permission_mode);
     }
-    if let Some(policy) = patch.routing_policy { cfg.routing_policy = policy; }
-    if let Some(allow) = patch.allow_patterns { cfg.allow_patterns = allow; }
-    if let Some(deny) = patch.deny_patterns { cfg.deny_patterns = deny; }
+    if let Some(policy) = patch.routing_policy {
+        cfg.routing_policy = policy;
+    }
+    if let Some(allow) = patch.allow_patterns {
+        cfg.allow_patterns = allow;
+    }
+    if let Some(deny) = patch.deny_patterns {
+        cfg.deny_patterns = deny;
+    }
 
     // Ollama sub-config
     if patch.ollama_endpoint.is_some() || patch.ollama_model.is_some() {
@@ -222,14 +238,22 @@ async fn handle_update_config(
             endpoint: "http://localhost:11434".to_string(),
             model: "llama3.1:8b".to_string(),
         });
-        if let Some(ep) = patch.ollama_endpoint { existing.endpoint = ep; }
-        if let Some(m) = patch.ollama_model { existing.model = m; }
+        if let Some(ep) = patch.ollama_endpoint {
+            existing.endpoint = ep;
+        }
+        if let Some(m) = patch.ollama_model {
+            existing.model = m;
+        }
     }
 
     // Persist to ~/.dreamswarm/config.toml
     match cfg.save_to_toml() {
-        Ok(_) => Json(serde_json::json!({"status": "Config saved", "path": AppConfig::config_file_path(&cfg.state_dir)})),
-        Err(e) => Json(serde_json::json!({"status": "Config updated in memory (disk write failed)", "error": e.to_string()})),
+        Ok(_) => Json(
+            serde_json::json!({"status": "Config saved", "path": AppConfig::config_file_path(&cfg.state_dir)}),
+        ),
+        Err(e) => Json(
+            serde_json::json!({"status": "Config updated in memory (disk write failed)", "error": e.to_string()}),
+        ),
     }
 }
 

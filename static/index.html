@@ -442,7 +442,10 @@
     <div class="card">
       <div class="card-header">
         <div class="card-title">Active Workers</div>
-        <button class="btn btn-secondary" onclick="loadWorkers()" style="font-size:12px;padding:4px 12px">↻ Refresh</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-danger" onclick="stopSwarm()" style="font-size:12px;padding:4px 12px">⏹ Stop Swarm</button>
+          <button class="btn btn-secondary" onclick="loadWorkers()" style="font-size:12px;padding:4px 12px">↻ Refresh</button>
+        </div>
       </div>
       <div class="worker-grid" id="worker-grid">
         <div class="worker-empty">
@@ -516,8 +519,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadConsensus();
   loadConfig();
   loadWorkers();
-  // Poll workers every 10s
-  setInterval(loadWorkers, 10000);
+  // Poll workers every 5s (fast enough to see new agents appear)
+  setInterval(loadWorkers, 5000);
   // Poll consensus every 15s
   setInterval(loadConsensus, 15000);
 });
@@ -600,8 +603,11 @@ function addEvent(evt, prepend = false) {
 }
 
 function eventMessage(e) {
+  if (e.type === 'worker_spawned') return `Worker spawned → ${e.payload.name || ''} [${e.payload.role || ''}] on team ${e.payload.team || ''}`;
+  if (e.type === 'launch_complete') return `Swarm complete → "${(e.payload.mission||'').slice(0,60)}" (${e.payload.workers_spawned || 0} workers live)`;
   if (e.type === 'launch_requested') return `Swarm launch → "${e.payload.mission || ''}" (${e.payload.team_name || ''}, ${e.payload.max_workers || '?'} workers)`;
   if (e.type === 'control_signal') return `Control: ${e.payload.action || ''} [from ${e.payload.origin || '?'}]`;
+  if (e.type === 'shutdown') return `Swarm shutdown — ${e.payload.workers_stopped || 0} workers stopped`;
   if (e.payload && e.payload.message) return e.payload.message;
   return `${e.type} ${JSON.stringify(e.payload).slice(0,80)}`;
 }
@@ -811,15 +817,29 @@ async function launchSwarm() {
     const r = await fetch('/api/v1/swarm/launch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
     const d = await r.json();
     if (d.error) throw new Error(d.error);
-    status.textContent = `✓ ${d.status}: "${d.mission}"`;
+    const n = d.workers_spawned || '?';
+    status.textContent = `✓ ${d.status}: ${n} workers live on team "${d.team}"`;
     status.className = 'save-status success';
-    toast(`Swarm "${d.team}" launched ✓`, 'success');
+    toast(`🐝 ${n} workers spawned on "${d.team}"`, 'success');
     document.getElementById('swarm-mission').value = '';
-    setTimeout(loadWorkers, 1500);
+    // Immediate + delayed refresh to catch the spawned workers
+    loadWorkers();
+    setTimeout(loadWorkers, 800);
   } catch(e) {
     status.textContent = 'Launch failed: ' + e.message;
     status.className = 'save-status error';
     toast('Swarm launch failed', 'error');
+  }
+}
+
+async function stopSwarm() {
+  try {
+    const r = await fetch('/api/v1/swarm/stop', { method: 'POST' });
+    const d = await r.json();
+    toast(d.status || 'Swarm stopped', d.error ? 'error' : 'success');
+    setTimeout(loadWorkers, 500);
+  } catch(e) {
+    toast('Stop failed — is the Oracle running?', 'error');
   }
 }
 

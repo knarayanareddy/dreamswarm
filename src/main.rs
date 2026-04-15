@@ -295,6 +295,7 @@ async fn main() -> anyhow::Result<()> {
                     telemetry,
                     config: Arc::new(RwLock::new(config)),
                     workers: Arc::new(RwLock::new(vec![])),
+                    coordinator: Arc::new(tokio::sync::Mutex::new(None)),
                 };
                 println!("🐝 The Oracle is starting on http://localhost:{}", port);
                 println!("   Dashboard → http://localhost:{}", port);

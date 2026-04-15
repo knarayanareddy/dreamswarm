@@ -1,6 +1,7 @@
 use crate::api::telemetry::TelemetryHub;
 use crate::memory::MemorySystem;
 use crate::runtime::config::{AppConfig, OllamaConfig, RoutingPolicy};
+use crate::swarm::coordinator::SwarmCoordinator;
 use crate::swarm::{TeamConfig, WorkerInfo};
 use axum::{
     extract::{Query, State},
@@ -15,7 +16,7 @@ use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 use tokio_stream::StreamExt;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
@@ -28,6 +29,8 @@ pub struct ApiState {
     pub telemetry: Arc<TelemetryHub>,
     pub config: Arc<RwLock<AppConfig>>,
     pub workers: Arc<RwLock<Vec<WorkerInfo>>>,
+    /// The active SwarmCoordinator (None before first launch).
+    pub coordinator: Arc<Mutex<Option<SwarmCoordinator>>>,
 }
 
 // ── Request / Response DTOs ───────────────────────────────────────────────────
@@ -83,14 +86,15 @@ pub async fn start_api_server(state: ApiState, port: u16) -> anyhow::Result<()> 
         .route("/api/v1/control/stop", post(handle_control_stop))
         .route("/api/v1/control/dream", post(handle_control_dream))
         .route("/api/v1/control/war-room", post(handle_control_war_room))
-        // New: Config
+        // Config
         .route(
             "/api/v1/config",
             get(handle_get_config).post(handle_update_config),
         )
-        // New: Swarm management
+        // Swarm management
         .route("/api/v1/swarm/workers", get(handle_get_workers))
         .route("/api/v1/swarm/launch", post(handle_swarm_launch))
+        .route("/api/v1/swarm/stop", post(handle_swarm_stop))
         // Static files fallback
         .fallback_service(ServeDir::new("static"))
         .layer(cors)
@@ -268,6 +272,34 @@ async fn handle_get_workers(State(state): State<ApiState>) -> Json<Vec<serde_jso
     Json(serialized)
 }
 
+// ── Role decomposition ─────────────────────────────────────────────────────────
+// Splits a mission into (worker_name, role, instructions) per agent slot.
+fn derive_worker_roles(mission: &str, max_workers: usize) -> Vec<(String, String, String)> {
+    let candidates = vec![
+        (
+            "architect".to_string(),
+            "architect".to_string(),
+            format!("Plan the design and file structure for the following task. Do NOT write code yet — produce a concise implementation plan only.\n\nTask: {}", mission),
+        ),
+        (
+            "coder".to_string(),
+            "coder".to_string(),
+            format!("Implement the following task. Write all necessary code, following the project's existing patterns. Be thorough and complete.\n\nTask: {}", mission),
+        ),
+        (
+            "tester".to_string(),
+            "tester".to_string(),
+            format!("Write comprehensive unit tests and integration tests for the following task. Ensure all edge cases are covered and tests pass.\n\nTask: {}", mission),
+        ),
+        (
+            "reviewer".to_string(),
+            "reviewer".to_string(),
+            format!("Review the implementation for correctness, performance, and style. Suggest and apply improvements.\n\nTask: {}", mission),
+        ),
+    ];
+    candidates.into_iter().take(max_workers).collect()
+}
+
 async fn handle_swarm_launch(
     State(state): State<ApiState>,
     Json(req): Json<SwarmLaunchRequest>,
@@ -276,27 +308,107 @@ async fn handle_swarm_launch(
         return Json(serde_json::json!({"error": "Mission cannot be empty"}));
     }
 
-    let team_cfg = req.team_config.unwrap_or_default();
+    let cfg = state.config.read().await;
+    let working_dir = cfg.working_dir.to_string_lossy().to_string();
+    let state_dir = cfg.state_dir.clone();
+    drop(cfg);
 
-    state
-        .telemetry
+    let team_cfg = req.team_config.unwrap_or_default();
+    let max_workers = team_cfg.max_workers.min(4);
+    let team_name = team_cfg.team_name.clone();
+    let mission = req.mission.clone();
+
+    // Build-and-spawn inside a blocking mutex guard so the coordinator stays alive
+    let mut coordinator_guard = state.coordinator.lock().await;
+
+    // Create a fresh coordinator for this launch
+    let mut coordinator = match SwarmCoordinator::new(team_cfg, &working_dir, state_dir) {
+        Ok(c) => c,
+        Err(e) => {
+            return Json(
+                serde_json::json!({"error": format!("Failed to create coordinator: {}", e)}),
+            )
+        }
+    };
+
+    let roles = derive_worker_roles(&mission, max_workers);
+    let mut spawned = Vec::new();
+
+    for (name, role, instructions) in roles {
+        match coordinator.spawn_worker(&name, &role, &instructions).await {
+            Ok(worker) => {
+                state.telemetry
+                    .log_event(
+                        "swarm",
+                        "worker_spawned",
+                        serde_json::json!({
+                            "worker_id": worker.id,
+                            "name": worker.name,
+                            "role": worker.role,
+                            "team": team_name,
+                            "status": "Active",
+                        }),
+                    )
+                    .await;
+                spawned.push(worker.clone());
+                state.workers.write().await.push(worker);
+            }
+            Err(e) => tracing::warn!("Worker '{}' spawn failed: {}", name, e),
+        }
+    }
+
+    // Broadcast a summary event
+    state.telemetry
         .log_event(
             "swarm",
-            "launch_requested",
+            "launch_complete",
             serde_json::json!({
-                "mission": req.mission,
-                "team_name": team_cfg.team_name,
-                "max_workers": team_cfg.max_workers,
-                "spawn_strategy": format!("{:?}", team_cfg.spawn_strategy),
-                "linked_repositories": team_cfg.linked_repositories,
-                "origin": "dashboard"
+                "mission": mission,
+                "team": team_name,
+                "workers_spawned": spawned.len(),
+                "origin": "dashboard",
             }),
         )
         .await;
 
+    *coordinator_guard = Some(coordinator);
+
     Json(serde_json::json!({
-        "status": "Swarm launch queued",
-        "mission": req.mission,
-        "team": team_cfg.team_name
+        "status": "Swarm launched",
+        "team": team_name,
+        "workers_spawned": spawned.len(),
+        "workers": spawned.iter().map(|w| serde_json::json!({
+            "id": w.id,
+            "name": w.name,
+            "role": w.role,
+            "status": "Active",
+        })).collect::<Vec<_>>(),
     }))
+}
+
+async fn handle_swarm_stop(State(state): State<ApiState>) -> Json<serde_json::Value> {
+    let mut coordinator_guard = state.coordinator.lock().await;
+    if let Some(ref mut coordinator) = *coordinator_guard {
+        match coordinator.shutdown_team().await {
+            Ok(_) => {
+                // Mark all workers as ShuttingDown in the shared list
+                let mut workers = state.workers.write().await;
+                for w in workers.iter_mut() {
+                    w.status = crate::swarm::WorkerStatus::ShuttingDown;
+                }
+                state.telemetry
+                    .log_event(
+                        "swarm",
+                        "shutdown",
+                        serde_json::json!({"origin": "dashboard", "workers_stopped": workers.len()}),
+                    )
+                    .await;
+                *coordinator_guard = None;
+                Json(serde_json::json!({"status": "All workers shut down"}))
+            }
+            Err(e) => Json(serde_json::json!({"error": e.to_string()})),
+        }
+    } else {
+        Json(serde_json::json!({"status": "No active swarm to stop"}))
+    }
 }

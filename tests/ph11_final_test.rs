@@ -23,8 +23,10 @@ async fn test_multi_repo_orchestration() -> anyhow::Result<()> {
             .output()?;
     }
 
-    let mut config = TeamConfig::default();
-    config.linked_repositories = vec![dummy_root.to_string_lossy().to_string()];
+    let config = TeamConfig {
+        linked_repositories: vec![dummy_root.to_string_lossy().to_string()],
+        ..Default::default()
+    };
 
     let working_dir = std::env::current_dir()?.to_string_lossy().to_string();
     let state_dir = PathBuf::from("./.dreamswarm-test-state-final");

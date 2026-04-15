@@ -80,6 +80,11 @@ enum Commands {
         #[arg(short, long, default_value = "default")]
         team: String,
     },
+    /// Start The Oracle REST API + web dashboard
+    Api {
+        #[command(subcommand)]
+        action: ApiAction,
+    },
 }
 
 #[derive(Subcommand)]
@@ -100,6 +105,16 @@ enum DaemonAction {
     },
     /// Reset daemon trust level to 100%
     ResetTrust,
+}
+
+#[derive(Subcommand)]
+enum ApiAction {
+    /// Start The Oracle API server and open the web dashboard
+    Start {
+        /// Port to listen on
+        #[arg(short, long, default_value = "8080")]
+        port: u16,
+    },
 }
 
 #[tokio::main]
@@ -267,6 +282,26 @@ async fn main() -> anyhow::Result<()> {
         Some(Commands::Sessions) => {
             println!("Listing active sessions...");
         }
+        Some(Commands::Api { action }) => match action {
+            ApiAction::Start { port } => {
+                use dreamswarm::api::server::{start_api_server, ApiState};
+                use dreamswarm::api::telemetry::TelemetryHub;
+
+                let db = Arc::new(RwLock::new(Database::new(&config.state_dir)?));
+                db.read().await.migrate()?;
+                let telemetry = Arc::new(TelemetryHub::new(db));
+                let api_state = ApiState {
+                    memory,
+                    telemetry,
+                    config: Arc::new(RwLock::new(config)),
+                    workers: Arc::new(RwLock::new(vec![])),
+                };
+                println!("🐝 The Oracle is starting on http://localhost:{}", port);
+                println!("   Dashboard → http://localhost:{}", port);
+                println!("   Press Ctrl+C to stop.\n");
+                start_api_server(api_state, port).await?;
+            }
+        },
     }
 
     Ok(())

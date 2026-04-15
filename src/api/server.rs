@@ -337,7 +337,8 @@ async fn handle_swarm_launch(
     for (name, role, instructions) in roles {
         match coordinator.spawn_worker(&name, &role, &instructions).await {
             Ok(worker) => {
-                state.telemetry
+                state
+                    .telemetry
                     .log_event(
                         "swarm",
                         "worker_spawned",
@@ -358,7 +359,8 @@ async fn handle_swarm_launch(
     }
 
     // Broadcast a summary event
-    state.telemetry
+    state
+        .telemetry
         .log_event(
             "swarm",
             "launch_complete",

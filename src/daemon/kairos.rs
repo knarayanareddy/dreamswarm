@@ -23,6 +23,7 @@ use tokio::sync::RwLock;
 
 pub struct KairosDaemon {
     config: DaemonConfig,
+    app_config: AppConfig,
     heartbeat: Heartbeat,
     signal_gatherer: SignalGatherer,
     initiative_engine: InitiativeEngine,
@@ -97,6 +98,7 @@ impl KairosDaemon {
         }
 
         Ok(Self {
+            app_config: app_config.clone(),
             heartbeat,
             signal_gatherer,
             initiative_engine,
@@ -201,6 +203,8 @@ impl KairosDaemon {
             let api_state = crate::api::server::ApiState {
                 memory: self.memory.clone(),
                 telemetry: self.telemetry.clone(),
+                config: std::sync::Arc::new(tokio::sync::RwLock::new(self.app_config.clone())),
+                workers: std::sync::Arc::new(tokio::sync::RwLock::new(vec![])),
             };
             let port = self.config.api_port;
             tokio::spawn(async move {

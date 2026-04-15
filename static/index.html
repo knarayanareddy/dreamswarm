@@ -1,282 +1,866 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DreamSwarm | Sovereign Interface</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono:wght@300;400&display=swap');
-        
-        body {
-            background: radial-gradient(circle at center, #0a192f 0%, #020c1b 100%);
-            color: #e6f1ff;
-            font-family: 'Outfit', sans-serif;
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DreamSwarm — Oracle Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0a; --bg2: #111; --bg3: #181818; --bg4: #1e1e1e;
+      --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+      --text: #fff; --muted: #71717a; --muted2: #a1a1aa;
+      --green: #22c55e; --orange: #f97316; --blue: #4f8ef7;
+      --purple: #a855f7; --pink: #ec4899; --cyan: #06b6d4;
+      --red: #ef4444; --yellow: #eab308; --indigo: #6366f1;
+      --code-bg: #161616; --radius: 10px;
+    }
+    html, body { height: 100%; overflow: hidden; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; font-size: 14px; }
 
-        .glass {
-            background: rgba(16, 33, 65, 0.4);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(100, 255, 218, 0.1);
-            border-radius: 16px;
-        }
+    /* ── TOP NAV ── */
+    .topnav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 52px; min-height: 52px;
+      background: rgba(10,10,10,0.95); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px); z-index: 100; flex-shrink: 0;
+    }
+    .nav-left { display: flex; align-items: center; gap: 24px; }
+    .logo { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+    .logo .bee { opacity: 0.8; }
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 9999px; padding: 4px 12px; font-size: 12px; color: var(--muted2);
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); transition: background 0.3s; }
+    .status-dot.online { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,0.5); animation: pulse 2s infinite; }
+    .status-dot.offline { background: var(--red); }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.85)} }
+    .nav-tabs { display: flex; gap: 2px; }
+    .tab-btn {
+      background: transparent; border: none; color: var(--muted2); cursor: pointer;
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+      padding: 6px 14px; border-radius: 6px; transition: all 0.15s;
+    }
+    .tab-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .tab-btn.active { background: rgba(255,255,255,0.1); color: var(--text); }
+    .nav-actions { display: flex; align-items: center; gap: 8px; }
+    .action-btn {
+      display: flex; align-items: center; gap: 6px; background: var(--bg3);
+      border: 1px solid var(--border); border-radius: 7px;
+      color: var(--muted2); cursor: pointer; font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 500; padding: 5px 12px; transition: all 0.15s;
+    }
+    .action-btn:hover { border-color: var(--border2); color: var(--text); background: var(--bg4); }
+    .action-btn.danger:hover { border-color: rgba(239,68,68,0.4); color: var(--red); }
+    .action-btn.warn:hover { border-color: rgba(249,115,22,0.4); color: var(--orange); }
+    .action-btn.safe:hover { border-color: rgba(79,142,247,0.4); color: var(--blue); }
 
-        .neo-cyan { color: #64ffda; }
-        .bg-neo-cyan { background: #64ffda; }
-        .border-neo-cyan { border-color: #64ffda; }
-        .shadow-neon { box-shadow: 0 0 20px rgba(100, 255, 218, 0.2); }
+    /* ── MAIN ── */
+    .main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+    .tab-content { display: none; flex: 1; overflow-y: auto; padding: 24px; }
+    .tab-content.active { display: flex; flex-direction: column; gap: 20px; }
 
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        
-        .pulse { animation: pulse 2s infinite; }
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
-        }
+    /* ── CARDS ── */
+    .card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .stat-card {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px;
+    }
+    .stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .stat-value { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+    .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(100, 255, 218, 0.2); border-radius: 10px; }
-        
-        .node-active { filter: drop-shadow(0 0 8px #64ffda); }
-    </style>
+    /* ── BADGES ── */
+    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; }
+    .badge-green { background: rgba(34,197,94,0.12); color: var(--green); }
+    .badge-orange { background: rgba(249,115,22,0.12); color: var(--orange); }
+    .badge-blue { background: rgba(79,142,247,0.12); color: var(--blue); }
+    .badge-purple { background: rgba(168,85,247,0.12); color: var(--purple); }
+    .badge-red { background: rgba(239,68,68,0.12); color: var(--red); }
+    .badge-muted { background: rgba(255,255,255,0.06); color: var(--muted2); }
+    .badge-cyan { background: rgba(6,182,212,0.12); color: var(--cyan); }
+
+    /* ── LIVE FEED ── */
+    .feed-container {
+      flex: 1; background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; min-height: 400px;
+    }
+    .feed-toolbar {
+      display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+      background: #1c1c1c; border-bottom: 1px solid var(--border);
+    }
+    .traffic-light { width: 10px; height: 10px; border-radius: 50%; }
+    .tl-r { background: #ff5f57; } .tl-y { background: #ffbd2e; } .tl-g { background: #28ca41; }
+    .feed-title { flex: 1; text-align: center; font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    .feed-filter { display: flex; gap: 4px; margin-left: auto; }
+    .filter-chip {
+      font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 9999px;
+      cursor: pointer; background: var(--bg3); border: 1px solid var(--border); color: var(--muted); transition: all 0.15s;
+    }
+    .filter-chip.active { border-color: var(--border2); color: var(--text); background: rgba(255,255,255,0.08); }
+    .feed-log { flex: 1; overflow-y: auto; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.7; }
+    .feed-log::-webkit-scrollbar { width: 4px; }
+    .feed-log::-webkit-scrollbar-track { background: transparent; }
+    .feed-log::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .log-line { display: flex; gap: 12px; padding: 2px 0; border-radius: 4px; transition: background 0.1s; }
+    .log-line:hover { background: rgba(255,255,255,0.03); }
+    .log-time { color: #444; min-width: 80px; flex-shrink: 0; }
+    .log-cat { min-width: 70px; flex-shrink: 0; font-weight: 600; }
+    .log-cat.kairos { color: var(--orange); }
+    .log-cat.system { color: var(--blue); }
+    .log-cat.worker { color: var(--purple); }
+    .log-cat.swarm { color: var(--cyan); }
+    .log-cat.evolution { color: var(--pink); }
+    .log-cat.memory { color: var(--yellow); }
+    .log-cat.control { color: var(--red); }
+    .log-msg { color: var(--muted2); flex: 1; }
+    .feed-empty { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--muted); font-size: 13px; }
+
+    /* ── CONFIG ── */
+    .config-section { margin-bottom: 4px; }
+    .config-section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .form-row.single { grid-template-columns: 1fr; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 500; color: var(--muted2); }
+    .form-input, .form-select, .form-textarea {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 7px;
+      color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px;
+      padding: 8px 12px; outline: none; transition: border-color 0.15s; width: 100%;
+    }
+    .form-textarea { font-family: 'JetBrains Mono', monospace; font-size: 12px; resize: vertical; min-height: 80px; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--border2); }
+    .form-select option { background: var(--bg3); }
+    .form-hint { font-size: 11px; color: var(--muted); }
+    .save-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-top: 1px solid var(--border); margin-top: 8px;
+    }
+    .save-status { font-size: 12px; color: var(--muted); }
+    .save-status.success { color: var(--green); }
+    .save-status.error { color: var(--red); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 7px;
+      cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+      padding: 8px 18px; transition: all 0.15s;
+    }
+    .btn-primary { background: var(--text); color: #000; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-secondary { background: var(--bg3); border: 1px solid var(--border); color: var(--text); }
+    .btn-secondary:hover { border-color: var(--border2); }
+    .btn-danger { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: var(--red); }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+    .btn-green { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: var(--green); }
+    .btn-green:hover { background: rgba(34,197,94,0.25); }
+
+    /* ── MEMORY ── */
+    .search-bar { display: flex; gap: 8px; }
+    .search-bar .form-input { flex: 1; }
+    .memory-results { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+    .memory-item {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px;
+      transition: border-color 0.15s;
+    }
+    .memory-item:hover { border-color: var(--border2); }
+    .memory-path { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--blue); margin-bottom: 6px; }
+    .memory-content { font-size: 13px; color: var(--muted2); line-height: 1.6; }
+    .memory-empty { padding: 40px; text-align: center; color: var(--muted); }
+
+    /* ── SWARM ── */
+    .worker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .worker-card {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;
+      transition: border-color 0.15s; position: relative; overflow: hidden;
+    }
+    .worker-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    }
+    .worker-card.status-active::before { background: var(--green); }
+    .worker-card.status-idle::before { background: var(--blue); }
+    .worker-card.status-spawning::before { background: var(--yellow); }
+    .worker-card.status-failed::before { background: var(--red); }
+    .worker-card.status-completed::before { background: var(--muted); }
+    .worker-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+    .worker-name { font-weight: 700; font-size: 14px; }
+    .worker-role { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .worker-detail { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+    .worker-empty { padding: 60px; text-align: center; color: var(--muted); }
+    .worker-empty .icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+    .launch-form .form-textarea { min-height: 100px; }
+    .slider-row { display: flex; align-items: center; gap: 12px; }
+    .slider-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; min-width: 24px; color: var(--text); }
+    input[type=range] {
+      -webkit-appearance: none; flex: 1; height: 4px; border-radius: 2px; background: var(--bg4); outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+      background: var(--text); cursor: pointer;
+    }
+
+    /* ── TOAST ── */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 999; }
+    .toast {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px 16px; font-size: 13px; min-width: 280px; max-width: 400px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5); animation: slideIn 0.2s ease;
+    }
+    .toast.success { border-color: rgba(34,197,94,0.3); }
+    .toast.error { border-color: rgba(239,68,68,0.3); }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .grid-4 { grid-template-columns: 1fr 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .nav-actions .action-btn span { display: none; }
+    }
+  </style>
 </head>
-<body class="p-6">
-    <!-- Header -->
-    <header class="flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-3xl font-bold tracking-tight">DREAMSWARM <span class="text-sm font-light neo-cyan ml-2 opacity-60">| Autonomous Multi-Agent Hive</span></h1>
-            <p class="text-gray-400 text-sm mt-1 uppercase tracking-widest">Sovereign Command Center_</p>
+<body>
+
+<!-- TOP NAV -->
+<header class="topnav">
+  <div class="nav-left">
+    <div class="logo">DreamSwarm <span class="bee">🐝</span> <span style="color:var(--muted);font-weight:400">Oracle Dashboard</span></div>
+    <div class="status-pill">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">Connecting…</span>
+    </div>
+  </div>
+  <nav class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('overview')" id="tab-btn-overview">Overview</button>
+    <button class="tab-btn" onclick="switchTab('feed')" id="tab-btn-feed">Live Feed</button>
+    <button class="tab-btn" onclick="switchTab('config')" id="tab-btn-config">Config</button>
+    <button class="tab-btn" onclick="switchTab('memory')" id="tab-btn-memory">Memory</button>
+    <button class="tab-btn" onclick="switchTab('swarm')" id="tab-btn-swarm">Swarm</button>
+  </nav>
+  <div class="nav-actions">
+    <button class="action-btn safe" onclick="controlAction('dream')" title="Trigger autoDream">
+      💤 <span>Dream</span>
+    </button>
+    <button class="action-btn warn" onclick="controlAction('war-room')" title="War Room stress test">
+      ⚠️ <span>War Room</span>
+    </button>
+    <button class="action-btn danger" onclick="controlAction('stop')" title="Emergency stop all agents">
+      ⏹ <span>Stop All</span>
+    </button>
+  </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- OVERVIEW TAB -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="grid-4">
+      <div class="stat-card">
+        <div class="stat-label">Trust Index</div>
+        <div class="stat-value" id="stat-trust">—</div>
+        <div class="stat-sub">KAIROS confidence level</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Hive Status</div>
+        <div class="stat-value" id="stat-status" style="font-size:16px;margin-top:4px">—</div>
+        <div class="stat-sub">Oracle heartbeat</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">L3 Health</div>
+        <div class="stat-value" id="stat-l3" style="font-size:16px;margin-top:4px">—</div>
+        <div class="stat-sub">Memory transcript layer</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Workers</div>
+        <div class="stat-value" id="stat-workers">—</div>
+        <div class="stat-sub">Running agents</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Recent Events</div>
+        <button class="btn btn-secondary" onclick="switchTab('feed')" style="font-size:12px;padding:4px 12px">View all →</button>
+      </div>
+      <div id="overview-feed" style="font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8">
+        <div class="feed-empty">Waiting for events…</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Quick Actions</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-green" onclick="switchTab('swarm')" style="justify-content:center">🐝 Launch New Swarm</button>
+          <button class="btn btn-secondary" onclick="switchTab('memory')" style="justify-content:center">🔍 Inspect Memory</button>
+          <button class="btn btn-secondary" onclick="loadConsensus()" style="justify-content:center">🔄 Refresh Status</button>
         </div>
-        <div class="flex gap-4">
-            <button onclick="control('stop')" class="glass px-6 py-2 text-red-400 border-red-500/20 hover:bg-red-500/10 transition-all uppercase text-xs font-bold tracking-widest">
-                <i class="fa-solid fa-circle-stop mr-2"></i> Emergency Stop
-            </button>
-            <button onclick="control('dream')" class="glass px-6 py-2 neo-cyan border-neo-cyan/20 hover:bg-cyan-500/10 transition-all uppercase text-xs font-bold tracking-widest">
-                <i class="fa-solid fa-moon mr-2"></i> Trigger Deep Dream
-            </button>
-            <button onclick="control('war-room')" class="glass px-6 py-2 text-orange-400 border-orange-500/20 hover:bg-orange-500/10 transition-all uppercase text-xs font-bold tracking-widest">
-                <i class="fa-solid fa-radiation mr-2"></i> War Room Stress
-            </button>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Current Config</div>
+        <div id="overview-config" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted2);line-height:1.8">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE FEED TAB -->
+  <div class="tab-content" id="tab-feed">
+    <div class="feed-container">
+      <div class="feed-toolbar">
+        <div class="traffic-light tl-r"></div>
+        <div class="traffic-light tl-y"></div>
+        <div class="traffic-light tl-g"></div>
+        <div class="feed-title">DreamSwarm — oracle live feed</div>
+        <div class="feed-filter">
+          <div class="filter-chip active" onclick="toggleFilter(this,'all')">all</div>
+          <div class="filter-chip" onclick="toggleFilter(this,'kairos')">kairos</div>
+          <div class="filter-chip" onclick="toggleFilter(this,'swarm')">swarm</div>
+          <div class="filter-chip" onclick="toggleFilter(this,'system')">system</div>
+          <div class="filter-chip" onclick="toggleFilter(this,'memory')">memory</div>
         </div>
-    </header>
+        <button class="action-btn" onclick="clearFeed()" style="margin-left:8px;font-size:11px;padding:3px 8px">Clear</button>
+      </div>
+      <div class="feed-log" id="feed-log">
+        <div class="feed-empty">Connecting to SSE stream…</div>
+      </div>
+    </div>
+  </div>
 
-    <main class="grid grid-cols-12 gap-6">
-        <!-- Swarm Visualization -->
-        <div class="col-span-12 lg:col-span-8 glass p-6 min-h-[500px] relative overflow-hidden">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xs font-bold uppercase tracking-widest opacity-60">Swarm Topology / Real-Time Mesh</h2>
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-neo-cyan rounded-full pulse shadow-neon"></span>
-                    <span class="text-[10px] neo-cyan uppercase">Live Visualization</span>
-                </div>
-            </div>
-            <div id="swarm-viz" class="w-full h-[450px]"></div>
+  <!-- CONFIG TAB -->
+  <div class="tab-content" id="tab-config">
+    <div class="card">
+      <div class="config-section-title">Model & Provider</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Model</label>
+          <input type="text" class="form-input" id="cfg-model" placeholder="claude-sonnet-4-20250514" />
         </div>
-
-        <!-- Right Panels -->
-        <div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
-            <!-- Cognitive Health -->
-            <div class="glass p-6">
-                <h2 class="text-xs font-bold uppercase tracking-widest opacity-60 mb-6">Cognitive Health</h2>
-                <div class="space-y-6">
-                    <div>
-                        <div class="flex justify-between mb-2">
-                            <span class="text-xs opacity-60">Throughput</span>
-                            <span class="text-xs neo-cyan mono" id="stat-throughput">0 ops/sec</span>
-                        </div>
-                        <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
-                            <div class="h-full bg-neo-cyan w-[45%]" id="bar-throughput"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex justify-between mb-2">
-                            <span class="text-xs opacity-60">Token Utilization</span>
-                            <span class="text-xs text-orange-400 mono" id="stat-cost">$0.00 / hr</span>
-                        </div>
-                        <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
-                            <div class="h-full bg-orange-500 w-[68%]" id="bar-cost"></div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
-                        <div class="text-center">
-                            <div class="text-xl neo-cyan mono" id="stat-success">99.8%</div>
-                            <div class="text-[10px] uppercase opacity-40">Success Rate</div>
-                        </div>
-                        <div class="text-center border-l border-white/5">
-                            <div class="text-xl text-purple-400 mono">Active</div>
-                            <div class="text-[10px] uppercase opacity-40">Immune Status</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Immune System Logs -->
-            <div class="glass p-6 flex-grow">
-                <h2 class="text-xs font-bold uppercase tracking-widest opacity-60 mb-4">Immune System Log</h2>
-                <div id="immune-logs" class="h-[200px] overflow-y-auto space-y-3 mono text-[10px]">
-                    <div class="text-gray-500">[SYSTEM] Initializing telemetry stream...</div>
-                </div>
-            </div>
-
-            <!-- Neural Evolution Panel -->
-            <div class="glass p-6">
-                <h2 class="text-xs font-bold uppercase tracking-widest opacity-60 mb-4">Neural Evolution (Self-Optimization)</h2>
-                <div id="evolution-stats" class="space-y-4">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[10px] opacity-60">Active Variant</span>
-                        <span class="text-[10px] neo-cyan mono font-bold" id="active-variant">BASE_PROMPT_V1</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-[10px] opacity-60">Challenger Status</span>
-                        <span class="text-[10px] text-orange-400 mono font-bold" id="challenger-status">IDLE (DAILY CYCLE)</span>
-                    </div>
-                    <div class="pt-2 border-t border-white/5">
-                        <div class="text-[9px] opacity-40 uppercase mb-2">Lineage History</div>
-                        <div id="evolution-lineage" class="space-y-1">
-                            <div class="text-[9px] text-gray-500 line-through">V0: Initial Seed (92.4%)</div>
-                            <div class="text-[9px] neo-cyan">V1: Sovereign Directive (99.8%) [ACTIVE]</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="form-group">
+          <label class="form-label">Provider</label>
+          <select class="form-select" id="cfg-provider">
+            <option value="anthropic">Anthropic</option>
+            <option value="openai">OpenAI</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="ollama">Ollama (Local)</option>
+            <option value="featherless">Featherless</option>
+          </select>
         </div>
-
-        <!-- Footer / Constitutional Signature -->
-        <div class="col-span-12 glass p-4 flex items-center justify-between">
-            <div class="flex items-center gap-6">
-                <div class="text-[10px] font-bold uppercase tracking-widest opacity-40">Constitutional Signature:</div>
-                <div class="flex gap-2">
-                    <span class="text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded border border-green-500/20">ALIGNMENT: PASS (94%)</span>
-                    <span class="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded border border-cyan-500/20">RESILIENCE: ACTIVE</span>
-                    <span class="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-1 rounded border border-purple-500/20">HIVE SYNC: VALIDATED</span>
-                </div>
-            </div>
-            <div class="text-[10px] mono opacity-40" id="current-time">24 OCT 2077 | 12:08:42 UTC</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Permission Mode</label>
+          <select class="form-select" id="cfg-mode">
+            <option value="Default">Default (ask for dangerous ops)</option>
+            <option value="AcceptEdits">Accept Edits (auto-approve file writes)</option>
+            <option value="BypassPermissions">Bypass (full auto — CI mode)</option>
+            <option value="ReadOnly">Read Only (no writes)</option>
+            <option value="Plan">Plan (propose only, never execute)</option>
+          </select>
         </div>
-    </main>
+        <div class="form-group">
+          <label class="form-label">Routing Policy</label>
+          <select class="form-select" id="cfg-routing">
+            <option value="Resilient">Resilient (aggressive fallback)</option>
+            <option value="Performance">Performance (always high-tier)</option>
+            <option value="Cost">Cost (dynamic complexity)</option>
+            <option value="ProviderLock">Provider Lock (strict)</option>
+          </select>
+        </div>
+      </div>
+    </div>
 
-    <script>
-        // --- Swarm Visualization (D3.js) ---
-        const width = document.getElementById('swarm-viz').clientWidth;
-        const height = 450;
-        const nodes = Array.from({length: 30}, (_, i) => ({ id: i, group: Math.floor(i/10) }));
-        const links = Array.from({length: 45}, () => ({
-            source: Math.floor(Math.random() * nodes.length),
-            target: Math.floor(Math.random() * nodes.length)
-        }));
+    <div class="card">
+      <div class="config-section-title">Security — Allow & Deny Patterns</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Allow Patterns <span class="form-hint">(one per line, e.g. Bash(git*))</span></label>
+          <textarea class="form-textarea" id="cfg-allow" rows="5"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Deny Patterns <span class="form-hint">(one per line)</span></label>
+          <textarea class="form-textarea" id="cfg-deny" rows="5"></textarea>
+        </div>
+      </div>
+    </div>
 
-        const svg = d3.select("#swarm-viz").append("svg")
-            .attr("width", "100%")
-            .attr("height", height);
+    <div class="card">
+      <div class="config-section-title">Ollama (Local Models)</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Ollama Endpoint</label>
+          <input type="text" class="form-input" id="cfg-ollama-ep" placeholder="http://localhost:11434" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ollama Model</label>
+          <input type="text" class="form-input" id="cfg-ollama-model" placeholder="llama3.1:8b" />
+        </div>
+      </div>
+    </div>
 
-        const simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).id(d => d.id).distance(100))
-            .force("charge", d3.forceManyBody().strength(-150))
-            .force("center", d3.forceCenter(width / 2, height / 2));
+    <div class="save-bar">
+      <span class="save-status" id="cfg-save-status">Load the config from the server to edit</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" onclick="loadConfig()">↓ Load from server</button>
+        <button class="btn btn-primary" onclick="saveConfig()">↑ Save &amp; Persist</button>
+      </div>
+    </div>
+  </div>
 
-        const link = svg.append("g")
-            .attr("stroke", "rgba(100, 255, 218, 0.1)")
-            .attr("stroke-width", 1)
-            .selectAll("line")
-            .data(links)
-            .join("line");
+  <!-- MEMORY TAB -->
+  <div class="tab-content" id="tab-memory">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">Semantic Memory Search</div>
+      <div class="search-bar">
+        <input type="text" class="form-input" id="memory-query" placeholder="Search topics, functions, bugs… (e.g. 'authentication')" onkeydown="if(event.key==='Enter')searchMemory()" />
+        <button class="btn btn-primary" onclick="searchMemory()">Search</button>
+      </div>
+      <div class="form-hint" style="margin-top:8px">Queries the L2 topic file index via vector similarity. Results are sorted by relevance.</div>
+    </div>
+    <div id="memory-results" class="memory-results">
+      <div class="memory-empty">Enter a search term to query the memory system.</div>
+    </div>
+  </div>
 
-        const node = svg.append("g")
-            .selectAll("circle")
-            .data(nodes)
-            .join("circle")
-            .attr("r", 4)
-            .attr("fill", d => d.group === 0 ? "#64ffda" : "#48bb78")
-            .attr("class", "node-active")
-            .call(d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended));
+  <!-- SWARM TAB -->
+  <div class="tab-content" id="tab-swarm">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Active Workers</div>
+        <button class="btn btn-secondary" onclick="loadWorkers()" style="font-size:12px;padding:4px 12px">↻ Refresh</button>
+      </div>
+      <div class="worker-grid" id="worker-grid">
+        <div class="worker-empty">
+          <div class="icon">🐝</div>
+          No active workers. Launch a swarm below.
+        </div>
+      </div>
+    </div>
 
-        simulation.on("tick", () => {
-            link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
-                .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
-            node.attr("cx", d => d.x).attr("cy", d => d.y);
+    <div class="card launch-form">
+      <div class="config-section-title">Launch New Swarm</div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="form-label">Mission</label>
+          <textarea class="form-textarea" id="swarm-mission" placeholder="Describe what the swarm should accomplish…&#10;e.g. 'Implement rate limiting middleware and add integration tests'"></textarea>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Team Name</label>
+          <input type="text" class="form-input" id="swarm-teamname" placeholder="auto-generated if empty" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Spawn Strategy</label>
+          <select class="form-select" id="swarm-strategy">
+            <option value="InProcess">InProcess (fastest, shared memory)</option>
+            <option value="TmuxPane">TmuxPane (visible terminal panes)</option>
+            <option value="GitWorktree">GitWorktree (isolated git worktrees)</option>
+            <option value="SSH">SSH (remote agents)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Max Workers — <span id="workers-val">4</span></label>
+          <div class="slider-row">
+            <input type="range" min="1" max="16" value="4" id="swarm-workers" oninput="document.getElementById('workers-val').textContent=this.value" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Linked Repositories <span class="form-hint">(one path per line)</span></label>
+          <textarea class="form-textarea" id="swarm-repos" style="min-height:60px" placeholder="/path/to/other-repo"></textarea>
+        </div>
+      </div>
+      <div class="save-bar">
+        <span class="save-status" id="swarm-status"></span>
+        <button class="btn btn-primary" onclick="launchSwarm()">🐝 Launch Swarm</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+const state = {
+  tab: 'overview',
+  connected: false,
+  events: [],
+  activeFilter: 'all',
+  eventSource: null,
+  maxEvents: 500,
+};
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  connectSSE();
+  loadConsensus();
+  loadConfig();
+  loadWorkers();
+  // Poll workers every 10s
+  setInterval(loadWorkers, 10000);
+  // Poll consensus every 15s
+  setInterval(loadConsensus, 15000);
+});
+
+// ── Tab Switching ─────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('tab-btn-' + name).classList.add('active');
+  state.tab = name;
+  if (name === 'swarm') loadWorkers();
+  if (name === 'memory') document.getElementById('memory-query').focus();
+}
+
+// ── SSE Connection ────────────────────────────────────────────────────────────
+function connectSSE() {
+  if (state.eventSource) state.eventSource.close();
+  const es = new EventSource('/api/v1/telemetry/stream');
+  state.eventSource = es;
+
+  es.onopen = () => {
+    setStatus(true);
+    // Load history on connect
+    loadHistory();
+  };
+
+  es.onmessage = (e) => {
+    try {
+      const evt = JSON.parse(e.data);
+      addEvent(evt);
+    } catch (_) {}
+  };
+
+  es.onerror = () => {
+    setStatus(false);
+    setTimeout(connectSSE, 3000); // reconnect
+  };
+}
+
+function loadHistory() {
+  fetch('/api/v1/telemetry/history')
+    .then(r => r.json())
+    .then(events => {
+      if (Array.isArray(events)) {
+        events.forEach(e => {
+          if (e.category && e.event_type) addEvent(e, true);
         });
+        renderFeed();
+        renderOverviewFeed();
+      }
+    })
+    .catch(() => {});
+}
 
-        function dragstarted(event) { if (!event.active) simulation.alphaTarget(0.3).restart(); event.subject.fx = event.subject.x; event.subject.fy = event.subject.y; }
-        function dragged(event) { event.subject.fx = event.x; event.subject.fy = event.y; }
-        function dragended(event) { if (!event.active) simulation.alphaTarget(0); event.subject.fx = null; event.subject.fy = null; }
+function setStatus(online) {
+  state.connected = online;
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-text');
+  dot.className = 'status-dot ' + (online ? 'online' : 'offline');
+  txt.textContent = online ? 'Oracle Online' : 'Disconnected';
+}
 
-        // --- Telemetry Connection (SSE) ---
-        const evtSource = new EventSource("/api/v1/telemetry/stream");
-        
-        evtSource.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            handleTelemetryEvent(data);
-        };
+// ── Event Handling ────────────────────────────────────────────────────────────
+function addEvent(evt, prepend = false) {
+  const e = {
+    time: evt.timestamp ? new Date(evt.timestamp).toLocaleTimeString('en-GB', {hour12:false}) : '--:--:--',
+    cat: (evt.category || 'system').toLowerCase(),
+    type: evt.event_type || '',
+    payload: evt.payload || {},
+  };
+  if (prepend) {
+    state.events.unshift(e);
+  } else {
+    state.events.push(e);
+  }
+  if (state.events.length > state.maxEvents) state.events.shift();
+  renderFeed();
+  renderOverviewFeed();
+}
 
-        function handleTelemetryEvent(event) {
-            const logContainer = document.getElementById('immune-logs');
-            const newLog = document.createElement('div');
-            const time = new Date().toLocaleTimeString();
-            
-            if (event.event_type === 'flood_signal') {
-                // High frequency optimization: limit logs
-                logContainer.prepend(Object.assign(document.createElement('div'), {
-                    innerHTML: `<span class="opacity-20">[${time}]</span> <span class="text-orange-500 font-bold">STRESS_FLOOD_ACTIVE</span>`,
-                    className: 'border-l-2 border-orange-500 pl-2 my-1'
-                }));
-                if (logContainer.children.length > 20) logContainer.lastChild.remove();
-                return;
-            }
+function eventMessage(e) {
+  if (e.type === 'launch_requested') return `Swarm launch → "${e.payload.mission || ''}" (${e.payload.team_name || ''}, ${e.payload.max_workers || '?'} workers)`;
+  if (e.type === 'control_signal') return `Control: ${e.payload.action || ''} [from ${e.payload.origin || '?'}]`;
+  if (e.payload && e.payload.message) return e.payload.message;
+  return `${e.type} ${JSON.stringify(e.payload).slice(0,80)}`;
+}
 
-            if (event.event_type === 'evolution_variant_created') {
-                const variant = event.payload.variant;
-                document.getElementById('challenger-status').innerText = `PENDING (${variant})`;
-                document.getElementById('challenger-status').classList.add('animate-pulse');
-                
-                const lineage = document.getElementById('evolution-lineage');
-                const entry = document.createElement('div');
-                entry.className = 'text-[9px] text-orange-400';
-                entry.innerText = `NEW: ${variant} (Evaluating...)`;
-                lineage.prepend(entry);
-            }
+function renderFeed() {
+  const log = document.getElementById('feed-log');
+  const filtered = state.activeFilter === 'all'
+    ? state.events
+    : state.events.filter(e => e.cat === state.activeFilter);
+  if (filtered.length === 0) {
+    log.innerHTML = '<div class="feed-empty">No events' + (state.activeFilter !== 'all' ? ' in category "' + state.activeFilter + '"' : '') + '</div>';
+    return;
+  }
+  const bottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+  log.innerHTML = filtered.slice(-200).map(e => `
+    <div class="log-line">
+      <span class="log-time">${e.time}</span>
+      <span class="log-cat ${e.cat}">${e.cat}</span>
+      <span class="log-msg">${escHtml(eventMessage(e))}</span>
+    </div>`).join('');
+  if (bottom) log.scrollTop = log.scrollHeight;
+}
 
-            if (event.category === 'immune' || event.category === 'system') {
-                newLog.innerHTML = `<span class="opacity-40">[${time}]</span> <span class="neo-cyan">IMMUNE_SYSTEM:</span> <span class="text-gray-300">${JSON.stringify(event.payload)}</span>`;
-                if (event.payload.urgency === 'CRITICAL') newLog.classList.add('text-red-400', 'font-bold', 'animate-pulse');
-            } else if (event.category === 'swarm') {
-                newLog.innerHTML = `<span class="opacity-40">[${time}]</span> <span class="text-purple-400">SWARM_INTEL:</span> ${JSON.stringify(event.payload)}`;
-            } else {
-                newLog.innerHTML = `<span class="opacity-40">[${time}]</span> <span class="text-gray-500">HIVE_SIGNAL:</span> ${JSON.stringify(event.payload)}`;
-            }
-            
-            logContainer.prepend(newLog);
-            if (logContainer.children.length > 50) logContainer.lastChild.remove();
-        }
+function renderOverviewFeed() {
+  const el = document.getElementById('overview-feed');
+  const recent = state.events.slice(-6).reverse();
+  if (recent.length === 0) { el.innerHTML = '<div class="feed-empty">Waiting for events…</div>'; return; }
+  el.innerHTML = recent.map(e => `
+    <div class="log-line">
+      <span class="log-time">${e.time}</span>
+      <span class="log-cat ${e.cat}">${e.cat}</span>
+      <span class="log-msg">${escHtml(eventMessage(e))}</span>
+    </div>`).join('');
+}
 
-        // --- Controls ---
-        async function control(action) {
-            try {
-                const response = await fetch(`/api/v1/control/${action}`, { method: 'POST' });
-                const result = await response.json();
-                console.log(`${action} triggered:`, result);
-                
-                const logContainer = document.getElementById('immune-logs');
-                const log = document.createElement('div');
-                log.innerHTML = `<span class="text-orange-400 font-bold uppercase tracking-widest">[COMMAND] ${action.toUpperCase()} INITIATED BY OPERATOR</span>`;
-                logContainer.prepend(log);
-            } catch (err) {
-                console.error('Action failed:', err);
-            }
-        }
+function toggleFilter(chip, cat) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  state.activeFilter = cat;
+  renderFeed();
+}
 
-        // Update Clock
-        setInterval(() => {
-            document.getElementById('current-time').innerText = new Date().toUTCString().toUpperCase() + " | SOVEREIGN NODE";
-        }, 1000);
-    </script>
+function clearFeed() {
+  state.events = [];
+  renderFeed();
+  renderOverviewFeed();
+}
+
+// ── Consensus / Status ────────────────────────────────────────────────────────
+async function loadConsensus() {
+  try {
+    const r = await fetch('/consensus');
+    const d = await r.json();
+    document.getElementById('stat-trust').textContent = d.trust_index !== undefined ? (d.trust_index * 100).toFixed(1) + '%' : '—';
+    document.getElementById('stat-status').innerHTML = `<span class="badge badge-green">${d.status || 'Online'}</span>`;
+    document.getElementById('stat-l3').innerHTML = `<span class="badge badge-cyan">${d.layer_3_health || '—'}</span>`;
+    setStatus(true);
+  } catch(e) {
+    setStatus(false);
+    document.getElementById('stat-status').innerHTML = '<span class="badge badge-red">Offline</span>';
+  }
+}
+
+// ── Config ────────────────────────────────────────────────────────────────────
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/v1/config');
+    const cfg = await r.json();
+    if (cfg.error) return;
+    document.getElementById('cfg-model').value = cfg.model || '';
+    document.getElementById('cfg-provider').value = cfg.provider || 'anthropic';
+    document.getElementById('cfg-mode').value = cfg.permission_mode || 'Default';
+    document.getElementById('cfg-routing').value = cfg.routing_policy || 'Resilient';
+    document.getElementById('cfg-allow').value = (cfg.allow_patterns || []).join('\n');
+    document.getElementById('cfg-deny').value = (cfg.deny_patterns || []).join('\n');
+    if (cfg.ollama_config) {
+      document.getElementById('cfg-ollama-ep').value = cfg.ollama_config.endpoint || '';
+      document.getElementById('cfg-ollama-model').value = cfg.ollama_config.model || '';
+    }
+    document.getElementById('cfg-save-status').textContent = 'Config loaded ✓';
+    document.getElementById('cfg-save-status').className = 'save-status success';
+
+    // Overview config summary
+    document.getElementById('overview-config').innerHTML = `
+      <div>model &nbsp;&nbsp; <span style="color:var(--text)">${cfg.model || '—'}</span></div>
+      <div>provider <span style="color:var(--text)">${cfg.provider || '—'}</span></div>
+      <div>mode &nbsp;&nbsp; <span style="color:var(--text)">${cfg.permission_mode || '—'}</span></div>
+      <div>routing &nbsp;<span style="color:var(--text)">${cfg.routing_policy || '—'}</span></div>`;
+  } catch(e) {
+    document.getElementById('cfg-save-status').textContent = 'Could not reach Oracle API';
+    document.getElementById('cfg-save-status').className = 'save-status error';
+  }
+}
+
+async function saveConfig() {
+  const patch = {
+    model: document.getElementById('cfg-model').value.trim() || undefined,
+    provider: document.getElementById('cfg-provider').value || undefined,
+    permission_mode: document.getElementById('cfg-mode').value || undefined,
+    routing_policy: document.getElementById('cfg-routing').value || undefined,
+    allow_patterns: document.getElementById('cfg-allow').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    deny_patterns: document.getElementById('cfg-deny').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    ollama_endpoint: document.getElementById('cfg-ollama-ep').value.trim() || undefined,
+    ollama_model: document.getElementById('cfg-ollama-model').value.trim() || undefined,
+  };
+  const status = document.getElementById('cfg-save-status');
+  status.textContent = 'Saving…'; status.className = 'save-status';
+  try {
+    const r = await fetch('/api/v1/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(patch) });
+    const d = await r.json();
+    status.textContent = d.status || 'Saved ✓';
+    status.className = 'save-status success';
+    toast('Config saved and persisted to disk ✓', 'success');
+    loadConfig(); // refresh overview
+  } catch(e) {
+    status.textContent = 'Save failed: ' + e.message;
+    status.className = 'save-status error';
+    toast('Config save failed', 'error');
+  }
+}
+
+// ── Control Actions ───────────────────────────────────────────────────────────
+async function controlAction(action) {
+  const labels = { stop: '⏹ Stop All broadcast', dream: '💤 Deep Dream triggered', 'war-room': '⚠️ War Room activated' };
+  try {
+    const r = await fetch(`/api/v1/control/${action}`, { method: 'POST' });
+    const d = await r.json();
+    toast(labels[action] || d.status, action === 'stop' ? 'error' : 'success');
+  } catch(e) {
+    toast('Action failed — is the Oracle running?', 'error');
+  }
+}
+
+// ── Workers ───────────────────────────────────────────────────────────────────
+async function loadWorkers() {
+  try {
+    const r = await fetch('/api/v1/swarm/workers');
+    const workers = await r.json();
+    document.getElementById('stat-workers').textContent = workers.length;
+    renderWorkers(workers);
+  } catch(e) {
+    document.getElementById('stat-workers').textContent = '—';
+  }
+}
+
+function statusBadge(w) {
+  if (!w.status) return '<span class="badge badge-muted">Unknown</span>';
+  const s = typeof w.status === 'string' ? w.status : Object.keys(w.status)[0];
+  const map = {Active:'green',Idle:'blue',Spawning:'orange',Completed:'muted',Failed:'red',ShuttingDown:'muted'};
+  return `<span class="badge badge-${map[s]||'muted'}">${s}</span>`;
+}
+
+function renderWorkers(workers) {
+  const grid = document.getElementById('worker-grid');
+  if (!workers || workers.length === 0) {
+    grid.innerHTML = '<div class="worker-empty"><div class="icon">🐝</div>No active workers. Launch a swarm below.</div>';
+    return;
+  }
+  grid.innerHTML = workers.map(w => {
+    const s = typeof w.status === 'string' ? w.status.toLowerCase() : Object.keys(w.status)[0].toLowerCase();
+    return `
+    <div class="worker-card status-${s}">
+      <div class="worker-header">
+        <div>
+          <div class="worker-name">${escHtml(w.name||w.id)}</div>
+          <div class="worker-role">${escHtml(w.role||'worker')}</div>
+        </div>
+        ${statusBadge(w)}
+      </div>
+      <div class="worker-detail">
+        strategy: ${w.spawn_type||'—'}<br>
+        ${w.worktree_path ? 'worktree: ' + w.worktree_path + '<br>' : ''}
+        ${w.branch_name ? 'branch: ' + w.branch_name + '<br>' : ''}
+        started: ${w.created_at ? new Date(w.created_at).toLocaleTimeString() : '—'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Swarm Launch ──────────────────────────────────────────────────────────────
+async function launchSwarm() {
+  const mission = document.getElementById('swarm-mission').value.trim();
+  if (!mission) { toast('Mission is required', 'error'); return; }
+  const teamName = document.getElementById('swarm-teamname').value.trim();
+  const strategy = document.getElementById('swarm-strategy').value;
+  const maxWorkers = parseInt(document.getElementById('swarm-workers').value);
+  const repos = document.getElementById('swarm-repos').value.split('\n').map(s=>s.trim()).filter(Boolean);
+
+  const payload = {
+    mission,
+    team_config: {
+      team_name: teamName || `team-${Date.now().toString(36)}`,
+      max_workers: maxWorkers,
+      spawn_strategy: strategy,
+      merge_strategy: 'LeadReview',
+      worker_mode: 'default',
+      worker_model: null,
+      timeout_seconds: 600,
+      remote_hosts: [],
+      linked_repositories: repos,
+    }
+  };
+
+  const status = document.getElementById('swarm-status');
+  status.textContent = 'Launching…'; status.className = 'save-status';
+  try {
+    const r = await fetch('/api/v1/swarm/launch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    status.textContent = `✓ ${d.status}: "${d.mission}"`;
+    status.className = 'save-status success';
+    toast(`Swarm "${d.team}" launched ✓`, 'success');
+    document.getElementById('swarm-mission').value = '';
+    setTimeout(loadWorkers, 1500);
+  } catch(e) {
+    status.textContent = 'Launch failed: ' + e.message;
+    status.className = 'save-status error';
+    toast('Swarm launch failed', 'error');
+  }
+}
+
+// ── Memory Search ─────────────────────────────────────────────────────────────
+let memoryTimer;
+async function searchMemory() {
+  const q = document.getElementById('memory-query').value.trim();
+  if (!q) return;
+  const results = document.getElementById('memory-results');
+  results.innerHTML = '<div class="memory-empty">Searching…</div>';
+  try {
+    const r = await fetch(`/query?q=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    if (!data || data.length === 0) {
+      results.innerHTML = '<div class="memory-empty">No results found for "' + escHtml(q) + '"</div>';
+      return;
+    }
+    results.innerHTML = data.map(item => `
+      <div class="memory-item">
+        <div class="memory-path">📄 ${escHtml(item.path || '—')}</div>
+        <div class="memory-content">${escHtml((item.content||'').slice(0,400))}${item.content&&item.content.length>400?'…':''}</div>
+      </div>`).join('');
+  } catch(e) {
+    results.innerHTML = '<div class="memory-empty">Memory search failed — is the Oracle running?</div>';
+  }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type='success') {
+  const container = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type==='success'?'✓':'✕'}</span><span>${escHtml(msg)}</span>`;
+  container.appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(100%)'; el.style.transition='all 0.3s'; setTimeout(()=>el.remove(), 300); }, 3000);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 name: Compile Report
 
-# TEMPORARY (removed before merge).
+# TEMPORARY (removed before merge). Resolves the newest opendal and keeps it
+# only if the tree builds and tests.
 on:
   workflow_dispatch:
   push:
@@ -12,36 +13,39 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
 
 jobs:
   report:
-    name: advisories
+    name: opendal bump probe
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
       - uses: ./.github/actions/setup-rust
-      - name: Install audit tools
-        run: |
-          cargo binstall cargo-deny --no-confirm --force
-          cargo binstall cargo-audit --no-confirm --force
-      - name: Run checks
+      - name: Probe
         shell: bash
         run: |
           mkdir -p .diagnostics
           set +e
-          cargo deny check advisories > .diagnostics/deny.log 2>&1
-          echo "deny=$?" | tee .diagnostics/rc.txt
-          cargo audit > .diagnostics/audit.log 2>&1
-          echo "audit=$?" | tee -a .diagnostics/rc.txt
+          cargo search opendal --limit 3 > .diagnostics/search.log 2>&1
+          sed -i 's/^opendal = { version = "[0-9.]*"/opendal = { version = "*"/' Cargo.toml
+          grep '^opendal' Cargo.toml >> .diagnostics/search.log
+          cargo update -p opendal > .diagnostics/update.log 2>&1
+          echo "update=$?" | tee .diagnostics/rc.txt
+          grep -A1 'name = "opendal"' Cargo.lock | head -3 >> .diagnostics/update.log
+          cargo check --all-targets --all-features > .diagnostics/check.log 2>&1
+          echo "check=$?" | tee -a .diagnostics/rc.txt
+          cargo test --all-features > .diagnostics/test.log 2>&1
+          echo "test=$?" | tee -a .diagnostics/rc.txt
       - name: Publish
         if: always()
         shell: bash
         run: |
           git config user.name "Diagnostics Bot"
           git config user.email "diagnostics@example.invalid"
-          git add -f .diagnostics
-          git commit -m "chore(diagnostics): advisory status" || exit 0
+          git add -A
+          git commit -m "chore(diagnostics): opendal bump probe" || exit 0
           git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
           git push origin "HEAD:${GITHUB_REF_NAME}"

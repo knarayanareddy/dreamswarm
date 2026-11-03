@@ -16,6 +16,6 @@ jobs:
           python3 - <<'PY'
           import base64, gzip, pathlib
           data = base64.b64encode(gzip.compress(pathlib.Path('Cargo.lock').read_bytes(), mtime=0)).decode()
-          for i in range(0, len(data), 3000):
-              print(f'::notice::LOCKCHUNK{i//3000:03d}:{data[i:i+3000]}')
+          for i in range(0, len(data), 12000):
+              print(f'::notice::LOCKCHUNK{i//12000:03d}:{data[i:i+12000]}')
           PY

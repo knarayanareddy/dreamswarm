@@ -27,7 +27,7 @@ impl Mailbox {
             let _ = std::fs::create_dir_all(rd);
         }
 
-        let lock_path = inboxes_dir.parent().unwrap().join("mailbox.lock");
+        let lock_path = Self::lock_path(&base_dir, team_name)?;
         Ok(Self {
             inboxes_dir,
             lock_path,
@@ -67,6 +67,12 @@ impl Mailbox {
         }
 
         Ok(())
+    }
+
+    fn lock_path(base_dir: &Path, team_name: &str) -> anyhow::Result<PathBuf> {
+        let locks = base_dir.join("teams").join(".mailbox-locks");
+        std::fs::create_dir_all(&locks)?;
+        Ok(locks.join(format!("{}.lock", Self::sanitize(team_name))))
     }
 
     // Keep the lock file separate from the data file: clear and team cleanup may
@@ -226,11 +232,18 @@ impl Mailbox {
             .join("teams")
             .join(Self::sanitize(team_name))
             .join("inboxes");
-        let team_dir = inboxes_dir.parent().unwrap();
-        std::fs::create_dir_all(team_dir)?;
-        let _lock = Self::lock(&team_dir.join("mailbox.lock"))?;
+        let _lock = Self::lock(&Self::lock_path(&base_dir, team_name)?)?;
         if inboxes_dir.exists() {
             std::fs::remove_dir_all(&inboxes_dir)?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn cleanup_team_directory(base_dir: &Path, team_name: &str) -> anyhow::Result<()> {
+        let _lock = Self::lock(&Self::lock_path(base_dir, team_name)?)?;
+        let team_dir = base_dir.join("teams").join(Self::sanitize(team_name));
+        if team_dir.exists() {
+            std::fs::remove_dir_all(team_dir)?;
         }
         Ok(())
     }

@@ -52,8 +52,7 @@ pub async fn cleanup_all_teams() {
         let default_state = dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join(".dreamswarm");
-        cleanup_team_directory(default_state.clone(), team_name);
-        let _ = Mailbox::cleanup_team(default_state, team_name);
+        let _ = Mailbox::cleanup_team_directory(&default_state, team_name);
     }
 }
 
@@ -90,13 +89,6 @@ async fn cleanup_team_worktrees(_team_name: &str) {
     }
 }
 
-fn cleanup_team_directory(base_dir: PathBuf, team_name: &str) {
-    let team_dir = base_dir.join("teams").join(team_name);
-    if team_dir.exists() {
-        let _ = std::fs::remove_dir_all(&team_dir);
-    }
-}
-
 pub fn list_active_teams() -> Vec<String> {
     let teams_dir = dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
@@ -110,7 +102,7 @@ pub fn list_active_teams() -> Vec<String> {
         .map(|entries| {
             entries
                 .filter_map(|e| e.ok())
-                .filter(|e| e.path().is_dir())
+                .filter(|e| e.path().is_dir() && e.file_name() != ".mailbox-locks")
                 .filter_map(|e| e.file_name().into_string().ok())
                 .collect()
         })

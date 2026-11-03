@@ -112,7 +112,7 @@ enum ApiAction {
     /// Start The Oracle API server and open the web dashboard
     Start {
         /// Port to listen on
-        #[arg(short, long, default_value = "8080")]
+        #[arg(short = 'P', long, default_value = "8080")]
         port: u16,
     },
 }

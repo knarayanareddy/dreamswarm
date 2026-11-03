@@ -43,7 +43,7 @@ impl Tool for FileWriteTool {
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
         let path = input["path"].as_str().unwrap_or_default();
         let content = input["content"].as_str().unwrap_or_default();
-        match tokio::fs::write(path, content).await {
+        match tokio::fs::write(super::workspace::resolve(path), content).await {
             Ok(_) => Ok(ToolOutput {
                 content: "File written successfully".to_string(),
                 is_error: false,

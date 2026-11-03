@@ -125,8 +125,12 @@ dreamswarm daemon start
 DreamSwarm exposes a local REST API (default port `8080`). The dashboard is served at
 `http://localhost:8080/`; other clients must send the bearer token printed at startup.
 The API rejects non-local Host headers and cross-origin requests. Keep the token private. After a daemon crash, a stale `~/.dreamswarm/daemon/control.json` may need to be removed manually after confirming no daemon is running.
-The default in-process workers execute tasks through the agent runtime. They share
-one working directory and are not a sandbox; use isolation for untrusted work.
+The default in-process workers execute tasks through the agent runtime. The coordinator
+currently assigns them the same working directory. Callers using the executor directly
+can assign separate directories; relative file and subprocess operations use each
+worker's configured directory without changing the process-wide directory. This is
+not a filesystem sandbox: absolute paths and shell commands can access other locations.
+Use OS-level isolation for untrusted work.
 Non-interactive workers deny operations requiring approval unless an explicit
 permission mode or rule permits them.
 

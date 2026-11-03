@@ -10,6 +10,9 @@ pub async fn output(command: &mut Command) -> std::io::Result<Output> {
         .kill_on_drop(true)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    if let Some(working_dir) = super::workspace::working_dir() {
+        command.current_dir(working_dir);
+    }
     #[cfg(unix)]
     command.process_group(0);
     let child = command.spawn()?;

@@ -20,6 +20,7 @@ pub mod python_tool;
 pub mod rust_debug;
 pub mod swarm_tools;
 pub mod synthesis;
+pub(crate) mod workspace;
 
 #[derive(Debug, Clone)]
 pub struct ToolCall {

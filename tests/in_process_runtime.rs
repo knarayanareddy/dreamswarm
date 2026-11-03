@@ -80,10 +80,12 @@ async fn worker_applies_approved_file_edit() {
         }
     }
     let tmp = tempfile::tempdir().unwrap();
-    let output = tmp.path().join("result.txt");
+    let project = tmp.path().join("project");
+    std::fs::create_dir(&project).unwrap();
+    let output = project.join("result.txt");
     let fake = Fake {
         calls: Arc::new(AtomicUsize::new(0)),
-        path: output.to_string_lossy().into_owned(),
+        path: "result.txt".into(),
     };
     let app = Router::new()
         .route("/v1/messages", post(complete))
@@ -109,10 +111,7 @@ async fn worker_applies_approved_file_edit() {
         instructions: "Implement the task".into(),
         model: None,
         permission_mode: "accept-edits".into(),
-        working_dir: std::env::current_dir()
-            .unwrap()
-            .to_string_lossy()
-            .into_owned(),
+        working_dir: project.to_string_lossy().into_owned(),
         state_dir: tmp.path().to_path_buf(),
         remote_host: None,
     };

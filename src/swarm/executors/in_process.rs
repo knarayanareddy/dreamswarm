@@ -87,11 +87,11 @@ impl TeammateExecutor for InProcessExecutor {
         if let Some(model) = &config.model {
             app_config.model = model.clone();
         }
-        // Process-wide current directory cannot safely be changed by a worker.
-        if std::fs::canonicalize(&app_config.working_dir)?
-            != std::fs::canonicalize(std::env::current_dir()?)?
-        {
-            anyhow::bail!("In-process workers require the process working directory; use an isolated executor for another directory");
+        // Never change the process-wide current directory. Tools receive this
+        // worker's directory through task-local context instead.
+        app_config.working_dir = std::fs::canonicalize(&app_config.working_dir)?;
+        if !app_config.working_dir.is_dir() {
+            anyhow::bail!("Worker working directory is not a directory");
         }
         let worker_instructions = config.instructions.clone();
         let join_handle = tokio::spawn(async move {
@@ -219,7 +219,11 @@ async fn run_task(
         "Worker instructions: {}\n\nAssigned task: {}",
         role, instructions
     );
-    let result = runtime.run_turn(&prompt, |_, _| async { false }).await?;
+    let result = crate::tools::workspace::scope(
+        config.working_dir.clone(),
+        runtime.run_turn(&prompt, |_, _| async { false }),
+    )
+    .await?;
     match result.stop_reason {
         StopReason::EndTurn => Ok(result.final_text),
         _ => anyhow::bail!("Worker stopped before finishing the task"),

@@ -86,7 +86,7 @@ impl HealingManager {
 
         let branch = format!(
             "heal/{}",
-            chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string()
+            chrono::Utc::now().format("%Y%m%d-%H%M%S")
         );
         let worktree = self
             .state_dir

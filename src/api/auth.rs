@@ -88,29 +88,31 @@ impl ApiSecurity {
         method: &Method,
         uri: &axum::http::Uri,
         headers: &HeaderMap,
-    ) -> Result<(), Response> {
+    ) -> Result<(), Box<Response>> {
         if !self.host_allowed(headers) || !self.origin_allowed(headers) {
-            return Err((
-                StatusCode::FORBIDDEN,
-                "Forbidden: request origin is not allowed",
-            )
-                .into_response());
+            return Err(Box::new(
+                (StatusCode::FORBIDDEN, "Forbidden: request origin is not allowed").into_response(),
+            ));
         }
         if uri.path() != TELEMETRY_STREAM_PATH || *method != Method::GET {
-            return Err((
-                StatusCode::FORBIDDEN,
-                "Forbidden: query-token authentication is limited to the telemetry stream",
-            )
-                .into_response());
+            return Err(Box::new(
+                (
+                    StatusCode::FORBIDDEN,
+                    "Forbidden: query-token authentication is limited to the telemetry stream",
+                )
+                    .into_response(),
+            ));
         }
         if self.token_matches(headers) || self.query_token_matches(uri) {
             Ok(())
         } else {
-            Err((
-                StatusCode::UNAUTHORIZED,
-                "Unauthorized: missing or invalid API token",
-            )
-                .into_response())
+            Err(Box::new(
+                (
+                    StatusCode::UNAUTHORIZED,
+                    "Unauthorized: missing or invalid API token",
+                )
+                    .into_response(),
+            ))
         }
     }
 
@@ -125,34 +127,31 @@ impl ApiSecurity {
         }
     }
 
-    pub fn authorize(&self, method: &Method, headers: &HeaderMap) -> Result<(), Response> {
+    pub fn authorize(&self, method: &Method, headers: &HeaderMap) -> Result<(), Box<Response>> {
         if !self.host_allowed(headers) {
-            return Err((
-                StatusCode::FORBIDDEN,
-                "Forbidden: Host header is not allowed",
-            )
-                .into_response());
+            return Err(Box::new(
+                (StatusCode::FORBIDDEN, "Forbidden: Host header is not allowed").into_response(),
+            ));
         }
         if !self.origin_allowed(headers) {
-            return Err((
-                StatusCode::FORBIDDEN,
-                "Forbidden: cross-origin request blocked",
-            )
-                .into_response());
+            return Err(Box::new(
+                (StatusCode::FORBIDDEN, "Forbidden: cross-origin request blocked").into_response(),
+            ));
         }
         if !self.token_matches(headers) {
-            return Err((
-                StatusCode::UNAUTHORIZED,
-                "Unauthorized: missing or invalid API token",
-            )
-                .into_response());
+            return Err(Box::new(
+                (StatusCode::UNAUTHORIZED, "Unauthorized: missing or invalid API token")
+                    .into_response(),
+            ));
         }
         if !is_safe_method(method) && !self.has_custom_header(headers) {
-            return Err((
-                StatusCode::FORBIDDEN,
-                "Forbidden: state-changing request must send the token header",
-            )
-                .into_response());
+            return Err(Box::new(
+                (
+                    StatusCode::FORBIDDEN,
+                    "Forbidden: state-changing request must send the token header",
+                )
+                    .into_response(),
+            ));
         }
         Ok(())
     }
@@ -206,15 +205,12 @@ pub async fn require_auth(
     };
     match outcome {
         Ok(()) => next.run(request).await,
-        Err(response) => response,
+        Err(response) => *response,
     }
 }
 
 fn is_safe_method(method: &Method) -> bool {
-    matches!(
-        *method,
-        Method::GET | Method::HEAD | Method::OPTIONS
-    )
+    matches!(*method, Method::GET | Method::HEAD | Method::OPTIONS)
 }
 
 fn add_host_variants(hosts: &mut HashSet<String>, host: &str, port: u16) {

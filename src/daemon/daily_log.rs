@@ -197,7 +197,7 @@ impl DailyLog {
                 .to_string();
             all.extend(self.read_date(&date)?);
         }
-        all.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+        all.sort_by_key(|entry| entry.timestamp);
         Ok(all)
     }
 }

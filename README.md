@@ -126,7 +126,31 @@ DreamSwarm exposes a REST API (default `127.0.0.1:8080`) for monitoring and cont
 - **GET `/api/v1/telemetry/stream`**: Real-time SSE stream of swarm activity.
 - **GET `/api/v1/config`**: Read configuration (secrets redacted to `*_configured` flags).
 - **POST `/api/v1/control/war-room`**: Initiate high-intensity stress diagnostics.
-- **POST `/api/v1/control/stop`**: Emergency broadcast to stop all active swarms.
+- **POST `/api/v1/control/stop`**: Emergency stop. Shuts down **every** registered team and reports what stopped and what did not.
+- **GET `/api/v1/swarm/workers`**: Every worker across all teams, each tagged with its `team`.
+- **POST `/api/v1/swarm/launch`**: Launch a team. Names must be lowercase letters, digits, `-` or `_`.
+- **POST `/api/v1/swarm/stop`**: Stop one team (`{"team": "alpha"}`), or every team when the body is empty.
+
+### Teams and emergency stop
+
+A process can run several teams at once. Each is registered under its name in a
+`TeamRegistry`, so it can be addressed individually without holding a lock
+across an `await`.
+
+Emergency stop is reachable three ways — `POST /api/v1/control/stop`, the
+dashboard's **Stop Swarm** button, and Ctrl-C — and all three go through the
+same path: every team is shut down, worker panes and worktrees are released
+(including for workers that already reported `Completed`), inboxes are swept,
+and each team's `state.json` is kept and marked `Completed` so the swarm stays
+inspectable.
+
+Two behaviours worth knowing:
+
+- The stop is **latched**. A team launch that arrives after an emergency stop is
+  refused rather than quietly resurrecting the swarm.
+- A partial shutdown returns an error naming the stranded teams. The call does
+  not stop at the first failure, because stopping as much as possible matters
+  more than stopping cleanly.
 
 ### Authentication
 

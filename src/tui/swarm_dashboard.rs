@@ -605,7 +605,7 @@ fn render_registry_view(f: &mut ratatui::Frame, app: &SwarmApp) {
             ]
             .as_ref(),
         )
-        .split(f.size());
+        .split(f.area());
 
     // ── 1. Swarm Vitals (Header) ──────────────────────────────────────────────
     let worker_count = app.state.as_ref().map_or(0, |s| s.workers.len());
@@ -880,7 +880,7 @@ fn render_memory_view(f: &mut ratatui::Frame, app: &SwarmApp) {
             ]
             .as_ref(),
         )
-        .split(f.size());
+        .split(f.area());
 
     // Reuse vitals for consistency
     render_vitals(f, app, root[0]);
@@ -1103,7 +1103,7 @@ fn render_global_view(f: &mut ratatui::Frame, app: &SwarmApp) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
-        .split(f.size());
+        .split(f.area());
 
     let header = Paragraph::new(" 🛸 GLOBAL OVERLORD: INTER-SWARM RELAY ")
         .block(Block::default().borders(Borders::ALL))

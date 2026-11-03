@@ -1,4 +1,0 @@
-update=0
-check=101
-test=101
-deny=101

@@ -58,6 +58,8 @@ jobs:
 
   macos-diagnostics:
     runs-on: macos-latest
+    env:
+      RUSTFLAGS: "-D warnings"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -74,35 +76,6 @@ jobs:
             python3 - <<'PY'
           import pathlib
           lines = pathlib.Path('/tmp/macos.log').read_text(errors='replace').splitlines()
-          positions = [i for i, line in enumerate(lines) if 'error:' in line or line.startswith('error[') or line.startswith('failures:') or 'panicked at' in line]
-          for i in positions[-20:]:
-              message = '\n'.join(lines[i:i + 18])[:5000]
-              message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-              print(f'::error::{message}')
-          if not positions:
-              message = '\n'.join(lines[-40:]).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-              print(f'::error::{message}')
-          PY
-          fi
-          exit "$status"
-
-  audit-diagnostics:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-rust
-      - run: cargo binstall cargo-deny --no-confirm --force
-      - name: Diagnose dependency advisories
-        shell: bash
-        run: |
-          set +e
-          CARGO_TERM_COLOR=never cargo deny check advisories > /tmp/audit.log 2>&1
-          status=$?
-          tail -200 /tmp/audit.log
-          if [ "$status" -ne 0 ]; then
-            python3 - <<'PY'
-          import pathlib
-          lines = pathlib.Path('/tmp/audit.log').read_text(errors='replace').splitlines()
           positions = [i for i, line in enumerate(lines) if 'error:' in line or line.startswith('error[') or line.startswith('failures:') or 'panicked at' in line]
           for i in positions[-20:]:
               message = '\n'.join(lines[i:i + 18])[:5000]

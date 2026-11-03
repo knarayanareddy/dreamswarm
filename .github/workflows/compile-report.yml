@@ -1,0 +1,47 @@
+name: Compile Report
+
+# TEMPORARY (removed before merge). Reproduces the Dockerfile's musl release
+# build on a plain runner and publishes the compiler output.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/compile-report.yml'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  report:
+    name: musl build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: ./.github/actions/setup-rust
+        with:
+          targets: x86_64-unknown-linux-musl
+      - name: Install musl deps
+        run: sudo apt-get update && sudo apt-get install -y musl-tools pkg-config perl make
+      - name: Build
+        shell: bash
+        run: |
+          mkdir -p .diagnostics
+          set +e
+          cargo build --release --target x86_64-unknown-linux-musl > .diagnostics/musl.log 2>&1
+          echo "build=$?" | tee .diagnostics/rc.txt
+          tail -40 .diagnostics/musl.log
+      - name: Publish
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "Diagnostics Bot"
+          git config user.email "diagnostics@example.invalid"
+          git add -f .diagnostics
+          git commit -m "chore(diagnostics): musl build log" || exit 0
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}"

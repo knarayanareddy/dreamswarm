@@ -32,3 +32,26 @@ jobs:
           PY
           fi
           exit "$status"
+
+      - name: Run clippy with readable diagnostics
+        shell: bash
+        run: |
+          set +e
+          CARGO_TERM_COLOR=never cargo clippy --locked --all-targets --all-features -- -D warnings > /tmp/clippy.log 2>&1
+          status=$?
+          tail -200 /tmp/clippy.log
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PY'
+          import pathlib
+          lines = pathlib.Path('/tmp/clippy.log').read_text(errors='replace').splitlines()
+          positions = [i for i, line in enumerate(lines) if 'error:' in line or line.startswith('error[') or line.startswith('failures:') or 'panicked at' in line]
+          for i in positions[-20:]:
+              message = '\n'.join(lines[i:i + 18])[:5000]
+              message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          if not positions:
+              message = '\n'.join(lines[-40:]).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          PY
+          fi
+          exit "$status"

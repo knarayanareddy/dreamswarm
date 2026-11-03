@@ -23,7 +23,11 @@ async fn origin_auth_launch_and_cross_process_stop() {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     drop(listener);
-    let mut daemon = start(tmp.path(), "daemon", &["--provider", "mock", "daemon", "run"]);
+    let mut daemon = start(
+        tmp.path(),
+        "daemon",
+        &["--provider", "mock", "daemon", "run"],
+    );
     let mut api = start(
         tmp.path(),
         "api",

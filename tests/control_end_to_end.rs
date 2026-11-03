@@ -28,6 +28,28 @@ async fn origin_auth_launch_and_cross_process_stop() {
         "daemon",
         &["--provider", "mock", "daemon", "run"],
     );
+    // The two processes share the state database. Let the daemon finish its
+    // initial schema setup before starting the separate API process.
+    tokio::time::timeout(Duration::from_secs(30), async {
+        loop {
+            let ready = std::fs::read(tmp.path().join(".dreamswarm/daemon/control.json"))
+                .ok()
+                .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+                .is_some();
+            if ready {
+                break;
+            }
+            if let Some(status) = daemon.try_wait().unwrap() {
+                panic!(
+                    "daemon exited during startup: {status}; stderr: {}",
+                    std::fs::read_to_string(tmp.path().join("daemon.err")).unwrap_or_default()
+                );
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await
+    .expect("daemon did not start");
     let mut api = start(
         tmp.path(),
         "api",

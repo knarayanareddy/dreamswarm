@@ -1,7 +1,7 @@
 name: Compile Report
 
-# TEMPORARY diagnostic workflow (removed before merge). Captures `cargo test`
-# output and publishes it back to the branch for reading via the API.
+# TEMPORARY diagnostic workflow (removed before merge). Runs rustfmt and the
+# tests on the runner, then publishes the formatted tree + logs to the branch.
 on:
   workflow_dispatch:
   push:
@@ -19,7 +19,7 @@ env:
 
 jobs:
   report:
-    name: test diagnostics
+    name: fmt + test diagnostics
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,14 +27,22 @@ jobs:
           ref: ${{ github.ref_name }}
 
       - uses: ./.github/actions/setup-rust
+        with:
+          toolchain: nightly
+          components: rustfmt
 
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y tmux ripgrep
+      - name: Format
+        shell: bash
+        run: |
+          cargo +nightly fmt --all
+          mkdir -p .diagnostics
+          set +e
+          cargo +nightly fmt --all -- --check > .diagnostics/fmt.log 2>&1
+          echo "fmt=$?" | tee .diagnostics/rc.txt
 
       - name: Run tests
         shell: bash
         run: |
-          mkdir -p .diagnostics
           set +e
           cargo test --all-features > .diagnostics/test.log 2>&1
           echo "test=$?" | tee -a .diagnostics/rc.txt
@@ -45,7 +53,8 @@ jobs:
         run: |
           git config user.name "Diagnostics Bot"
           git config user.email "diagnostics@example.invalid"
+          git add -A
           git add -f .diagnostics
-          git commit -m "chore(diagnostics): test log" || exit 0
+          git commit -m "chore(diagnostics): fmt + test results" || exit 0
           git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
           git push origin "HEAD:${GITHUB_REF_NAME}"

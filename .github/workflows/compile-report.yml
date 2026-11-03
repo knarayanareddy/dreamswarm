@@ -1,0 +1,52 @@
+name: Compile Report
+
+# TEMPORARY diagnostic workflow (removed before merge). Captures the macOS test
+# log and publishes it to the branch for reading via the API.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/compile-report.yml'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: "-D warnings"
+  MSRV: "1.88.0"
+
+jobs:
+  report:
+    name: macos test diagnostics
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: ./.github/actions/setup-rust
+
+      - name: Install system dependencies
+        run: brew install tmux ripgrep
+
+      - name: Run tests
+        shell: bash
+        run: |
+          mkdir -p .diagnostics
+          set +e
+          cargo test --all-features > .diagnostics/macos-test.log 2>&1
+          echo "test=$?" | tee -a .diagnostics/rc.txt
+          grep -E "^(test result|failures:)" .diagnostics/macos-test.log | head -20
+
+      - name: Publish results
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "Diagnostics Bot"
+          git config user.email "diagnostics@example.invalid"
+          git add -f .diagnostics
+          git commit -m "chore(diagnostics): macos test log" || exit 0
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}"

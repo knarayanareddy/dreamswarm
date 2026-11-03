@@ -53,6 +53,7 @@ fastembed = { version = "5.13.0", features = ["ort-download-binaries-rustls-tls"
 ort = { version = "=2.0.0-rc.11", features = ["load-dynamic", "download-binaries", "copy-dylibs", "ndarray", "tls-rustls"] }
 ndarray = "0.17.2"
 futures = "0.3.32"
+fs2 = "0.4"
 tokio-stream = { version = "0.1.18", features = ["sync"] }
 r2d2 = "0.8.10"
 r2d2_sqlite = "0.24.0"

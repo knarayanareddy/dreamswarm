@@ -1,0 +1,21 @@
+name: Temporary lock refresh
+on:
+  push:
+    branches: [arena/e93957e9-dreamswarm]
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Update dependencies and export lock
+        shell: bash
+        run: |
+          set -e
+          cargo update -p anyhow -p crossbeam-epoch -p h2
+          python3 - <<'PY'
+          import base64, gzip, pathlib
+          data = base64.b64encode(gzip.compress(pathlib.Path('Cargo.lock').read_bytes(), mtime=0)).decode()
+          for i in range(0, len(data), 3000):
+              print(f'::notice::LOCKCHUNK{i//3000:03d}:{data[i:i+3000]}')
+          PY

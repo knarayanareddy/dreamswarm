@@ -27,35 +27,15 @@ jobs:
       - name: Emit log slice 1
         if: always()
         shell: bash
-        run: python3 .github/scripts/annotate.py check.log 10 15
+        run: python3 .github/scripts/annotate.py check.log 0 15
       - name: Emit log slice 2
         if: always()
         shell: bash
-        run: python3 .github/scripts/annotate.py check.log 25 15
+        run: python3 .github/scripts/annotate.py check.log 15 15
       - name: Emit log slice 3
         if: always()
         shell: bash
-        run: python3 .github/scripts/annotate.py check.log 40 15
-      - name: Emit log slice 4
-        if: always()
-        shell: bash
-        run: python3 .github/scripts/annotate.py check.log 55 15
-      - name: Emit log slice 5
-        if: always()
-        shell: bash
-        run: python3 .github/scripts/annotate.py check.log 70 15
-      - name: Emit log slice 6
-        if: always()
-        shell: bash
-        run: python3 .github/scripts/annotate.py check.log 85 15
-      - name: Emit log slice 7
-        if: always()
-        shell: bash
-        run: python3 .github/scripts/annotate.py check.log 100 15
-      - name: Emit log slice 8
-        if: always()
-        shell: bash
-        run: python3 .github/scripts/annotate.py check.log 115 15
+        run: python3 .github/scripts/annotate.py check.log 30 15
       - name: Fail if check failed
         shell: bash
         run: exit $(cat rc.txt)

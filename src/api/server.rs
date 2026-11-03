@@ -280,7 +280,11 @@ async fn emergency_stop(state: &ApiState, origin: &str) -> serde_json::Value {
     } else {
         // Report failure explicitly: the operator must not read a partial
         // shutdown as a clean one.
-        tracing::error!("Emergency stop ({}) incomplete: {:?}", origin, report.failed);
+        tracing::error!(
+            "Emergency stop ({}) incomplete: {:?}",
+            origin,
+            report.failed
+        );
         serde_json::json!({
             "error": "emergency stop was incomplete",
             "stopped": report.stopped,
@@ -681,8 +685,7 @@ mod tests {
                 spawn_strategy: SpawnStrategy::InProcess,
                 ..Default::default()
             };
-            let coordinator =
-                SwarmCoordinator::new(config, ".", dir.path().to_path_buf()).unwrap();
+            let coordinator = SwarmCoordinator::new(config, ".", dir.path().to_path_buf()).unwrap();
             teams
                 .register(coordinator, dir.path().to_path_buf())
                 .await

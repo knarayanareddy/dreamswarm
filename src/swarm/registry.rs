@@ -254,7 +254,10 @@ mod tests {
         let second = registry
             .register(coordinator("alpha", dir.path()), dir.path().to_path_buf())
             .await;
-        assert!(second.is_err(), "replacing a live team would orphan workers");
+        assert!(
+            second.is_err(),
+            "replacing a live team would orphan workers"
+        );
     }
 
     #[tokio::test]

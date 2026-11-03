@@ -245,7 +245,7 @@ impl HealingManager {
         Ok(result.stdout.trim().to_string())
     }
 
-    async fn is_git_repo(&self, dir: &Path) -> bool {
+    async fn is_git_repo(dir: &Path) -> bool {
         matches!(
             self.run(dir, "git", &["rev-parse", "--is-inside-work-tree"]).await,
             Ok(result) if result.success

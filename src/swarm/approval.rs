@@ -72,7 +72,7 @@ pub async fn enqueue_approval_request(
     input: &serde_json::Value,
 ) -> anyhow::Result<bool> {
     let request_id = uuid::Uuid::new_v4().to_string();
-    let mut mbox = mailbox.write().await;
+    let mbox = mailbox.write().await;
     mbox.send(
         "lead",
         MessageContent::ApprovalRequest {
@@ -96,7 +96,7 @@ pub async fn request_human_approval(
     let summary = summarize(tool, input);
 
     {
-        let mut mbox = mailbox.write().await;
+        let mbox = mailbox.write().await;
         if mbox
             .send(
                 "lead",
@@ -201,7 +201,7 @@ mod tests {
             let mailbox = mailbox.clone();
             tokio::spawn(async move {
                 tokio::time::sleep(Duration::from_millis(100)).await;
-                let mut mbox = mailbox.write().await;
+                let mbox = mailbox.write().await;
                 mbox.send(
                     &worker_id,
                     MessageContent::ApprovalResponse {
@@ -237,7 +237,7 @@ mod tests {
             let mailbox = mailbox.clone();
             tokio::spawn(async move {
                 tokio::time::sleep(Duration::from_millis(100)).await;
-                let mut mbox = mailbox.write().await;
+                let mbox = mailbox.write().await;
                 mbox.send(
                     &worker_id,
                     MessageContent::ApprovalResponse {

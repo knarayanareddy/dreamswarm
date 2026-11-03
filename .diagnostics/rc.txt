@@ -1,2 +1,3 @@
-deny=1
-audit=1
+update=0
+check=101
+test=101

@@ -1,0 +1,4 @@
+[1m[92m    Updating[0m crates.io index
+[1m[92m     Locking[0m 0 packages to highest compatible versions
+[1m[92mnote[0m: pass `--verbose` to see 17 unchanged dependencies behind latest
+version = "0.42.0"

@@ -69,7 +69,7 @@ async fn worker_applies_approved_file_edit() {
         path: String,
     }
     async fn complete(State(fake): State<Fake>, Json(_): Json<Value>) -> Json<Value> {
-        if fake.calls.fetch_add(1, Ordering::SeqCst) == 0 {
+        if fake.calls.fetch_add(1, Ordering::SeqCst) % 2 == 0 {
             Json(
                 json!({"content":[{"type":"tool_use","id":"write-1","name":"FileWrite","input":{"path":fake.path,"content":"written by worker"}}],"usage":{"input_tokens":1,"output_tokens":1},"stop_reason":"tool_use"}),
             )
@@ -138,7 +138,38 @@ async fn worker_applies_approved_file_edit() {
         std::fs::read_to_string(output).unwrap(),
         "written by worker"
     );
+    let second_project = tmp.path().join("other-project");
+    std::fs::create_dir(&second_project).unwrap();
+    let mut second_config = config.clone();
+    second_config.id = "editor-2".into();
+    second_config.working_dir = second_project.to_string_lossy().into_owned();
+    let second_worker = executor.spawn(&second_config).await.unwrap();
+    lead.send_task_assignment(&second_worker.id, "second-edit", "Create the result file")
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(20), async {
+        loop {
+            let messages = lead.receive().unwrap();
+            if messages.iter().any(|message| matches!(&message.content, MessageContent::TaskResult { task_id, .. } if task_id == "second-edit")) {
+                break;
+            }
+            for message in messages {
+                if let MessageContent::TaskFailed { error, .. } = message.content {
+                    panic!("second worker failed: {error}");
+                }
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    }).await.expect("second worker did not finish");
+    assert_eq!(
+        std::fs::read_to_string(second_project.join("result.txt")).unwrap(),
+        "written by worker"
+    );
+    assert_eq!(
+        std::fs::read_to_string(project.join("result.txt")).unwrap(),
+        "written by worker"
+    );
     executor.force_kill(&worker).await.unwrap();
+    executor.force_kill(&second_worker).await.unwrap();
     server.abort();
 }
 

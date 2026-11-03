@@ -1,6 +1,17 @@
+[1m[33mwarning[0m[1m: `package.homepage` is redundant with `package.repository`[0m
+ [1m[94m--> [0mCargo.toml:8:12
+  [1m[94m|[0m
+[1m[94m7[0m [1m[94m|[0m repository = "https://github.com/knarayanareddy/dreamswarm"
+  [1m[94m|[0m              [1m[94m----------------------------------------------[0m
+[1m[94m8[0m [1m[94m|[0m homepage = "https://github.com/knarayanareddy/dreamswarm"
+  [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [1m[94m|[0m
+  [1m[94m= [0m[1mnote[0m: `cargo::redundant_homepage` is set to `warn` by default
+[1m[96mhelp[0m: consider removing `package.homepage`
+[1m[33mwarning[0m: `dreamswarm` (manifest) generated 1 warning
 [1m[92m   Compiling[0m proc-macro2 v1.0.106
-[1m[92m   Compiling[0m unicode-ident v1.0.24
 [1m[92m   Compiling[0m quote v1.0.45
+[1m[92m   Compiling[0m unicode-ident v1.0.24
 [1m[92m   Compiling[0m cfg-if v1.0.4
 [1m[92m   Compiling[0m libc v0.2.184
 [1m[92m   Compiling[0m find-msvc-tools v0.1.9
@@ -32,45 +43,45 @@
 [1m[92m   Compiling[0m futures-channel v0.3.32
 [1m[92m   Compiling[0m socket2 v0.6.3
 [1m[92m   Compiling[0m mio v1.2.0
-[1m[92m   Compiling[0m futures-io v0.3.32
 [1m[92m   Compiling[0m futures-task v0.3.32
 [1m[92m   Compiling[0m slab v0.4.12
+[1m[92m   Compiling[0m futures-io v0.3.32
 [1m[92m   Compiling[0m http v1.4.0
 [1m[92m   Compiling[0m tracing-core v0.1.36
 [1m[92m   Compiling[0m vcpkg v0.2.15
 [1m[92m   Compiling[0m either v1.15.0
 [1m[92m   Compiling[0m http-body v1.0.1
 [1m[92m   Compiling[0m ring v0.17.14
-[1m[92m   Compiling[0m equivalent v1.0.2
-[1m[92m   Compiling[0m allocator-api2 v0.2.21
 [1m[92m   Compiling[0m version_check v0.9.5
+[1m[92m   Compiling[0m serde v1.0.228
+[1m[92m   Compiling[0m allocator-api2 v0.2.21
 [1m[92m   Compiling[0m tokio-macros v2.7.0
 [1m[92m   Compiling[0m futures-macro v0.3.32
 [1m[92m   Compiling[0m tracing-attributes v0.1.31
-[1m[92m   Compiling[0m serde v1.0.228
+[1m[92m   Compiling[0m equivalent v1.0.2
+[1m[92m   Compiling[0m serde_derive v1.0.228
 [1m[92m   Compiling[0m tokio v1.51.0
 [1m[92m   Compiling[0m futures-util v0.3.32
 [1m[92m   Compiling[0m tracing v0.1.44
-[1m[92m   Compiling[0m serde_derive v1.0.228
 [1m[92m   Compiling[0m rustls-pki-types v1.14.0
-[1m[92m   Compiling[0m subtle v2.6.1
 [1m[92m   Compiling[0m percent-encoding v2.3.2
+[1m[92m   Compiling[0m subtle v2.6.1
 [1m[92m   Compiling[0m ryu v1.0.23
 [1m[92m   Compiling[0m num-integer v0.1.46
-[1m[92m   Compiling[0m untrusted v0.9.0
 [1m[92m   Compiling[0m stable_deref_trait v1.2.1
+[1m[92m   Compiling[0m untrusted v0.9.0
 [1m[92m   Compiling[0m http-body-util v0.1.3
-[1m[92m   Compiling[0m bitflags v2.11.0
 [1m[92m   Compiling[0m foldhash v0.1.5
 [1m[92m   Compiling[0m openssl-probe v0.2.1
+[1m[92m   Compiling[0m bitflags v2.11.0
 [1m[92m   Compiling[0m hashbrown v0.15.5
 [1m[92m   Compiling[0m synstructure v0.13.2
 [1m[92m   Compiling[0m cmake v0.1.58
-[1m[92m   Compiling[0m dunce v1.0.5
 [1m[92m   Compiling[0m fs_extra v1.3.0
+[1m[92m   Compiling[0m base64 v0.22.1
+[1m[92m   Compiling[0m dunce v1.0.5
 [1m[92m   Compiling[0m foldhash v0.2.0
 [1m[92m   Compiling[0m zerocopy v0.8.48
-[1m[92m   Compiling[0m base64 v0.22.1
 [1m[92m   Compiling[0m hashbrown v0.16.1
 [1m[92m   Compiling[0m aws-lc-sys v0.39.1
 [1m[92m   Compiling[0m zerocopy-derive v0.8.48
@@ -78,100 +89,100 @@
 [1m[92m   Compiling[0m getrandom v0.2.17
 [1m[92m   Compiling[0m zerofrom v0.1.7
 [1m[92m   Compiling[0m indexmap v2.13.1
-[1m[92m   Compiling[0m yoke-derive v0.8.2
 [1m[92m   Compiling[0m tokio-util v0.7.18
+[1m[92m   Compiling[0m yoke-derive v0.8.2
 [1m[92m   Compiling[0m webpki-roots v1.0.6
 [1m[92m   Compiling[0m tower-service v0.3.3
 [1m[92m   Compiling[0m aws-lc-rs v1.16.2
-[1m[92m   Compiling[0m yoke v0.8.2
 [1m[92m   Compiling[0m httparse v1.10.1
 [1m[92m   Compiling[0m zerovec-derive v0.11.3
+[1m[92m   Compiling[0m yoke v0.8.2
 [1m[92m   Compiling[0m powerfmt v0.2.0
-[1m[92m   Compiling[0m atomic-waker v1.1.2
 [1m[92m   Compiling[0m foreign-types-shared v0.1.1
+[1m[92m   Compiling[0m atomic-waker v1.1.2
 [1m[92m   Compiling[0m typenum v1.19.0
-[1m[92m   Compiling[0m try-lock v0.2.5
 [1m[92m   Compiling[0m httpdate v1.0.3
-[1m[92m   Compiling[0m want v0.3.1
-[1m[92m   Compiling[0m zerovec v0.11.6
-[1m[92m   Compiling[0m foreign-types v0.3.2
+[1m[92m   Compiling[0m try-lock v0.2.5
 [1m[92m   Compiling[0m h2 v0.4.13
+[1m[92m   Compiling[0m want v0.3.1
+[1m[92m   Compiling[0m foreign-types v0.3.2
 [1m[92m   Compiling[0m deranged v0.5.8
+[1m[92m   Compiling[0m zerovec v0.11.6
 [1m[92m   Compiling[0m generic-array v0.14.7
 [1m[92m   Compiling[0m displaydoc v0.2.5
 [1m[92m   Compiling[0m openssl-macros v0.1.1
 [1m[92m   Compiling[0m http v0.2.12
-[1m[92m   Compiling[0m tower-layer v0.3.3
-[1m[92m   Compiling[0m rustls v0.23.37
-[1m[92m   Compiling[0m outref v0.5.2
 [1m[92m   Compiling[0m getrandom v0.3.4
-[1m[92m   Compiling[0m crossbeam-utils v0.8.21
 [1m[92m   Compiling[0m vsimd v0.8.0
 [1m[92m   Compiling[0m num-conv v0.2.1
+[1m[92m   Compiling[0m crossbeam-utils v0.8.21
+[1m[92m   Compiling[0m outref v0.5.2
+[1m[92m   Compiling[0m rustls v0.23.37
 [1m[92m   Compiling[0m time-core v0.1.8
+[1m[92m   Compiling[0m tower-layer v0.3.3
 [1m[92m   Compiling[0m time v0.3.47
 [1m[92m   Compiling[0m base64-simd v0.8.0
 [1m[92m   Compiling[0m hyper v1.9.0
 [1m[92m   Compiling[0m http-body v0.4.6
 [1m[92m   Compiling[0m bytes-utils v0.1.4
 [1m[92m   Compiling[0m sync_wrapper v1.0.2
-[1m[92m   Compiling[0m pin-utils v0.1.0
 [1m[92m   Compiling[0m ipnet v2.12.0
+[1m[92m   Compiling[0m pin-utils v0.1.0
 [1m[92m   Compiling[0m aws-smithy-types v1.4.7
 [1m[92m   Compiling[0m hyper-util v0.1.20
 [1m[92m   Compiling[0m form_urlencoded v1.2.2
 [1m[92m   Compiling[0m openssl-src v300.5.5+3.5.5
-[1m[92m   Compiling[0m tower v0.5.3
 [1m[92m   Compiling[0m openssl-sys v0.9.112
+[1m[92m   Compiling[0m tower v0.5.3
 [1m[92m   Compiling[0m tinystr v0.8.3
-[1m[92m   Compiling[0m litemap v0.8.2
 [1m[92m   Compiling[0m writeable v0.6.3
+[1m[92m   Compiling[0m litemap v0.8.2
 [1m[92m   Compiling[0m icu_locale_core v2.2.0
-[1m[92m   Compiling[0m block-buffer v0.10.4
 [1m[92m   Compiling[0m crypto-common v0.1.7
+[1m[92m   Compiling[0m block-buffer v0.10.4
 [1m[92m   Compiling[0m zerotrie v0.2.4
 [1m[92m   Compiling[0m potential_utf v0.1.5
-[1m[92m   Compiling[0m rustls-native-certs v0.8.3
 [1m[92m   Compiling[0m aws-smithy-async v1.2.14
-[1m[92m   Compiling[0m semver v1.0.28
-[1m[92m   Compiling[0m icu_properties_data v2.2.0
-[1m[92m   Compiling[0m const-oid v0.9.6
+[1m[92m   Compiling[0m rustls-native-certs v0.8.3
 [1m[92m   Compiling[0m icu_normalizer_data v2.2.0
 [1m[92m   Compiling[0m utf8_iter v1.0.4
+[1m[92m   Compiling[0m icu_properties_data v2.2.0
+[1m[92m   Compiling[0m semver v1.0.28
+[1m[92m   Compiling[0m const-oid v0.9.6
+[1m[92m   Compiling[0m rustc_version v0.4.1
 [1m[92m   Compiling[0m digest v0.10.7
 [1m[92m   Compiling[0m icu_collections v2.2.0
-[1m[92m   Compiling[0m rustc_version v0.4.1
 [1m[92m   Compiling[0m aws-smithy-runtime-api v1.11.6
 [1m[92m   Compiling[0m icu_provider v2.2.0
 [1m[92m   Compiling[0m crossbeam-epoch v0.9.18
 [1m[92m   Compiling[0m ahash v0.8.12
-[1m[92m   Compiling[0m rayon-core v1.13.0
-[1m[92m   Compiling[0m getrandom v0.4.2
-[1m[92m   Compiling[0m rand_core v0.10.0
 [1m[92m   Compiling[0m rustversion v1.0.22
+[1m[92m   Compiling[0m rand_core v0.10.0
 [1m[92m   Compiling[0m zmij v1.0.21
+[1m[92m   Compiling[0m getrandom v0.4.2
+[1m[92m   Compiling[0m rayon-core v1.13.0
 [1m[92m   Compiling[0m crossbeam-deque v0.8.6
 [1m[92m   Compiling[0m openssl v0.10.76
-[1m[92m   Compiling[0m serde_json v1.0.149
 [1m[92m   Compiling[0m simd-adler32 v0.3.9
-[1m[92m   Compiling[0m icu_normalizer v2.2.0
+[1m[92m   Compiling[0m serde_json v1.0.149
 [1m[92m   Compiling[0m icu_properties v2.2.0
+[1m[92m   Compiling[0m icu_normalizer v2.2.0
+[1m[92m   Compiling[0m cpufeatures v0.3.0
+[1m[92m   Compiling[0m native-tls v0.2.18
 [1m[92m   Compiling[0m cpufeatures v0.2.17
 [1m[92m   Compiling[0m crunchy v0.2.4
-[1m[92m   Compiling[0m byteorder v1.5.0
-[1m[92m   Compiling[0m native-tls v0.2.18
 [1m[92m   Compiling[0m strsim v0.11.1
-[1m[92m   Compiling[0m cpufeatures v0.3.0
+[1m[92m   Compiling[0m byteorder v1.5.0
 [1m[92m   Compiling[0m anyhow v1.0.102
 [1m[92m   Compiling[0m chacha20 v0.10.0
 [1m[92m   Compiling[0m idna_adapter v1.2.1
 [1m[92m   Compiling[0m ppv-lite86 v0.2.21
 [1m[92m   Compiling[0m equator-macro v0.4.2
-[1m[92m   Compiling[0m paste v1.0.15
 [1m[92m   Compiling[0m adler2 v2.0.1
-[1m[92m   Compiling[0m crc32fast v1.5.0
 [1m[92m   Compiling[0m mime v0.3.17
+[1m[92m   Compiling[0m crc32fast v1.5.0
 [1m[92m   Compiling[0m thiserror v2.0.18
+[1m[92m   Compiling[0m paste v1.0.15
 [1m[92m   Compiling[0m tiny-keccak v2.0.2
 [1m[92m   Compiling[0m fastrand v2.4.1
 [1m[92m   Compiling[0m miniz_oxide v0.8.9
@@ -182,9 +193,9 @@
 [1m[92m   Compiling[0m rayon v1.11.0
 [1m[92m   Compiling[0m hmac v0.12.1
 [1m[92m   Compiling[0m thiserror-impl v2.0.18
-[1m[92m   Compiling[0m base64ct v1.8.3
 [1m[92m   Compiling[0m hex v0.4.3
 [1m[92m   Compiling[0m ident_case v1.0.1
+[1m[92m   Compiling[0m base64ct v1.8.3
 [1m[92m   Compiling[0m darling_core v0.20.11
 [1m[92m   Compiling[0m pem-rfc7468 v1.0.0
 [1m[92m   Compiling[0m rustls-webpki v0.103.12
@@ -192,32 +203,32 @@
 [1m[92m   Compiling[0m url v2.5.8
 [1m[92m   Compiling[0m aligned-vec v0.6.4
 [1m[92m   Compiling[0m hashbrown v0.14.5
-[1m[92m   Compiling[0m aws-credential-types v1.2.14
 [1m[92m   Compiling[0m aws-smithy-http v0.63.6
+[1m[92m   Compiling[0m aws-credential-types v1.2.14
 [1m[92m   Compiling[0m aws-types v1.3.14
 [1m[92m   Compiling[0m num-bigint v0.4.6
 [1m[92m   Compiling[0m arrayvec v0.7.6
-[1m[92m   Compiling[0m num-rational v0.4.2
 [1m[92m   Compiling[0m ureq-proto v0.6.0
+[1m[92m   Compiling[0m num-rational v0.4.2
 [1m[92m   Compiling[0m flate2 v1.1.9
 [1m[92m   Compiling[0m v_frame v0.3.9
 [1m[92m   Compiling[0m const-random-macro v0.1.16
-[1m[92m   Compiling[0m der v0.8.0
 [1m[92m   Compiling[0m darling_macro v0.20.11
+[1m[92m   Compiling[0m der v0.8.0
 [1m[92m   Compiling[0m socks v0.3.4
 [1m[92m   Compiling[0m aws-smithy-observability v0.2.6
 [1m[92m   Compiling[0m serde_urlencoded v0.7.1
 [1m[92m   Compiling[0m as-slice v0.2.1
 [1m[92m   Compiling[0m webpki-root-certs v1.0.6
 [1m[92m   Compiling[0m itertools v0.14.0
-[1m[92m   Compiling[0m iri-string v0.7.12
-[1m[92m   Compiling[0m av-scenechange v0.14.1
-[1m[92m   Compiling[0m utf8-zero v0.8.1
-[1m[92m   Compiling[0m option-ext v0.2.0
 [1m[92m   Compiling[0m built v0.8.0
+[1m[92m   Compiling[0m av-scenechange v0.14.1
+[1m[92m   Compiling[0m iri-string v0.7.12
+[1m[92m   Compiling[0m option-ext v0.2.0
+[1m[92m   Compiling[0m utf8-zero v0.8.1
 [1m[92m   Compiling[0m ureq v3.3.0
-[1m[92m   Compiling[0m rav1e v0.8.1
 [1m[92m   Compiling[0m tower-http v0.6.8
+[1m[92m   Compiling[0m rav1e v0.8.1
 [1m[92m   Compiling[0m aligned v0.4.3
 [1m[92m   Compiling[0m darling v0.20.11
 [1m[92m   Compiling[0m const-random v0.1.18
@@ -228,19 +239,19 @@
 [1m[92m   Compiling[0m arg_enum_proc_macro v0.3.4
 [1m[92m   Compiling[0m onig_sys v69.9.1
 [1m[92m   Compiling[0m matrixmultiply v0.3.10
-[1m[92m   Compiling[0m core2 v0.4.0
 [1m[92m   Compiling[0m nom v8.0.0
+[1m[92m   Compiling[0m core2 v0.4.0
 [1m[92m   Compiling[0m encoding_rs v0.8.35
-[1m[92m   Compiling[0m y4m v0.8.0
 [1m[92m   Compiling[0m lzma-rust2 v0.15.7
-[1m[92m   Compiling[0m unicode-segmentation v1.13.2
-[1m[92m   Compiling[0m heck v0.5.0
-[1m[92m   Compiling[0m hmac-sha256 v1.1.14
-[1m[92m   Compiling[0m pastey v0.1.1
+[1m[92m   Compiling[0m y4m v0.8.0
 [1m[92m   Compiling[0m portable-atomic v1.13.1
+[1m[92m   Compiling[0m unicode-segmentation v1.13.2
+[1m[92m   Compiling[0m pastey v0.1.1
+[1m[92m   Compiling[0m hmac-sha256 v1.1.14
+[1m[92m   Compiling[0m signal-hook v0.3.18
 [1m[92m   Compiling[0m static_assertions v1.1.0
 [1m[92m   Compiling[0m quick-error v2.0.1
-[1m[92m   Compiling[0m signal-hook v0.3.18
+[1m[92m   Compiling[0m heck v0.5.0
 [1m[92m   Compiling[0m ort-sys v2.0.0-rc.11
 [1m[92m   Compiling[0m av1-grain v0.2.5
 [1m[92m   Compiling[0m bitstream-io v4.9.0
@@ -252,35 +263,35 @@
 [1m[92m   Compiling[0m aws-smithy-json v0.62.5
 [1m[92m   Compiling[0m half v2.7.1
 [1m[92m   Compiling[0m rand_core v0.6.4
+[1m[92m   Compiling[0m num-derive v0.4.2
 [1m[92m   Compiling[0m async-trait v0.1.89
 [1m[92m   Compiling[0m fax_derive v0.2.0
-[1m[92m   Compiling[0m num-derive v0.4.2
 [1m[92m   Compiling[0m libsqlite3-sys v0.28.0
 [1m[92m   Compiling[0m mio v0.8.11
 [1m[92m   Compiling[0m aho-corasick v1.1.4
 [1m[92m   Compiling[0m simd_helpers v0.1.0
-[1m[92m   Compiling[0m minimal-lexical v0.2.1
 [1m[92m   Compiling[0m unicode-width v0.2.2
-[1m[92m   Compiling[0m utf8parse v0.2.2
-[1m[92m   Compiling[0m new_debug_unreachable v1.0.6
-[1m[92m   Compiling[0m weezl v0.1.12
-[1m[92m   Compiling[0m regex-syntax v0.8.10
-[1m[92m   Compiling[0m noop_proc_macro v0.3.0
-[1m[92m   Compiling[0m cfg_aliases v0.2.1
-[1m[92m   Compiling[0m zune-core v0.5.1
-[1m[92m   Compiling[0m imgref v1.12.0
+[1m[92m   Compiling[0m rawpointer v0.2.1
 [1m[92m   Compiling[0m unicase v2.9.0
+[1m[92m   Compiling[0m noop_proc_macro v0.3.0
+[1m[92m   Compiling[0m zune-core v0.5.1
+[1m[92m   Compiling[0m minimal-lexical v0.2.1
+[1m[92m   Compiling[0m weezl v0.1.12
+[1m[92m   Compiling[0m utf8parse v0.2.2
+[1m[92m   Compiling[0m imgref v1.12.0
+[1m[92m   Compiling[0m new_debug_unreachable v1.0.6
+[1m[92m   Compiling[0m regex-syntax v0.8.10
+[1m[92m   Compiling[0m cfg_aliases v0.2.1
 [1m[92m   Compiling[0m esaxx-rs v0.1.10
 [1m[92m   Compiling[0m regex-lite v0.1.9
-[1m[92m   Compiling[0m rawpointer v0.2.1
-[1m[92m   Compiling[0m mime_guess v2.0.5
-[1m[92m   Compiling[0m loop9 v0.1.5
-[1m[92m   Compiling[0m zune-jpeg v0.5.15
 [1m[92m   Compiling[0m nix v0.31.2
 [1m[92m   Compiling[0m regex-automata v0.4.14
+[1m[92m   Compiling[0m loop9 v0.1.5
 [1m[92m   Compiling[0m anstyle-parse v1.0.0
-[1m[92m   Compiling[0m console v0.15.11
 [1m[92m   Compiling[0m nom v7.1.3
+[1m[92m   Compiling[0m zune-jpeg v0.5.15
+[1m[92m   Compiling[0m mime_guess v2.0.5
+[1m[92m   Compiling[0m console v0.15.11
 [1m[92m   Compiling[0m fax v0.2.6
 [1m[92m   Compiling[0m rand_chacha v0.3.1
 [1m[92m   Compiling[0m derive_builder_macro v0.20.2
@@ -295,62 +306,62 @@
 [1m[92m   Compiling[0m webpki-roots v0.26.11
 [1m[92m   Compiling[0m monostate-impl v0.1.18
 [1m[92m   Compiling[0m num-complex v0.4.6
-[1m[92m   Compiling[0m rgb v0.8.53
-[1m[92m   Compiling[0m macro_rules_attribute-proc_macro v0.2.2
-[1m[92m   Compiling[0m colorchoice v1.0.5
-[1m[92m   Compiling[0m anstyle v1.0.14
-[1m[92m   Compiling[0m bytemuck v1.25.0
-[1m[92m   Compiling[0m anstyle-query v1.1.5
 [1m[92m   Compiling[0m rustix v1.1.4
-[1m[92m   Compiling[0m lazy_static v1.5.0
-[1m[92m   Compiling[0m iana-time-zone v0.1.65
-[1m[92m   Compiling[0m color_quant v1.1.0
-[1m[92m   Compiling[0m is_terminal_polyfill v1.70.2
-[1m[92m   Compiling[0m urlencoding v2.1.3
-[1m[92m   Compiling[0m bit_field v0.10.3
-[1m[92m   Compiling[0m xmlparser v0.13.6
-[1m[92m   Compiling[0m byteorder-lite v0.1.0
-[1m[92m   Compiling[0m number_prefix v0.4.0
 [1m[92m   Compiling[0m base64 v0.13.1
+[1m[92m   Compiling[0m macro_rules_attribute-proc_macro v0.2.2
 [1m[92m   Compiling[0m lebe v0.5.3
+[1m[92m   Compiling[0m bit_field v0.10.3
+[1m[92m   Compiling[0m is_terminal_polyfill v1.70.2
+[1m[92m   Compiling[0m anstyle v1.0.14
+[1m[92m   Compiling[0m lazy_static v1.5.0
+[1m[92m   Compiling[0m anstyle-query v1.1.5
+[1m[92m   Compiling[0m number_prefix v0.4.0
+[1m[92m   Compiling[0m xmlparser v0.13.6
+[1m[92m   Compiling[0m rgb v0.8.53
+[1m[92m   Compiling[0m colorchoice v1.0.5
 [1m[92m   Compiling[0m pxfm v0.1.28
-[1m[92m   Compiling[0m exr v1.74.0
-[1m[92m   Compiling[0m moxcms v0.8.1
-[1m[92m   Compiling[0m spm_precompiled v0.1.4
-[1m[92m   Compiling[0m indicatif v0.17.11
-[1m[92m   Compiling[0m image-webp v0.2.4
-[1m[92m   Compiling[0m aws-smithy-xml v0.60.15
-[1m[92m   Compiling[0m aws-smithy-query v0.60.15
-[1m[92m   Compiling[0m anstream v1.0.0
-[1m[92m   Compiling[0m gif v0.14.1
-[1m[92m   Compiling[0m chrono v0.4.44
+[1m[92m   Compiling[0m urlencoding v2.1.3
+[1m[92m   Compiling[0m byteorder-lite v0.1.0
+[1m[92m   Compiling[0m color_quant v1.1.0
+[1m[92m   Compiling[0m iana-time-zone v0.1.65
+[1m[92m   Compiling[0m bytemuck v1.25.0
 [1m[92m   Compiling[0m qoi v0.4.1
-[1m[92m   Compiling[0m macro_rules_attribute v0.2.2
+[1m[92m   Compiling[0m chrono v0.4.44
+[1m[92m   Compiling[0m image-webp v0.2.4
+[1m[92m   Compiling[0m gif v0.14.1
+[1m[92m   Compiling[0m aws-smithy-query v0.60.15
+[1m[92m   Compiling[0m moxcms v0.8.1
+[1m[92m   Compiling[0m anstream v1.0.0
 [1m[92m   Compiling[0m ravif v0.13.0
-[1m[92m   Compiling[0m ndarray v0.17.2
 [1m[92m   Compiling[0m tokio-rustls v0.26.4
 [1m[92m   Compiling[0m hyper-rustls v0.27.7
 [1m[92m   Compiling[0m aws-smithy-http-client v1.1.12
+[1m[92m   Compiling[0m aws-smithy-runtime v1.10.3
+[1m[92m   Compiling[0m aws-smithy-xml v0.60.15
+[1m[92m   Compiling[0m indicatif v0.17.11
+[1m[92m   Compiling[0m exr v1.74.0
+[1m[92m   Compiling[0m macro_rules_attribute v0.2.2
+[1m[92m   Compiling[0m spm_precompiled v0.1.4
+[1m[92m   Compiling[0m ndarray v0.17.2
+[1m[92m   Compiling[0m aws-runtime v1.7.2
 [1m[92m   Compiling[0m monostate v0.1.18
 [1m[92m   Compiling[0m png v0.18.1
-[1m[92m   Compiling[0m aws-smithy-runtime v1.10.3
 [1m[92m   Compiling[0m dirs v6.0.0
 [1m[92m   Compiling[0m signal-hook-mio v0.2.5
 [1m[92m   Compiling[0m rust-ini v0.21.3
 [1m[92m   Compiling[0m derive_builder v0.20.2
 [1m[92m   Compiling[0m rand v0.8.5
 [1m[92m   Compiling[0m tiff v0.11.3
-[1m[92m   Compiling[0m aws-runtime v1.7.2
 [1m[92m   Compiling[0m regex v1.12.3
 [1m[92m   Compiling[0m onig v6.5.1
-[1m[92m   Compiling[0m compact_str v0.9.0
 [1m[92m   Compiling[0m strum_macros v0.26.4
+[1m[92m   Compiling[0m compact_str v0.9.0
 [1m[92m   Compiling[0m rayon-cond v0.4.0
 [1m[92m   Compiling[0m hashlink v0.9.1
-[1m[92m   Compiling[0m quick-xml v0.37.5
-[1m[92m   Compiling[0m toml_datetime v0.6.11
-[1m[92m   Compiling[0m serde_spanned v0.6.9
 [1m[92m   Compiling[0m dary_heap v0.3.8
+[1m[92m   Compiling[0m toml_datetime v0.6.11
+[1m[92m   Compiling[0m quick-xml v0.37.5
+[1m[92m   Compiling[0m serde_spanned v0.6.9
 [1m[92m   Compiling[0m futures-executor v0.3.32
 [1m[92m   Compiling[0m itertools v0.13.0
 [1m[92m   Compiling[0m scheduled-thread-pool v0.2.7
@@ -359,35 +370,35 @@
 [1m[92m   Compiling[0m libloading v0.9.0
 [1m[92m   Compiling[0m unicode-width v0.1.14
 [1m[92m   Compiling[0m clap_lex v1.1.0
-[1m[92m   Compiling[0m bitflags v1.3.2
 [1m[92m   Compiling[0m winnow v0.7.15
-[1m[92m   Compiling[0m fallible-streaming-iterator v0.1.9
+[1m[92m   Compiling[0m same-file v1.0.6
 [1m[92m   Compiling[0m unicode_categories v0.1.1
 [1m[92m   Compiling[0m fallible-iterator v0.3.0
-[1m[92m   Compiling[0m home v0.5.12
 [1m[92m   Compiling[0m toml_write v0.1.2
-[1m[92m   Compiling[0m same-file v1.0.6
+[1m[92m   Compiling[0m fallible-streaming-iterator v0.1.9
+[1m[92m   Compiling[0m home v0.5.12
+[1m[92m   Compiling[0m bitflags v1.3.2
 [1m[92m   Compiling[0m linux-raw-sys v0.12.1
-[1m[92m   Compiling[0m walkdir v2.5.0
+[1m[92m   Compiling[0m inotify v0.9.6
 [1m[92m   Compiling[0m rusqlite v0.31.0
 [1m[92m   Compiling[0m toml_edit v0.22.27
 [1m[92m   Compiling[0m tokenizers v0.22.2
+[1m[92m   Compiling[0m walkdir v2.5.0
 [1m[92m   Compiling[0m clap_builder v4.6.0
-[1m[92m   Compiling[0m inotify v0.9.6
 [1m[92m   Compiling[0m unicode-truncate v1.1.0
 [1m[92m   Compiling[0m ort v2.0.0-rc.11
 [1m[92m   Compiling[0m r2d2 v0.8.10
-[1m[92m   Compiling[0m strum v0.26.3
 [1m[92m   Compiling[0m futures v0.3.32
-[1m[92m   Compiling[0m aws-sdk-ssooidc v1.99.0
-[1m[92m   Compiling[0m aws-sdk-sts v1.101.0
-[1m[92m   Compiling[0m aws-sdk-sso v1.97.0
+[1m[92m   Compiling[0m strum v0.26.3
 [1m[92m   Compiling[0m image v0.25.10
 [1m[92m   Compiling[0m crossterm v0.27.0
+[1m[92m   Compiling[0m aws-sdk-ssooidc v1.99.0
+[1m[92m   Compiling[0m aws-sdk-sso v1.97.0
+[1m[92m   Compiling[0m aws-sdk-sts v1.101.0
 [1m[92m   Compiling[0m sharded-slab v0.1.7
 [1m[92m   Compiling[0m axum-core v0.4.5
-[1m[92m   Compiling[0m compact_str v0.7.1
 [1m[92m   Compiling[0m clap_derive v4.6.0
+[1m[92m   Compiling[0m compact_str v0.7.1
 [1m[92m   Compiling[0m dirs-sys v0.4.1
 [1m[92m   Compiling[0m backon v1.6.0
 [1m[92m   Compiling[0m safetensors v0.7.0
@@ -395,25 +406,25 @@
 [1m[92m   Compiling[0m crossbeam-channel v0.5.15
 [1m[92m   Compiling[0m lru v0.12.5
 [1m[92m   Compiling[0m quick-xml v0.36.2
-[1m[92m   Compiling[0m axum-macros v0.4.2
 [1m[92m   Compiling[0m stability v0.2.1
+[1m[92m   Compiling[0m axum-macros v0.4.2
 [1m[92m   Compiling[0m itertools v0.12.1
 [1m[92m   Compiling[0m tracing-log v0.2.0
 [1m[92m   Compiling[0m serde_path_to_error v0.1.20
 [1m[92m   Compiling[0m filetime v0.2.27
 [1m[92m   Compiling[0m thread_local v1.1.9
-[1m[92m   Compiling[0m nu-ansi-term v0.50.3
 [1m[92m   Compiling[0m cassowary v0.3.0
 [1m[92m   Compiling[0m matchit v0.7.3
+[1m[92m   Compiling[0m nu-ansi-term v0.50.3
 [1m[92m   Compiling[0m flagset v0.4.7
 [1m[92m   Compiling[0m http-range-header v0.4.2
+[1m[92m   Compiling[0m tracing-subscriber v0.3.23
 [1m[92m   Compiling[0m tower-http v0.5.2
 [1m[92m   Compiling[0m axum v0.7.9
 [1m[92m   Compiling[0m ratatui v0.26.3
-[1m[92m   Compiling[0m tracing-subscriber v0.3.23
 [1m[92m   Compiling[0m notify v6.1.1
-[1m[92m   Compiling[0m clap v4.6.0
 [1m[92m   Compiling[0m dirs v5.0.1
+[1m[92m   Compiling[0m clap v4.6.0
 [1m[92m   Compiling[0m aws-config v1.8.15
 [1m[92m   Compiling[0m ctrlc v3.5.2
 [1m[92m   Compiling[0m r2d2_sqlite v0.24.0
@@ -425,61 +436,79 @@
 [1m[92m   Compiling[0m ureq v2.12.1
 [1m[92m   Compiling[0m hyper-tls v0.6.0
 [1m[92m   Compiling[0m reqwest v0.12.28
-[1m[92m   Compiling[0m hf-hub v0.4.3
 [1m[92m   Compiling[0m reqsign v0.16.5
+[1m[92m   Compiling[0m hf-hub v0.4.3
 [1m[92m   Compiling[0m fastembed v5.13.0
 [1m[92m   Compiling[0m opendal v0.50.2
 [1m[92m   Compiling[0m dreamswarm v0.1.0 (/home/runner/work/dreamswarm/dreamswarm)
-[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 2m 18s
-[1m[92m     Running[0m unittests src/lib.rs (target/debug/deps/dreamswarm-2042ece00bb0b0d2)
+[1m[33mwarning[0m[1m: unused dependency `aws-config`[0m
+  [1m[94m--> [0mCargo.toml:23:1
+   [1m[94m|[0m
+[1m[94m23[0m [1m[94m|[0m aws-config = "1.1"
+   [1m[94m|[0m [1m[33m^^^^^^^^^^[0m
+   [1m[94m|[0m
+   [1m[94m= [0m[1mnote[0m: `cargo::unused_dependencies` is set to `warn` by default
+[1m[96mhelp[0m: consider removing the dependency on `aws-config`
+[1m[33mwarning[0m[1m: unused dependency `tempfile`[0m
+  [1m[94m--> [0mCargo.toml:48:1
+   [1m[94m|[0m
+[1m[94m48[0m [1m[94m|[0m tempfile = "3.10"
+   [1m[94m|[0m [1m[33m^^^^^^^^[0m
+   [1m[94m|[0m
+[1m[96mhelp[0m: consider removing the dependency on `tempfile`
+[1m[96mhelp[0m: to still use for development builds, move to `dev-dependencies`
+[1m[33mwarning[0m: `dreamswarm` (manifest) generated 2 warnings
+[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 2m 33s
+[1m[92m     Running[0m unittests src/lib.rs (target/debug/build/dreamswarm/2f1a11346a1437f6/out/dreamswarm-2f1a11346a1437f6)
 
-running 89 tests
+running 90 tests
 test api::auth::tests::constant_time_comparison_detects_difference ... ok
 test api::auth::tests::generated_tokens_are_unique_and_long ... ok
+test api::auth::tests::accepts_same_origin_get_with_token ... ok
 test api::auth::tests::mutating_request_requires_token_header ... ok
 test api::auth::tests::rejects_dns_rebinding_host ... ok
-test api::auth::tests::accepts_same_origin_get_with_token ... ok
 test api::auth::tests::rejects_missing_host ... ok
 test api::auth::tests::rejects_hostile_origin ... ok
-test api::auth::tests::rejects_missing_or_wrong_token ... ok
 test api::auth::tests::stream_token_must_be_scoped_to_the_stream_route ... ok
+test api::auth::tests::rejects_missing_or_wrong_token ... ok
+test api::server::tests::config_response_redacts_api_keys ... ok
 test api::server::tests::mission_validation_rejects_empty_and_oversized_input ... ok
 test api::server::tests::worker_roles_are_capped_by_max_workers ... ok
-test api::server::tests::config_response_redacts_api_keys ... ok
 test dream::planner::tests::rejects_unsafe_memory_paths ... ok
 test dream::planner::tests::safe_operations_survive_validation ... ok
 test dream::planner::tests::topic_traversal_is_rejected ... ok
 test dream::planner::tests::traversal_through_operation_fields_is_dropped ... ok
-test memory::topics::tests::absolute_paths_outside_the_store_are_rejected ... ok
 test memory::topics::tests::append_rejects_traversal_outside_the_store ... ok
+test memory::topics::tests::absolute_paths_outside_the_store_are_rejected ... ok
 test memory::topics::tests::delete_rejects_traversal_outside_the_store ... ok
-test daemon::healing::tests::non_git_directory_is_not_healed ... ok
+test memory::topics::tests::append_truncates_multibyte_content_without_panicking ... ok
 test query::providers::openai::tests::mixed_assistant_message_becomes_one_message ... ok
 test query::providers::openai::tests::plain_text_messages_are_preserved ... ok
 test query::providers::openai::tests::tool_results_follow_the_assistant_message ... ok
 test runtime::permissions::tests::bare_tool_rule_matches_every_call ... ok
-test runtime::permissions::tests::deny_rule_wins_in_bypass_mode ... ok
+test memory::topics::tests::test_temporal_decay ... ok
 test runtime::permissions::tests::exact_command_rule_matches_full_signature ... ok
-test runtime::permissions::tests::glob_metacharacters_are_literal ... ok
+test daemon::healing::tests::non_git_directory_is_not_healed ... ok
 test runtime::permissions::tests::malformed_pattern_never_matches ... ok
+test runtime::permissions::tests::glob_metacharacters_are_literal ... ok
 test runtime::permissions::tests::mode_parsing_accepts_dashboard_values ... ok
+test runtime::permissions::tests::split_compound_ignores_operators_inside_quotes ... ok
+test runtime::permissions::tests::deny_rule_wins_in_bypass_mode ... ok
+test runtime::permissions::tests::test_readonly_mode ... ok
 test runtime::permissions::tests::test_allow_list_permits ... ok
 test runtime::permissions::tests::test_deny_list_blocks ... ok
-test runtime::permissions::tests::test_readonly_mode ... ok
-test memory::topics::tests::append_truncates_multibyte_content_without_panicking ... FAILED
-test runtime::session::tests::mismatched_result_ids_are_detected ... ok
+test runtime::permissions::tests::wildcard_does_not_leak_to_chained_commands ... ok
 test runtime::session::tests::orphaned_tool_use_is_detected ... ok
+test runtime::session::tests::mismatched_result_ids_are_detected ... ok
 test runtime::session::tests::plain_conversations_are_consistent ... ok
-test runtime::permissions::tests::wildcard_does_not_leak_to_chained_commands ... FAILED
-test runtime::session::tests::tool_results_are_grouped_into_one_user_message ... FAILED
-test memory::topics::tests::test_temporal_decay ... FAILED
+test runtime::session::tests::tool_results_are_grouped_into_one_user_message ... ok
 test runtime::transcript::tests::empty_messages_are_skipped ... ok
-test runtime::transcript::tests::orphaned_tool_result_is_dropped ... ok
 test runtime::transcript::tests::mixed_assistant_content_keeps_text_and_tool_use ... ok
+test runtime::transcript::tests::orphaned_tool_result_is_dropped ... ok
 test runtime::transcript::tests::multiple_results_stay_in_one_user_message ... ok
 test runtime::transcript::tests::unanswered_tool_use_gets_a_synthetic_result ... ok
-test swarm::approval::tests::approval_is_granted_when_lead_responds ... ok
 test swarm::approval::tests::denial_response_is_honoured ... ok
+test swarm::approval::tests::approval_is_granted_when_lead_responds ... ok
 test swarm::executors::command::tests::flags_unsafe_tmux_identifiers ... ok
 test swarm::executors::command::tests::joins_arguments_without_trailing_space ... ok
 test swarm::executors::command::tests::neutralizes_command_substitution ... ok
@@ -490,217 +519,107 @@ test swarm::executors::tmux::tests::command_uses_worker_subcommand ... ok
 test swarm::executors::tmux::tests::mission_text_cannot_inject_tmux_commands ... ok
 test swarm::executors::tmux::tests::rejects_unsafe_team_and_role ... ok
 test swarm::file_lock::tests::appends_are_not_lost ... ok
-test swarm::approval::tests::approval_is_denied_when_no_response_arrives ... ok
-test swarm::file_lock::tests::lock_file_is_scoped_to_the_target ... ok
 test swarm::file_lock::tests::atomic_write_leaves_no_temp_files ... ok
-test swarm::file_lock::tests::atomic_write_replaces_contents ... ok
-test swarm::mailbox::tests::receive_marks_messages_read_once ... ok
+test swarm::file_lock::tests::lock_file_is_scoped_to_the_target ... ok
+test swarm::approval::tests::approval_is_denied_when_no_response_arrives ... ok
 test swarm::mailbox::tests::concurrent_sends_are_all_delivered ... ok
 test swarm::mailbox::tests::a_send_during_a_read_is_not_lost ... ok
-test daemon::healing::tests::detached_head_is_reported_not_patched ... ok
+test swarm::file_lock::tests::atomic_write_replaces_contents ... ok
+test swarm::mailbox::tests::receive_marks_messages_read_once ... ok
 test swarm::mailbox::tests::receive_matching_leaves_other_traffic_unread ... ok
-test swarm::task_list::tests::state_directory_is_honoured ... ok
 test swarm::task_list::tests::concurrent_claims_never_duplicate ... ok
-test tools::bash_tool::tests::signature_is_the_whole_command ... ok
-test tools::bash_tool::tests::test_allow_safe_command ... ok
-test tools::bash_tool::tests::test_blocklist_curl_bash ... ok
-test swarm::task_list::tests::one_of_two_claimants_wins ... ok
-test tools::file_read::tests::missing_path_argument_is_an_error ... ok
-test tools::bash_tool::tests::test_blocklist_rem_rf ... ok
+test swarm::task_list::tests::state_directory_is_honoured ... ok
 test swarm::task_list::tests::task_round_trips_atomically ... ok
-test tools::file_read::tests::refuses_environment_files ... ok
+test tools::bash_tool::tests::signature_is_the_whole_command ... ok
+test daemon::healing::tests::detached_head_is_reported_not_patched ... ok
+test tools::bash_tool::tests::test_blocklist_curl_bash ... ok
+test tools::bash_tool::tests::test_blocklist_rem_rf ... ok
+test tools::file_read::tests::missing_path_argument_is_an_error ... ok
 test tools::file_read::tests::reads_file_inside_workspace ... ok
+test tools::file_read::tests::refuses_environment_files ... ok
 test tools::file_read::tests::refuses_traversal_and_absolute_escape ... ok
 test tools::file_write::tests::missing_content_does_not_truncate ... ok
 test tools::file_write::tests::refuses_deny_listed_paths ... ok
-test tools::path_guard::tests::allows_paths_inside_root ... ok
 test tools::file_write::tests::refuses_escape ... ok
-test tools::path_guard::tests::flags_sensitive_paths ... ok
-test tools::path_guard::tests::rejects_empty_path ... ok
-test tools::path_guard::tests::rejects_absolute_outside_root ... ok
+test tools::bash_tool::tests::test_allow_safe_command ... ok
+test tools::path_guard::tests::allows_paths_inside_root ... ok
 test tools::file_write::tests::writes_inside_workspace ... ok
-test tools::path_guard::tests::sanitizes_filenames ... ok
+test tools::path_guard::tests::flags_sensitive_paths ... ok
+test tools::path_guard::tests::rejects_absolute_outside_root ... ok
+test tools::path_guard::tests::rejects_empty_path ... ok
 test tools::path_guard::tests::rejects_parent_traversal ... ok
+test tools::path_guard::tests::sanitizes_filenames ... ok
 test tools::path_guard::tests::rejects_symlink_escape ... ok
+test swarm::task_list::tests::one_of_two_claimants_wins ... ok
 test swarm::task_list::tests::dependency_must_complete_first ... ok
 
-failures:
+test result: ok. 90 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.10s
 
----- memory::topics::tests::append_truncates_multibyte_content_without_panicking stdout ----
-Error: No such file or directory (os error 2)
+[1m[92m     Running[0m unittests src/main.rs (target/debug/build/dreamswarm/a2f451d0991a28e3/out/dreamswarm-a2f451d0991a28e3)
 
-Stack backtrace:
-   0: <anyhow::Error as core::convert::From<core::io::error::Error>>::from
-             at /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anyhow-1.0.102/src/backtrace.rs:10:14
-   1: <core::result::Result<std::path::PathBuf, anyhow::Error> as core::ops::try_trait::FromResidual<core::result::Result<core::convert::Infallible, core::io::error::Error>>>::from_residual
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/result.rs:2193:27
-   2: <dreamswarm::memory::topics::TopicStore>::confined_path
-             at ./src/memory/topics.rs:119:30
-   3: <dreamswarm::memory::topics::TopicStore>::append
-             at ./src/memory/topics.rs:148:25
-   4: dreamswarm::memory::topics::tests::append_truncates_multibyte_content_without_panicking
-             at ./src/memory/topics.rs:352:15
-   5: dreamswarm::memory::topics::tests::append_truncates_multibyte_content_without_panicking::{closure#0}
-             at ./src/memory/topics.rs:348:66
-   6: <dreamswarm::memory::topics::tests::append_truncates_multibyte_content_without_panicking::{closure#0} as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ops/function.rs:250:5
-   7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ops/function.rs:250:5
-   8: test::__rust_begin_short_backtrace::<core::result::Result<(), alloc::string::String>, fn() -> core::result::Result<(), alloc::string::String>>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/test/src/lib.rs:733:18
-   9: test::run_test_in_process::{closure#0}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/test/src/lib.rs:756:74
-  10: <core::panic::unwind_safe::AssertUnwindSafe<test::run_test_in_process::{closure#0}> as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/panic/unwind_safe.rs:275:9
-  11: std::panicking::catch_unwind::do_call::<core::panic::unwind_safe::AssertUnwindSafe<test::run_test_in_process::{closure#0}>, core::result::Result<(), alloc::string::String>>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panicking.rs:576:43
-  12: std::panicking::catch_unwind::<core::result::Result<(), alloc::string::String>, core::panic::unwind_safe::AssertUnwindSafe<test::run_test_in_process::{closure#0}>>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panicking.rs:544:19
-  13: std::panic::catch_unwind::<core::panic::unwind_safe::AssertUnwindSafe<test::run_test_in_process::{closure#0}>, core::result::Result<(), alloc::string::String>>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panic.rs:359:14
-  14: test::run_test_in_process
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/test/src/lib.rs:756:27
-  15: test::run_test::{closure#0}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/test/src/lib.rs:677:43
-  16: test::run_test::{closure#1}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/test/src/lib.rs:707:41
-  17: std::sys::backtrace::__rust_begin_short_backtrace::<test::run_test::{closure#1}, ()>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/sys/backtrace.rs:166:18
-  18: std::thread::lifecycle::spawn_unchecked::<test::run_test::{closure#1}, ()>::{closure#1}::{closure#0}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/thread/lifecycle.rs:70:13
-  19: <core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked<test::run_test::{closure#1}, ()>::{closure#1}::{closure#0}> as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/panic/unwind_safe.rs:275:9
-  20: std::panicking::catch_unwind::do_call::<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked<test::run_test::{closure#1}, ()>::{closure#1}::{closure#0}>, ()>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panicking.rs:576:43
-  21: std::panicking::catch_unwind::<(), core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked<test::run_test::{closure#1}, ()>::{closure#1}::{closure#0}>>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panicking.rs:544:19
-  22: std::panic::catch_unwind::<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked<test::run_test::{closure#1}, ()>::{closure#1}::{closure#0}>, ()>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panic.rs:359:14
-  23: std::thread::lifecycle::spawn_unchecked::<test::run_test::{closure#1}, ()>::{closure#1}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/thread/lifecycle.rs:68:26
-  24: <std::thread::lifecycle::spawn_unchecked<test::run_test::{closure#1}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ops/function.rs:250:5
-  25: <alloc::boxed::Box<dyn core::ops::function::FnOnce<(), Output = ()> + core::marker::Send> as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/alloc/src/boxed.rs:2320:9
-  26: <std::sys::thread::unix::Thread>::new::thread_start
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/sys/thread/unix.rs:123:17
-  27: <unknown>
-  28: <unknown>
+running 0 tests
 
----- runtime::permissions::tests::wildcard_does_not_leak_to_chained_commands stdout ----
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-thread 'runtime::permissions::tests::wildcard_does_not_leak_to_chained_commands' (19910) panicked at src/runtime/permissions.rs:292:9:
-assertion `left == right` failed
-  left: Allow
- right: Ask
-stack backtrace:
-   0: __rustc::rust_begin_unwind
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panicking.rs:679:5
-   1: core::panicking::panic_fmt
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/panicking.rs:80:14
-   2: core::panicking::assert_failed_inner
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/panicking.rs:452:17
-   3: core::panicking::assert_failed::<dreamswarm::runtime::permissions::Permission, dreamswarm::runtime::permissions::Permission>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/panicking.rs:407:5
-   4: dreamswarm::runtime::permissions::tests::wildcard_does_not_leak_to_chained_commands
-             at ./src/runtime/permissions.rs:292:9
-   5: dreamswarm::runtime::permissions::tests::wildcard_does_not_leak_to_chained_commands::{closure#0}
-             at ./src/runtime/permissions.rs:286:52
-   6: <dreamswarm::runtime::permissions::tests::wildcard_does_not_leak_to_chained_commands::{closure#0} as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ops/function.rs:250:5
-   7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ops/function.rs:250:5
-note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+[1m[92m     Running[0m tests/context_compression_test.rs (target/debug/build/dreamswarm/dd75702a6abd1d86/out/context_compression_test-dd75702a6abd1d86)
 
----- runtime::session::tests::tool_results_are_grouped_into_one_user_message stdout ----
+running 3 tests
+test test_cache_tracker_sticky_flags ... ok
+test test_token_counter_estimates ... ok
+test test_micro_compact_trims_large_outputs ... ok
 
-thread 'runtime::session::tests::tool_results_are_grouped_into_one_user_message' (19914) panicked at src/runtime/session.rs:228:9:
-assertion failed: session.tool_pairs_are_consistent()
-stack backtrace:
-   0: __rustc::rust_begin_unwind
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panicking.rs:679:5
-   1: core::panicking::panic_fmt
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/panicking.rs:80:14
-   2: core::panicking::panic
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/panicking.rs:150:5
-   3: dreamswarm::runtime::session::tests::tool_results_are_grouped_into_one_user_message
-             at ./src/runtime/session.rs:228:9
-   4: dreamswarm::runtime::session::tests::tool_results_are_grouped_into_one_user_message::{closure#0}
-             at ./src/runtime/session.rs:211:56
-   5: <dreamswarm::runtime::session::tests::tool_results_are_grouped_into_one_user_message::{closure#0} as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ops/function.rs:250:5
-   6: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ops/function.rs:250:5
-note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
----- memory::topics::tests::test_temporal_decay stdout ----
-Error: No such file or directory (os error 2)
+[1m[92m     Running[0m tests/daemon_integration.rs (target/debug/build/dreamswarm/7721a171a15eac28/out/daemon_integration-7721a171a15eac28)
 
-Stack backtrace:
-   0: <anyhow::Error as core::convert::From<core::io::error::Error>>::from
-             at /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anyhow-1.0.102/src/backtrace.rs:10:14
-   1: <core::result::Result<std::path::PathBuf, anyhow::Error> as core::ops::try_trait::FromResidual<core::result::Result<core::convert::Infallible, core::io::error::Error>>>::from_residual
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/result.rs:2193:27
-   2: <dreamswarm::memory::topics::TopicStore>::confined_path
-             at ./src/memory/topics.rs:119:30
-   3: <dreamswarm::memory::topics::TopicStore>::append
-             at ./src/memory/topics.rs:148:25
-   4: dreamswarm::memory::topics::tests::test_temporal_decay
-             at ./src/memory/topics.rs:269:15
-   5: dreamswarm::memory::topics::tests::test_temporal_decay::{closure#0}
-             at ./src/memory/topics.rs:263:33
-   6: <dreamswarm::memory::topics::tests::test_temporal_decay::{closure#0} as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ops/function.rs:250:5
-   7: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ops/function.rs:250:5
-   8: test::__rust_begin_short_backtrace::<core::result::Result<(), alloc::string::String>, fn() -> core::result::Result<(), alloc::string::String>>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/test/src/lib.rs:733:18
-   9: test::run_test_in_process::{closure#0}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/test/src/lib.rs:756:74
-  10: <core::panic::unwind_safe::AssertUnwindSafe<test::run_test_in_process::{closure#0}> as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/panic/unwind_safe.rs:275:9
-  11: std::panicking::catch_unwind::do_call::<core::panic::unwind_safe::AssertUnwindSafe<test::run_test_in_process::{closure#0}>, core::result::Result<(), alloc::string::String>>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panicking.rs:576:43
-  12: std::panicking::catch_unwind::<core::result::Result<(), alloc::string::String>, core::panic::unwind_safe::AssertUnwindSafe<test::run_test_in_process::{closure#0}>>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panicking.rs:544:19
-  13: std::panic::catch_unwind::<core::panic::unwind_safe::AssertUnwindSafe<test::run_test_in_process::{closure#0}>, core::result::Result<(), alloc::string::String>>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panic.rs:359:14
-  14: test::run_test_in_process
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/test/src/lib.rs:756:27
-  15: test::run_test::{closure#0}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/test/src/lib.rs:677:43
-  16: test::run_test::{closure#1}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/test/src/lib.rs:707:41
-  17: std::sys::backtrace::__rust_begin_short_backtrace::<test::run_test::{closure#1}, ()>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/sys/backtrace.rs:166:18
-  18: std::thread::lifecycle::spawn_unchecked::<test::run_test::{closure#1}, ()>::{closure#1}::{closure#0}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/thread/lifecycle.rs:70:13
-  19: <core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked<test::run_test::{closure#1}, ()>::{closure#1}::{closure#0}> as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/panic/unwind_safe.rs:275:9
-  20: std::panicking::catch_unwind::do_call::<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked<test::run_test::{closure#1}, ()>::{closure#1}::{closure#0}>, ()>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panicking.rs:576:43
-  21: std::panicking::catch_unwind::<(), core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked<test::run_test::{closure#1}, ()>::{closure#1}::{closure#0}>>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panicking.rs:544:19
-  22: std::panic::catch_unwind::<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked<test::run_test::{closure#1}, ()>::{closure#1}::{closure#0}>, ()>
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/panic.rs:359:14
-  23: std::thread::lifecycle::spawn_unchecked::<test::run_test::{closure#1}, ()>::{closure#1}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/thread/lifecycle.rs:68:26
-  24: <std::thread::lifecycle::spawn_unchecked<test::run_test::{closure#1}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ops/function.rs:250:5
-  25: <alloc::boxed::Box<dyn core::ops::function::FnOnce<(), Output = ()> + core::marker::Send> as core::ops::function::FnOnce<()>>::call_once
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/alloc/src/boxed.rs:2320:9
-  26: <std::sys::thread::unix::Thread>::new::thread_start
-             at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/std/src/sys/thread/unix.rs:123:17
-  27: <unknown>
-  28: <unknown>
+running 2 tests
+test test_trust_degradation_and_recovery ... ok
+test test_trust_pause_threshold ... ok
 
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-failures:
-    memory::topics::tests::append_truncates_multibyte_content_without_panicking
-    memory::topics::tests::test_temporal_decay
-    runtime::permissions::tests::wildcard_does_not_leak_to_chained_commands
-    runtime::session::tests::tool_results_are_grouped_into_one_user_message
+[1m[92m     Running[0m tests/dream_integration.rs (target/debug/build/dreamswarm/657430d9749bafaa/out/dream_integration-657430d9749bafaa)
 
-test result: FAILED. 85 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.35s
+running 2 tests
+test test_dream_config_defaults ... ok
+test test_dream_engine_constructs ... ok
 
-[1m[91merror[0m: test failed, to rerun pass `--lib`
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m tests/memory_integration.rs (target/debug/build/dreamswarm/30bfd2255b8d1173/out/memory_integration-30bfd2255b8d1173)
+
+running 2 tests
+test test_full_memory_lifecycle ... ok
+test test_memory_index_capacity_limit ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.35s
+
+[1m[92m     Running[0m tests/ph11_final_test.rs (target/debug/build/dreamswarm/96635a32d59447fe/out/ph11_final_test-96635a32d59447fe)
+
+running 1 test
+test test_multi_repo_orchestration ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[92m     Running[0m tests/swarm_communication.rs (target/debug/build/dreamswarm/2eb7d8cb3d24ad49/out/swarm_communication-2eb7d8cb3d24ad49)
+
+running 3 tests
+test test_stalled_task_detection ... ok
+test test_request_help_and_check_inbox ... ok
+test test_publish_and_search_knowledge ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+[1m[92m     Running[0m tests/swarm_integration.rs (target/debug/build/dreamswarm/71a8512aa6cebe6e/out/swarm_integration-71a8512aa6cebe6e)
+
+running 1 test
+test test_task_list_roundtrip ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m dreamswarm
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

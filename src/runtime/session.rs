@@ -153,7 +153,10 @@ impl Session {
             )
             .collect();
         if blocks.is_empty() {
-            tracing::warn!("Dropped {} tool_result block(s) that answer no pending tool_use", results.len());
+            tracing::warn!(
+                "Dropped {} tool_result block(s) that answer no pending tool_use",
+                results.len()
+            );
             return;
         }
         self.messages.push(Message {

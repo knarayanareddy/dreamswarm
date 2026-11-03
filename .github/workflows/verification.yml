@@ -177,3 +177,20 @@ jobs:
           PY
           fi
           exit "$status"
+
+  windows-process-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Test Windows job cancellation
+        shell: pwsh
+        run: |
+          cargo test --locked --lib cancelling_a_command_kills_job_descendants 2>&1 | Tee-Object -FilePath test.log
+          if ($LASTEXITCODE -ne 0) {
+            $text = (Get-Content test.log -Tail 50) -join "`n"
+            $text = $text.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error::$text"
+            exit $LASTEXITCODE
+          }

@@ -25,7 +25,7 @@ impl S3Relay {
             .access_key_id(access_key)
             .secret_access_key(secret_key);
 
-        let op = Operator::new(builder)?.finish();
+        let op = Operator::new(builder)?;
         Ok(Self { op, local_dir })
     }
 

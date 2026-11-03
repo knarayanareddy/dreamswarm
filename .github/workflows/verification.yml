@@ -150,3 +150,30 @@ jobs:
           for _, version, name in sorted(versions, reverse=True)[:15]:
               print(f'::notice::Rust requirement {version}: {name}')
           PY
+
+  msrv-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.91.1
+      - uses: Swatinem/rust-cache@v2
+      - name: Check minimum Rust toolchain
+        shell: bash
+        run: |
+          set +e
+          CARGO_TERM_COLOR=never cargo check --locked --all-features --all-targets > /tmp/msrv.log 2>&1
+          status=$?
+          tail -100 /tmp/msrv.log
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PY'
+          import pathlib
+          lines = pathlib.Path('/tmp/msrv.log').read_text(errors='replace').splitlines()
+          positions = [i for i, line in enumerate(lines) if line.startswith('error')]
+          for i in positions[-10:] or [max(0, len(lines) - 20)]:
+              message = '\n'.join(lines[i:i + 18])[:3800].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          PY
+          fi
+          exit "$status"

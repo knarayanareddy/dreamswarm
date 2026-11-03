@@ -108,6 +108,8 @@ impl TopicStore {
             anyhow::bail!("Empty topic path");
         }
 
+        // The store may not exist yet; canonicalizing below needs it to.
+        std::fs::create_dir_all(&self.base_dir)?;
         let path = self.base_dir.join(&safe);
         // Catch symlinked parents that point outside the store.
         let mut ancestor = path.as_path();

@@ -122,8 +122,28 @@ impl Session {
         if results.is_empty() {
             return;
         }
-        let blocks = results
+        // Only results that answer the immediately preceding assistant turn may
+        // be recorded. A stray id would leave a `tool_result` with no
+        // `tool_use`, which both providers reject with a 400.
+        let expected = self
+            .messages
+            .last()
+            .map(|message| match &message.content {
+                MessageContent::ToolUse { id, .. } => vec![id.clone()],
+                MessageContent::Mixed(blocks) => blocks
+                    .iter()
+                    .filter_map(|b| match b {
+                        ContentBlock::ToolUse { id, .. } => Some(id.clone()),
+                        _ => None,
+                    })
+                    .collect(),
+                _ => Vec::new(),
+            })
+            .unwrap_or_default();
+
+        let blocks: Vec<ContentBlock> = results
             .iter()
+            .filter(|(tool_use_id, _, _)| expected.iter().any(|id| id == tool_use_id))
             .map(
                 |(tool_use_id, content, is_error)| ContentBlock::ToolResult {
                     tool_use_id: tool_use_id.clone(),
@@ -132,6 +152,10 @@ impl Session {
                 },
             )
             .collect();
+        if blocks.is_empty() {
+            tracing::warn!("Dropped {} tool_result block(s) that answer no pending tool_use", results.len());
+            return;
+        }
         self.messages.push(Message {
             role: Role::User,
             content: MessageContent::Mixed(blocks),
@@ -215,13 +239,14 @@ mod tests {
 
         session.add_tool_results(&[
             ("call-1".to_string(), "a.txt".to_string(), false),
+            // Answers no pending tool_use, so it must not be recorded.
             ("call-2".to_string(), "boom".to_string(), true),
         ]);
 
         let last = session.messages.last().unwrap();
         assert_eq!(last.role, Role::User);
         match &last.content {
-            MessageContent::Mixed(blocks) => assert_eq!(blocks.len(), 2),
+            MessageContent::Mixed(blocks) => assert_eq!(blocks.len(), 1),
             other => panic!("expected grouped tool results, got {:?}", other),
         }
         assert_eq!(session.messages.len(), 3);

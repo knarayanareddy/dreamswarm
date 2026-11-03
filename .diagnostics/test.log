@@ -1,0 +1,166 @@
+[1m[92m   Compiling[0m dreamswarm v0.1.0 (/home/runner/work/dreamswarm/dreamswarm)
+[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 17.75s
+[1m[92m     Running[0m unittests src/lib.rs (target/debug/deps/dreamswarm-feb4c9731ff430cf)
+
+running 90 tests
+test api::auth::tests::constant_time_comparison_detects_difference ... ok
+test api::auth::tests::generated_tokens_are_unique_and_long ... ok
+test api::auth::tests::accepts_same_origin_get_with_token ... ok
+test api::auth::tests::rejects_dns_rebinding_host ... ok
+test api::auth::tests::rejects_hostile_origin ... ok
+test api::auth::tests::rejects_missing_host ... ok
+test api::auth::tests::mutating_request_requires_token_header ... ok
+test api::auth::tests::rejects_missing_or_wrong_token ... ok
+test api::auth::tests::stream_token_must_be_scoped_to_the_stream_route ... ok
+test api::server::tests::worker_roles_are_capped_by_max_workers ... ok
+test api::server::tests::mission_validation_rejects_empty_and_oversized_input ... ok
+test api::server::tests::config_response_redacts_api_keys ... ok
+test dream::planner::tests::rejects_unsafe_memory_paths ... ok
+test dream::planner::tests::safe_operations_survive_validation ... ok
+test dream::planner::tests::topic_traversal_is_rejected ... ok
+test dream::planner::tests::traversal_through_operation_fields_is_dropped ... ok
+test memory::topics::tests::absolute_paths_outside_the_store_are_rejected ... ok
+test memory::topics::tests::append_rejects_traversal_outside_the_store ... ok
+test memory::topics::tests::delete_rejects_traversal_outside_the_store ... ok
+test memory::topics::tests::append_truncates_multibyte_content_without_panicking ... ok
+test query::providers::openai::tests::mixed_assistant_message_becomes_one_message ... ok
+test query::providers::openai::tests::plain_text_messages_are_preserved ... ok
+test query::providers::openai::tests::tool_results_follow_the_assistant_message ... ok
+test runtime::permissions::tests::bare_tool_rule_matches_every_call ... ok
+test memory::topics::tests::test_temporal_decay ... ok
+test daemon::healing::tests::non_git_directory_is_not_healed ... ok
+test runtime::permissions::tests::exact_command_rule_matches_full_signature ... ok
+test runtime::permissions::tests::malformed_pattern_never_matches ... ok
+test runtime::permissions::tests::mode_parsing_accepts_dashboard_values ... ok
+test runtime::permissions::tests::split_compound_ignores_operators_inside_quotes ... ok
+test runtime::permissions::tests::glob_metacharacters_are_literal ... ok
+test runtime::permissions::tests::deny_rule_wins_in_bypass_mode ... ok
+test runtime::permissions::tests::test_readonly_mode ... ok
+test runtime::permissions::tests::test_deny_list_blocks ... ok
+test runtime::session::tests::mismatched_result_ids_are_detected ... ok
+test runtime::permissions::tests::test_allow_list_permits ... ok
+test runtime::session::tests::orphaned_tool_use_is_detected ... ok
+test runtime::session::tests::plain_conversations_are_consistent ... ok
+test runtime::session::tests::tool_results_are_grouped_into_one_user_message ... ok
+test runtime::permissions::tests::wildcard_does_not_leak_to_chained_commands ... ok
+test runtime::transcript::tests::empty_messages_are_skipped ... ok
+test runtime::transcript::tests::mixed_assistant_content_keeps_text_and_tool_use ... ok
+test runtime::transcript::tests::orphaned_tool_result_is_dropped ... ok
+test runtime::transcript::tests::multiple_results_stay_in_one_user_message ... ok
+test runtime::transcript::tests::unanswered_tool_use_gets_a_synthetic_result ... ok
+test daemon::healing::tests::detached_head_is_reported_not_patched ... ok
+test swarm::executors::command::tests::flags_unsafe_tmux_identifiers ... ok
+test swarm::executors::command::tests::joins_arguments_without_trailing_space ... ok
+test swarm::executors::command::tests::neutralizes_command_substitution ... ok
+test swarm::executors::command::tests::percent_encoding_removes_tmux_metacharacters ... ok
+test swarm::executors::command::tests::quotes_single_quote_payloads ... ok
+test swarm::executors::command::tests::validates_remote_hosts ... ok
+test swarm::executors::tmux::tests::command_uses_worker_subcommand ... ok
+test swarm::executors::tmux::tests::mission_text_cannot_inject_tmux_commands ... ok
+test swarm::executors::tmux::tests::rejects_unsafe_team_and_role ... ok
+test swarm::file_lock::tests::appends_are_not_lost ... ok
+test swarm::file_lock::tests::atomic_write_leaves_no_temp_files ... ok
+test swarm::file_lock::tests::atomic_write_replaces_contents ... ok
+test swarm::file_lock::tests::lock_file_is_scoped_to_the_target ... ok
+test swarm::mailbox::tests::a_send_during_a_read_is_not_lost ... ok
+test swarm::mailbox::tests::concurrent_sends_are_all_delivered ... ok
+test swarm::mailbox::tests::receive_marks_messages_read_once ... ok
+test swarm::mailbox::tests::receive_matching_leaves_other_traffic_unread ... ok
+test swarm::task_list::tests::concurrent_claims_never_duplicate ... ok
+test swarm::task_list::tests::dependency_must_complete_first ... ok
+test swarm::task_list::tests::one_of_two_claimants_wins ... ok
+test swarm::task_list::tests::state_directory_is_honoured ... ok
+test swarm::task_list::tests::task_round_trips_atomically ... ok
+test tools::bash_tool::tests::signature_is_the_whole_command ... ok
+test tools::bash_tool::tests::test_allow_safe_command ... ok
+test tools::bash_tool::tests::test_blocklist_curl_bash ... ok
+test tools::bash_tool::tests::test_blocklist_rem_rf ... ok
+test tools::file_read::tests::missing_path_argument_is_an_error ... ok
+test tools::file_read::tests::reads_file_inside_workspace ... ok
+test tools::file_read::tests::refuses_environment_files ... ok
+test tools::file_read::tests::refuses_traversal_and_absolute_escape ... ok
+test tools::file_write::tests::missing_content_does_not_truncate ... ok
+test tools::file_write::tests::refuses_deny_listed_paths ... ok
+test tools::file_write::tests::refuses_escape ... ok
+test tools::file_write::tests::writes_inside_workspace ... ok
+test tools::path_guard::tests::allows_paths_inside_root ... ok
+test tools::path_guard::tests::flags_sensitive_paths ... ok
+test tools::path_guard::tests::rejects_absolute_outside_root ... ok
+test tools::path_guard::tests::rejects_empty_path ... ok
+test tools::path_guard::tests::rejects_parent_traversal ... ok
+test tools::path_guard::tests::rejects_symlink_escape ... ok
+test tools::path_guard::tests::sanitizes_filenames ... ok
+test swarm::approval::tests::approval_is_granted_when_lead_responds ... ok
+test swarm::approval::tests::denial_response_is_honoured ... ok
+test swarm::approval::tests::approval_is_denied_when_no_response_arrives ... ok
+
+test result: ok. 90 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+
+[1m[92m     Running[0m unittests src/main.rs (target/debug/deps/dreamswarm-fea00fe5fd5fab60)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m tests/context_compression_test.rs (target/debug/deps/context_compression_test-fc96cfadac5970dc)
+
+running 3 tests
+test test_cache_tracker_sticky_flags ... ok
+test test_token_counter_estimates ... ok
+test test_micro_compact_trims_large_outputs ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m tests/daemon_integration.rs (target/debug/deps/daemon_integration-b1bb63f70d98c40d)
+
+running 2 tests
+test test_trust_degradation_and_recovery ... ok
+test test_trust_pause_threshold ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m tests/dream_integration.rs (target/debug/deps/dream_integration-62ee95c4407b4ddf)
+
+running 2 tests
+test test_dream_config_defaults ... ok
+test test_dream_engine_constructs ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m tests/memory_integration.rs (target/debug/deps/memory_integration-71b6c73ee34b72ae)
+
+running 2 tests
+test test_full_memory_lifecycle ... ok
+test test_memory_index_capacity_limit ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+[1m[92m     Running[0m tests/ph11_final_test.rs (target/debug/deps/ph11_final_test-5dc78865322aff57)
+
+running 1 test
+test test_multi_repo_orchestration ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[92m     Running[0m tests/swarm_communication.rs (target/debug/deps/swarm_communication-d26717b869a42c42)
+
+running 3 tests
+test test_request_help_and_check_inbox ... ok
+test test_stalled_task_detection ... ok
+test test_publish_and_search_knowledge ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+[1m[92m     Running[0m tests/swarm_integration.rs (target/debug/deps/swarm_integration-d89d09bad714390b)
+
+running 1 test
+test test_task_list_roundtrip ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m dreamswarm
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

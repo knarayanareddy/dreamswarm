@@ -32,10 +32,17 @@ pub struct AgentRuntime {
     permission_gate: PermissionGate,
     config: AppConfig,
     db: Database,
-    #[allow(dead_code)]
     mailbox: Option<Arc<RwLock<Mailbox>>>,
     max_iterations: u32,
+    /// Approval boundary for unattended workers. `None` means every `Ask`
+    /// decision is denied; workers must not auto-approve dangerous tools.
+    auto_approver: Option<AutoApprover>,
 }
+
+/// Decides whether an unattended worker may run an `Ask`-level tool without a
+/// human present. Returning `false` turns the call into an error tool result.
+pub type AutoApprover =
+    Arc<dyn Fn(&str, &serde_json::Value) -> anyhow::Result<bool> + Send + Sync>;
 
 impl AgentRuntime {
     pub fn new(
@@ -60,7 +67,64 @@ impl AgentRuntime {
             db,
             mailbox,
             max_iterations: 25,
+            auto_approver: None,
         }
+    }
+
+    /// Sets the approval boundary used for worker sessions (`run_worker_turn`).
+    ///
+    /// Without an approver, unattended sessions deny every `Ask` decision.
+    pub fn with_auto_approver(mut self, approver: Option<AutoApprover>) -> Self {
+        self.auto_approver = approver;
+        self
+    }
+
+    /// Runs a turn without a human at the keyboard.
+    ///
+    /// `Ask` decisions are resolved by the configured [`AutoApprover`]; when no
+    /// approver is set they are denied. This replaces the previous blanket
+    /// `true` closure, which let a worker execute unsandboxed Python and
+    /// JavaScript without any review.
+    pub async fn run_worker_turn(&mut self, user_input: &str) -> anyhow::Result<TurnResult> {
+        let approver = self.auto_approver.clone();
+        let mailbox = self.mailbox.clone();
+        let mut on_tool_approval = move |name: String, input: serde_json::Value| {
+            let approver = approver.clone();
+            let mailbox = mailbox.clone();
+            async move {
+                match approver {
+                    Some(check) => match check(&name, &input) {
+                        Ok(approved) => approved,
+                        Err(e) => {
+                            tracing::warn!("Approval channel failed for '{}': {}", name, e);
+                            false
+                        }
+                    },
+                    None => {
+                        // Fall back to asking the lead directly (and denying
+                        // if that is impossible) rather than auto-approving.
+                        match mailbox {
+                            Some(mbox) => crate::swarm::approval::enqueue_approval_request(
+                                mbox, &name, &input,
+                            )
+                            .await
+                            .unwrap_or_else(|e| {
+                                tracing::warn!("Could not enqueue approval for '{}': {}", name, e);
+                                false
+                            }),
+                            None => {
+                                tracing::warn!(
+                                    "Denying '{}': no worker approval policy is configured",
+                                    name
+                                );
+                                false
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        self.run_turn(user_input, &mut on_tool_approval).await
     }
 
     pub async fn run_turn<F, Fut>(
@@ -69,7 +133,7 @@ impl AgentRuntime {
         on_tool_approval: F,
     ) -> anyhow::Result<TurnResult>
     where
-        F: Fn(String, serde_json::Value) -> Fut + Copy,
+        F: FnMut(String, serde_json::Value) -> Fut,
         Fut: std::future::Future<Output = bool>,
     {
         self.session.add_user_message(user_input);

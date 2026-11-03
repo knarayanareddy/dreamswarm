@@ -14,6 +14,7 @@ pub mod grep_tool;
 pub mod js_tool;
 pub mod memory_tools;
 pub mod monitor_tool;
+pub mod path_guard;
 pub mod push_notification;
 pub mod python_tool;
 pub mod rust_debug;
@@ -90,13 +91,24 @@ impl ToolRegistry {
             .collect()
     }
 
+    /// Builds the default tool set for a session.
+    ///
+    /// `workspace` is the only directory the file tools may touch.
     pub fn default_phase1(
         memory: std::sync::Arc<tokio::sync::RwLock<crate::memory::MemorySystem>>,
+        workspace: &std::path::Path,
         mailbox: Option<std::sync::Arc<tokio::sync::RwLock<crate::swarm::mailbox::Mailbox>>>,
     ) -> Self {
         let mut registry = Self::new();
-        registry.register(Box::new(file_read::FileReadTool));
-        registry.register(Box::new(file_write::FileWriteTool));
+        let guard = path_guard::PathGuard::new(workspace).unwrap_or_else(|e| {
+            tracing::error!("Failed to confine file tools to {:?}: {}", workspace, e);
+            // A guard that cannot be constructed must not silently widen access;
+            // fall back to a directory that exists but contains no user data.
+            path_guard::PathGuard::new(std::env::temp_dir().join("dreamswarm-no-workspace"))
+                .expect("temp directory must be usable")
+        });
+        registry.register(Box::new(file_read::FileReadTool::new(guard.clone())));
+        registry.register(Box::new(file_write::FileWriteTool::new(guard)));
         registry.register(Box::new(bash_tool::BashTool));
         registry.register(Box::new(grep_tool::GrepTool {
             memory: memory.clone(),
@@ -138,7 +150,7 @@ impl ToolRegistry {
         working_dir: &str,
         mailbox: Option<std::sync::Arc<tokio::sync::RwLock<crate::swarm::mailbox::Mailbox>>>,
     ) -> Self {
-        let mut registry = Self::default_phase1(memory.clone(), mailbox);
+        let mut registry = Self::default_phase1(memory.clone(), std::path::Path::new(working_dir), mailbox);
 
         // Phase 4 Tools
         let daemon_state_dir = memory

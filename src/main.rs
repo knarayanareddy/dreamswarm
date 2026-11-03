@@ -211,7 +211,11 @@ async fn main() -> anyhow::Result<()> {
             )?));
 
             // Initialize Tool Registry
-            let tool_registry = ToolRegistry::default_phase1(memory.clone(), Some(mbox.clone()));
+            let tool_registry = ToolRegistry::default_phase1(
+                memory.clone(),
+                &config.working_dir,
+                Some(mbox.clone()),
+            );
 
             // Initialize Session
             let session = Session::new();
@@ -238,7 +242,11 @@ async fn main() -> anyhow::Result<()> {
                 &cli.role.clone().unwrap_or_else(|| "worker".to_string()),
             )?));
 
-            let tool_registry = ToolRegistry::default_phase1(memory.clone(), Some(mbox.clone()));
+            let tool_registry = ToolRegistry::default_phase1(
+                memory.clone(),
+                &config.working_dir,
+                Some(mbox.clone()),
+            );
             let mut session = Session::new();
 
             // Inject role/prompt into session
@@ -249,15 +257,19 @@ async fn main() -> anyhow::Result<()> {
                 session.add_user_message(prompt);
             }
 
-            let mut runtime =
-                AgentRuntime::new(session, query_engine, tool_registry, config, db, Some(mbox));
-
-            // In worker mode, we assume semi-autonomy or piping
-            // We use an auto-approver for Dangerous tools for now (or until mailbox is ready)
-            let auto_approve = |name: String, _input: serde_json::Value| async move {
-                println!("  [Worker Auto-Approve] Executing Dangerous tool: {}", name);
-                true
+            // Unattended workers must not self-approve dangerous tools. Ask rules
+            // are relayed to the team lead over the mailbox and fail closed.
+            let team_config = dreamswarm::swarm::TeamConfig {
+                team_name: team.clone(),
+                worker_mode: config.permission_mode.to_string(),
+                ..Default::default()
             };
+            let approver =
+                dreamswarm::swarm::approval::worker_approver(mbox.clone(), &team_config);
+
+            let mut runtime =
+                AgentRuntime::new(session, query_engine, tool_registry, config, db, Some(mbox))
+                    .with_auto_approver(Some(approver));
 
             // Simple line-by-line REPL for the orchestration layer (e.g. Tmux) to drive
             use std::io::{BufRead, Write};
@@ -270,7 +282,7 @@ async fn main() -> anyhow::Result<()> {
                     break;
                 }
 
-                let result = runtime.run_turn(&input, auto_approve).await?;
+                let result = runtime.run_worker_turn(&input).await?;
                 println!("{}", result.final_text);
                 stdout.flush()?;
             }

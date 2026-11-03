@@ -80,8 +80,51 @@ impl TopicStore {
         Ok(decayed_count)
     }
 
+    /// Resolves a topic path inside the memory directory.
+    ///
+    /// Every mutation goes through this. Previously only `read` checked for
+    /// traversal, so an LLM-produced `existing_path` such as
+    /// `../../.ssh/authorized_keys` reached `append`/`delete` unchecked.
+    fn confined_path(&self, topic_path: &str) -> anyhow::Result<PathBuf> {
+        let candidate = PathBuf::from(topic_path);
+        let relative = if candidate.is_absolute() {
+            candidate
+                .strip_prefix(&self.base_dir)
+                .map_err(|_| anyhow::anyhow!("Path traversal detected: {}", topic_path))?
+                .to_path_buf()
+        } else {
+            candidate
+        };
+
+        let mut safe = PathBuf::new();
+        for component in relative.components() {
+            match component {
+                std::path::Component::Normal(part) => safe.push(part),
+                std::path::Component::CurDir => {}
+                _ => anyhow::bail!("Path traversal detected: {}", topic_path),
+            }
+        }
+        if safe.as_os_str().is_empty() {
+            anyhow::bail!("Empty topic path");
+        }
+
+        let path = self.base_dir.join(&safe);
+        // Catch symlinked parents that point outside the store.
+        let mut ancestor = path.as_path();
+        while !ancestor.exists() {
+            ancestor = ancestor
+                .parent()
+                .ok_or_else(|| anyhow::anyhow!("Invalid topic path: {}", topic_path))?;
+        }
+        let base_canonical = self.base_dir.canonicalize()?;
+        if !ancestor.canonicalize()?.starts_with(&base_canonical) {
+            anyhow::bail!("Path traversal detected: {}", topic_path);
+        }
+        Ok(path)
+    }
+
     pub fn read(&self, topic_path: &str) -> anyhow::Result<Option<String>> {
-        let path = self.base_dir.join(topic_path);
+        let path = self.confined_path(topic_path)?;
         if !path.exists() {
             return Ok(None);
         }
@@ -102,7 +145,7 @@ impl TopicStore {
         source: Option<&str>,
         confidence: Confidence,
     ) -> anyhow::Result<()> {
-        let path = self.base_dir.join(topic_path);
+        let path = self.confined_path(topic_path)?;
 
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
@@ -119,8 +162,14 @@ impl TopicStore {
             }
         }
 
+        // Truncate on a character boundary: byte slicing panics on multibyte
+        // text (every non-ASCII memory entry).
         let truncated_content = if content.len() > self.max_entry_size {
-            format!("{}... [truncated]", &content[..self.max_entry_size])
+            let mut end = self.max_entry_size;
+            while end > 0 && !content.is_char_boundary(end) {
+                end -= 1;
+            }
+            format!("{}... [truncated]", &content[..end])
         } else {
             content.to_string()
         };
@@ -188,7 +237,7 @@ impl TopicStore {
     }
 
     pub fn delete(&self, topic_path: &str) -> anyhow::Result<bool> {
-        let path = self.base_dir.join(topic_path);
+        let path = self.confined_path(topic_path)?;
         if path.exists() {
             std::fs::remove_file(&path)?;
             Ok(true)
@@ -249,6 +298,60 @@ mod tests {
         assert!(verified_path.exists());
         assert!(store.base_dir.join("active.md").exists());
 
+        Ok(())
+    }
+
+    #[test]
+    fn append_rejects_traversal_outside_the_store() -> anyhow::Result<()> {
+        let dir = tempdir()?;
+        let store = TopicStore::new(dir.path().join("topics"));
+        std::fs::write(dir.path().join("outside.md"), "original")?;
+
+        let result = store.append(
+            "../outside.md",
+            "overwritten by an LLM supplied path",
+            None,
+            Confidence::Observed,
+        );
+        assert!(result.is_err(), "append must not escape the topic store");
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("outside.md"))?,
+            "original"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn delete_rejects_traversal_outside_the_store() -> anyhow::Result<()> {
+        let dir = tempdir()?;
+        let store = TopicStore::new(dir.path().join("topics"));
+        std::fs::write(dir.path().join("outside.md"), "keep me")?;
+
+        assert!(store.delete("../outside.md").is_err());
+        assert!(dir.path().join("outside.md").exists());
+        Ok(())
+    }
+
+    #[test]
+    fn absolute_paths_outside_the_store_are_rejected() -> anyhow::Result<()> {
+        let dir = tempdir()?;
+        let store = TopicStore::new(dir.path().join("topics"));
+        let outside = dir.path().join("outside.md");
+        std::fs::write(&outside, "keep me")?;
+
+        assert!(store.delete(outside.to_str().unwrap()).is_err());
+        assert!(outside.exists());
+        Ok(())
+    }
+
+    #[test]
+    fn append_truncates_multibyte_content_without_panicking() -> anyhow::Result<()> {
+        let dir = tempdir()?;
+        let store = TopicStore::new(dir.path().join("topics"));
+        let content = "é".repeat(5_000); // 2 bytes per char, exceeds the limit
+        store.append("wide.md", &content, None, Confidence::Observed)?;
+        let stored = store.read("wide.md")?.unwrap();
+        assert!(stored.contains("[truncated]"));
         Ok(())
     }
 }

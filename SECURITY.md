@@ -47,7 +47,15 @@ A malicious `DREAMSWARM.md` in a cloned repository could contain prompt injectio
 
 ### Bash Command Injection
 Bash tool validators can potentially be bypassed by creative command construction.
-**Mitigation**: 25+ validators, tree-sitter AST analysis, and blocklist + allowlist + risk scoring.
+**Mitigation**: A regex blocklist, whole-command permission signatures, and a
+risk score that routes `Bash` through the approval gate. The blocklist is a
+speed bump, not a sandbox: run untrusted work in a container.
+
+### Control Plane Exposure
+The Oracle API can read configuration and launch workers.
+**Mitigation**: loopback binding, a required bearer token, `Host`/`Origin`
+validation against DNS rebinding and cross-site requests, a 256 KiB body limit,
+and redacted configuration responses.
 
 ### Memory Poisoning
 Malicious content stored in memory could influence future agent behavior.

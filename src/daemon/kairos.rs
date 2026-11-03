@@ -256,8 +256,17 @@ impl KairosDaemon {
             match initiative {
                 Initiative::Act(action) => {
                     if let Err(e) = self.handle_action(action.clone()).await {
-                        // Phase 8: Trigger Self-Healing on action failures
-                        let _ = self.healing.attempt_self_heal(&e.to_string()).await;
+                        // Phase 8: stage a healing candidate in isolation. It is
+                        // never merged automatically; the branch is left for
+                        // human review.
+                        match self.healing.attempt_self_heal(&e.to_string()).await {
+                            Ok(outcome) if outcome.succeeded() => tracing::warn!(
+                                "Healing candidate staged for review: {:?}",
+                                outcome
+                            ),
+                            Ok(outcome) => tracing::info!("Self-healing produced no patch: {:?}", outcome),
+                            Err(e) => tracing::warn!("Self-healing failed: {}", e),
+                        }
                     }
                 }
                 Initiative::Observe(observation) => {

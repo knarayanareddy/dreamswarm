@@ -225,6 +225,11 @@ impl DreamEngine {
                 Ok(res.stored)
             }
             OperationKind::Update { existing_path } => {
+                // The path comes from LLM JSON; the planner validates it, and
+                // the topic store re-checks confinement as defence in depth.
+                if !DreamPlanner::is_safe_memory_path(existing_path) {
+                    anyhow::bail!("refusing unsafe memory path '{}'", existing_path);
+                }
                 memory.topics.append(
                     existing_path,
                     &format!("[autoDream update] {}", op.content),
@@ -239,15 +244,32 @@ impl DreamEngine {
                 Ok(true)
             }
             OperationKind::Merge { source_entries } => {
-                memory.writer.store(
+                // Only delete sources once the merged entry is durably stored.
+                // The previous version discarded `stored` and deleted anyway,
+                // which silently lost memories when the writer declined.
+                let result = memory.writer.store(
                     &op.topic,
                     &op.subtopic,
                     &format!("[Merged by autoDream] {}", op.content),
                     Some("autoDream merge"),
                     Confidence::Verified,
                 )?;
+                if !result.stored {
+                    tracing::warn!(
+                        "Dream merge not stored ({}); keeping {} source entries",
+                        result.reason,
+                        source_entries.len()
+                    );
+                    return Ok(false);
+                }
                 for source in source_entries {
-                    let _ = memory.topics.delete(source).ok();
+                    if !DreamPlanner::is_safe_memory_path(source) {
+                        tracing::warn!("Skipping unsafe merge source '{}'", source);
+                        continue;
+                    }
+                    if let Err(e) = memory.topics.delete(source) {
+                        tracing::warn!("Could not delete merge source '{}': {}", source, e);
+                    }
                     let _ = memory.index.remove_pointer(source).ok();
                 }
                 Ok(true)
@@ -258,7 +280,11 @@ impl DreamEngine {
                     op.topic.to_lowercase().replace(' ', "-"),
                     op.subtopic.to_lowercase().replace(' ', "-")
                 );
-                let removed = memory.topics.delete(&path).unwrap_or(false);
+                let removed = if DreamPlanner::is_safe_memory_path(&path) {
+                    memory.topics.delete(&path).unwrap_or(false)
+                } else {
+                    anyhow::bail!("refusing unsafe prune path '{}'", path);
+                };
                 memory.index.remove_pointer(&path).ok();
                 if removed {
                     tracing::debug!("Pruned {}/{} (reason: {:?})", op.topic, op.subtopic, reason);
@@ -379,6 +405,22 @@ impl DreamEngine {
                 std::fs::create_dir_all(p)?;
             }
             std::fs::write(&full, content)?;
+        }
+        // Remove topic files created after the snapshot; restoring only the
+        // files that existed left new (possibly bad) entries behind.
+        if let Ok(current_files) = memory.topics.list_all() {
+            let known: std::collections::HashSet<&String> =
+                snapshot.topic_files.iter().map(|(p, _)| p).collect();
+            for path in current_files {
+                if !known.contains(&path) {
+                    if let Ok(full) = memory.memory_dir().join("topics").join(&path).canonicalize()
+                    {
+                        if full.starts_with(memory.memory_dir()) {
+                            let _ = std::fs::remove_file(full);
+                        }
+                    }
+                }
+            }
         }
         Ok(())
     }

@@ -31,6 +31,11 @@ impl Mailbox {
         })
     }
 
+    /// Name of the agent that owns this mailbox.
+    pub fn agent_name(&self) -> &str {
+        &self.agent_name
+    }
+
     pub fn send(&self, to: &str, content: MessageContent) -> anyhow::Result<()> {
         let msg = AgentMessage {
             id: uuid::Uuid::new_v4().to_string()[..8].to_string(),

@@ -1,0 +1,67 @@
+name: Compile Report
+
+# TEMPORARY diagnostic workflow (removed before merge). Refreshes Cargo.lock and
+# only keeps the result if the tree still builds and tests; reports the audit
+# status either way.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/compile-report.yml'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  report:
+    name: advisory refresh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: ./.github/actions/setup-rust
+
+      - name: Install audit tools
+        run: |
+          cargo binstall cargo-deny --no-confirm --force
+          cargo audit --version || cargo binstall cargo-audit --no-confirm --force
+
+      - name: Update and verify
+        shell: bash
+        run: |
+          mkdir -p .diagnostics
+          set +e
+          cargo update > .diagnostics/update.log 2>&1
+          echo "update=$?" | tee .diagnostics/rc.txt
+          cargo audit > .diagnostics/audit.log 2>&1
+          echo "audit=$?" | tee -a .diagnostics/rc.txt
+          cargo deny check advisories > .diagnostics/deny.log 2>&1
+          echo "deny=$?" | tee -a .diagnostics/rc.txt
+          cargo check --all-targets --all-features > .diagnostics/check.log 2>&1
+          echo "check=$?" | tee -a .diagnostics/rc.txt
+          cargo test --all-features > .diagnostics/test.log 2>&1
+          echo "test=$?" | tee -a .diagnostics/rc.txt
+
+      - name: Keep lockfile only if check and test pass
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "Diagnostics Bot"
+          git config user.email "diagnostics@example.invalid"
+          if grep -q "check=0" .diagnostics/rc.txt && grep -q "test=0" .diagnostics/rc.txt; then
+            echo "lockfile refresh is viable" > .diagnostics/verdict.txt
+          else
+            git checkout -- Cargo.lock
+            echo "lockfile refresh REVERTED (build or tests failed)" > .diagnostics/verdict.txt
+          fi
+          git add -A
+          git add -f .diagnostics
+          git commit -m "chore(diagnostics): advisory refresh" || exit 0
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}"

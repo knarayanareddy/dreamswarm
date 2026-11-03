@@ -3,13 +3,15 @@ use std::process::Stdio;
 use std::time::Duration;
 use tokio::process::{Child, Command};
 
-fn start(home: &std::path::Path, args: &[&str]) -> Child {
+fn start(home: &std::path::Path, name: &str, args: &[&str]) -> Child {
+    let stdout = std::fs::File::create(home.join(format!("{name}.out"))).unwrap();
+    let stderr = std::fs::File::create(home.join(format!("{name}.err"))).unwrap();
     Command::new(env!("CARGO_BIN_EXE_dreamswarm"))
         .args(args)
         .env("HOME", home)
         .env("USERPROFILE", home)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stdout(Stdio::from(stdout))
+        .stderr(Stdio::from(stderr))
         .kill_on_drop(true)
         .spawn()
         .unwrap()
@@ -21,9 +23,10 @@ async fn origin_auth_launch_and_cross_process_stop() {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     drop(listener);
-    let mut daemon = start(tmp.path(), &["--provider", "mock", "daemon", "run"]);
+    let mut daemon = start(tmp.path(), "daemon", &["--provider", "mock", "daemon", "run"]);
     let mut api = start(
         tmp.path(),
+        "api",
         &[
             "--provider",
             "mock",
@@ -54,7 +57,12 @@ async fn origin_auth_launch_and_cross_process_stop() {
         }
     })
     .await
-    .expect("daemon and API did not start");
+    .unwrap_or_else(|_| panic!("daemon and API did not start; daemon status: {:?}, api status: {:?}; daemon stdout: {}; daemon stderr: {}; api stdout: {}; api stderr: {}",
+        daemon.try_wait(), api.try_wait(),
+        std::fs::read_to_string(tmp.path().join("daemon.out")).unwrap_or_default(),
+        std::fs::read_to_string(tmp.path().join("daemon.err")).unwrap_or_default(),
+        std::fs::read_to_string(tmp.path().join("api.out")).unwrap_or_default(),
+        std::fs::read_to_string(tmp.path().join("api.err")).unwrap_or_default()));
     // A process that cannot read the endpoint secret must not be able to stop it.
     use tokio::io::AsyncWriteExt;
     let endpoint: serde_json::Value = serde_json::from_slice(

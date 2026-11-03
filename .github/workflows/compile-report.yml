@@ -1,0 +1,31 @@
+name: Compile Report
+
+# Temporary diagnostic workflow: produces a downloadable artifact with the full
+# rustc output so failures can be inspected without access to the job log API.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - '.github/workflows/compile-report.yml'
+
+jobs:
+  report:
+    name: Compile diagnostics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-rust
+      - name: cargo check
+        run: |
+          set -o pipefail
+          cargo check --all-targets --all-features 2>&1 | tee check.log
+          echo "exit=$?" >> check.log
+        continue-on-error: true
+      - name: Upload diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: compile-report
+          path: check.log
+          if-no-files-found: error

@@ -19,7 +19,6 @@
 use crate::swarm::coordinator::SwarmCoordinator;
 use crate::swarm::executors::command::is_safe_identifier;
 use std::collections::BTreeMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 
@@ -28,8 +27,6 @@ pub type TeamHandle = Arc<Mutex<SwarmCoordinator>>;
 
 struct Team {
     handle: TeamHandle,
-    /// Open coordination resources (task list, mailbox) live under this path.
-    state_dir: PathBuf,
 }
 
 /// The set of teams this process is running, keyed by team name.
@@ -76,11 +73,7 @@ impl TeamRegistry {
     ///
     /// Re-registering a live team is refused: the previous coordinator owns
     /// worker processes, and silently replacing it would orphan them.
-    pub async fn register(
-        &self,
-        coordinator: SwarmCoordinator,
-        state_dir: PathBuf,
-    ) -> anyhow::Result<TeamHandle> {
+    pub async fn register(&self, coordinator: SwarmCoordinator) -> anyhow::Result<TeamHandle> {
         let team_name = coordinator.team_name().to_string();
         Self::validate_name(&team_name)?;
 
@@ -100,13 +93,9 @@ impl TeamRegistry {
         }
 
         let handle: TeamHandle = Arc::new(Mutex::new(coordinator));
-        teams.insert(
-            team_name,
-            Team {
-                handle: handle.clone(),
-                state_dir,
-            },
-        );
+        teams.insert(team_name, Team {
+            handle: handle.clone(),
+        });
         Ok(handle)
     }
 
@@ -231,7 +220,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let registry = TeamRegistry::new();
         registry
-            .register(coordinator("alpha", dir.path()), dir.path().to_path_buf())
+            .register(coordinator("alpha", dir.path()))
             .await
             .unwrap();
 
@@ -246,12 +235,12 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let registry = TeamRegistry::new();
         registry
-            .register(coordinator("alpha", dir.path()), dir.path().to_path_buf())
+            .register(coordinator("alpha", dir.path()))
             .await
             .unwrap();
 
         let second = registry
-            .register(coordinator("alpha", dir.path()), dir.path().to_path_buf())
+            .register(coordinator("alpha", dir.path()))
             .await;
         assert!(
             second.is_err(),
@@ -265,7 +254,7 @@ mod tests {
         let registry = TeamRegistry::new();
         for name in ["alpha", "beta", "gamma"] {
             registry
-                .register(coordinator(name, dir.path()), dir.path().to_path_buf())
+                .register(coordinator(name, dir.path()))
                 .await
                 .unwrap();
         }
@@ -291,7 +280,7 @@ mod tests {
         let registry = TeamRegistry::new();
         for name in ["../escape", "a/b", "", "team name"] {
             let result = registry
-                .register(coordinator(name, dir.path()), dir.path().to_path_buf())
+                .register(coordinator(name, dir.path()))
                 .await;
             assert!(result.is_err(), "team name '{}' should be refused", name);
         }
@@ -303,7 +292,7 @@ mod tests {
         let registry = TeamRegistry::new();
         for name in ["alpha", "beta"] {
             registry
-                .register(coordinator(name, dir.path()), dir.path().to_path_buf())
+                .register(coordinator(name, dir.path()))
                 .await
                 .unwrap();
         }
@@ -316,14 +305,14 @@ mod tests {
 
         // A late launch must not resurrect the swarm behind the operator.
         let late = registry
-            .register(coordinator("late", dir.path()), dir.path().to_path_buf())
+            .register(coordinator("late", dir.path()))
             .await;
         assert!(late.is_err(), "launch after emergency stop must be refused");
 
         registry.clear_stop().await;
         assert!(!registry.is_stopped().await);
         assert!(registry
-            .register(coordinator("late", dir.path()), dir.path().to_path_buf())
+            .register(coordinator("late", dir.path()))
             .await
             .is_ok());
     }
@@ -333,7 +322,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let registry = TeamRegistry::new();
         let handle = registry
-            .register(coordinator("alpha", dir.path()), dir.path().to_path_buf())
+            .register(coordinator("alpha", dir.path()))
             .await
             .unwrap();
 

@@ -513,7 +513,7 @@ async fn handle_swarm_launch(
 
     // Registration is the point at which the team becomes addressable, and it
     // refuses duplicates or launches after an emergency stop.
-    let handle = match state.teams.register(coordinator, state_dir).await {
+    let handle = match state.teams.register(coordinator).await {
         Ok(handle) => handle,
         Err(e) => return Json(serde_json::json!({ "error": e.to_string() })),
     };
@@ -686,10 +686,7 @@ mod tests {
                 ..Default::default()
             };
             let coordinator = SwarmCoordinator::new(config, ".", dir.path().to_path_buf()).unwrap();
-            teams
-                .register(coordinator, dir.path().to_path_buf())
-                .await
-                .unwrap();
+            teams.register(coordinator).await.unwrap();
         }
 
         let report = teams.stop_all().await;

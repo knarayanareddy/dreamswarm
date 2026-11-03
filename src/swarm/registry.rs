@@ -93,9 +93,12 @@ impl TeamRegistry {
         }
 
         let handle: TeamHandle = Arc::new(Mutex::new(coordinator));
-        teams.insert(team_name, Team {
-            handle: handle.clone(),
-        });
+        teams.insert(
+            team_name,
+            Team {
+                handle: handle.clone(),
+            },
+        );
         Ok(handle)
     }
 
@@ -239,9 +242,7 @@ mod tests {
             .await
             .unwrap();
 
-        let second = registry
-            .register(coordinator("alpha", dir.path()))
-            .await;
+        let second = registry.register(coordinator("alpha", dir.path())).await;
         assert!(
             second.is_err(),
             "replacing a live team would orphan workers"
@@ -279,9 +280,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let registry = TeamRegistry::new();
         for name in ["../escape", "a/b", "", "team name"] {
-            let result = registry
-                .register(coordinator(name, dir.path()))
-                .await;
+            let result = registry.register(coordinator(name, dir.path())).await;
             assert!(result.is_err(), "team name '{}' should be refused", name);
         }
     }
@@ -304,9 +303,7 @@ mod tests {
         assert!(registry.is_stopped().await);
 
         // A late launch must not resurrect the swarm behind the operator.
-        let late = registry
-            .register(coordinator("late", dir.path()))
-            .await;
+        let late = registry.register(coordinator("late", dir.path())).await;
         assert!(late.is_err(), "launch after emergency stop must be refused");
 
         registry.clear_stop().await;

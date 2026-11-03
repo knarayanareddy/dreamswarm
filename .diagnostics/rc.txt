@@ -1,4 +1,4 @@
 fmt=0
-check=101
-clippy=101
+check=0
+clippy=0
 test=101

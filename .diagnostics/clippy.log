@@ -10,18 +10,20 @@
 [1m[96mhelp[0m: consider removing `package.homepage`
 [1m[33mwarning[0m: `dreamswarm` (manifest) generated 1 warning
 [1m[92m    Checking[0m dreamswarm v0.1.0 (/home/runner/work/dreamswarm/dreamswarm)
-[1m[91merror[0m[1m: field `state_dir` is never read[0m
-  [1m[94m--> [0msrc/swarm/registry.rs:32:5
+[1m[33mwarning[0m[1m: unused dependency `aws-config`[0m
+  [1m[94m--> [0mCargo.toml:23:1
    [1m[94m|[0m
-[1m[94m29[0m [1m[94m|[0m struct Team {
-   [1m[94m|[0m        [1m[94m----[0m [1m[94mfield in this struct[0m
-[1m[94m...[0m
-[1m[94m32[0m [1m[94m|[0m     state_dir: PathBuf,
-   [1m[94m|[0m     [1m[91m^^^^^^^^^[0m
+[1m[94m23[0m [1m[94m|[0m aws-config = "1.1"
+   [1m[94m|[0m [1m[33m^^^^^^^^^^[0m
    [1m[94m|[0m
-   [1m[94m= [0m[1mnote[0m: `-D dead-code` implied by `-D warnings`
-   [1m[94m= [0m[1mhelp[0m: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
-
-[1m[91merror[0m: could not compile `dreamswarm` (lib) due to 1 previous error
-[1m[33mwarning[0m: build failed, waiting for other jobs to finish...
-[1m[91merror[0m: could not compile `dreamswarm` (lib test) due to 1 previous error
+   [1m[94m= [0m[1mnote[0m: `cargo::unused_dependencies` is set to `warn` by default
+[1m[96mhelp[0m: consider removing the dependency on `aws-config`
+[1m[33mwarning[0m[1m: unused dependency `ctrlc`[0m
+  [1m[94m--> [0mCargo.toml:49:1
+   [1m[94m|[0m
+[1m[94m49[0m [1m[94m|[0m ctrlc = "3.4"
+   [1m[94m|[0m [1m[33m^^^^^[0m
+   [1m[94m|[0m
+[1m[96mhelp[0m: consider removing the dependency on `ctrlc`
+[1m[33mwarning[0m: `dreamswarm` (manifest) generated 2 warnings
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 5.28s

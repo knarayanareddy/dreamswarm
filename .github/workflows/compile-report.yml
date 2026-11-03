@@ -1,0 +1,47 @@
+name: Compile Report
+
+# TEMPORARY (removed before merge).
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/compile-report.yml'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  report:
+    name: advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: ./.github/actions/setup-rust
+      - name: Install audit tools
+        run: |
+          cargo binstall cargo-deny --no-confirm --force
+          cargo binstall cargo-audit --no-confirm --force
+      - name: Run checks
+        shell: bash
+        run: |
+          mkdir -p .diagnostics
+          set +e
+          cargo deny check advisories > .diagnostics/deny.log 2>&1
+          echo "deny=$?" | tee .diagnostics/rc.txt
+          cargo audit > .diagnostics/audit.log 2>&1
+          echo "audit=$?" | tee -a .diagnostics/rc.txt
+      - name: Publish
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "Diagnostics Bot"
+          git config user.email "diagnostics@example.invalid"
+          git add -f .diagnostics
+          git commit -m "chore(diagnostics): advisory status" || exit 0
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}"

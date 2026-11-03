@@ -33,6 +33,8 @@ pub struct ToolOutput {
     pub is_error: bool,
 }
 
+// async_trait emits #[must_use] on boxed futures; recent Clippy flags that expansion.
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait Tool: Send + Sync {
     fn name(&self) -> &str;

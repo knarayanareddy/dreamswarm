@@ -1,7 +1,7 @@
 name: Compile Report
 
-# TEMPORARY (removed before merge). Reproduces the Dockerfile's musl release
-# build on a plain runner and publishes the compiler output.
+# TEMPORARY (removed before merge). Runs the real Dockerfile build and captures
+# the build log so the musl failure can be read.
 on:
   workflow_dispatch:
   push:
@@ -11,30 +11,23 @@ on:
 permissions:
   contents: write
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
   report:
-    name: musl build
+    name: docker build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
-      - uses: ./.github/actions/setup-rust
-        with:
-          targets: x86_64-unknown-linux-musl
-      - name: Install musl deps
-        run: sudo apt-get update && sudo apt-get install -y musl-tools pkg-config perl make
-      - name: Build
+      - name: Build with Dockerfile
         shell: bash
         run: |
           mkdir -p .diagnostics
           set +e
-          cargo build --release --target x86_64-unknown-linux-musl > .diagnostics/musl.log 2>&1
-          echo "build=$?" | tee .diagnostics/rc.txt
-          tail -40 .diagnostics/musl.log
+          docker build -f Dockerfile -t ds-probe . > .diagnostics/docker.log 2>&1
+          echo "docker=$?" | tee .diagnostics/rc.txt
+          grep -E "^(error|error\[)" .diagnostics/docker.log | head -30
+          tail -30 .diagnostics/docker.log
       - name: Publish
         if: always()
         shell: bash
@@ -42,6 +35,6 @@ jobs:
           git config user.name "Diagnostics Bot"
           git config user.email "diagnostics@example.invalid"
           git add -f .diagnostics
-          git commit -m "chore(diagnostics): musl build log" || exit 0
+          git commit -m "chore(diagnostics): docker build log" || exit 0
           git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
           git push origin "HEAD:${GITHUB_REF_NAME}"

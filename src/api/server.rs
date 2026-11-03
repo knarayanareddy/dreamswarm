@@ -77,7 +77,8 @@ pub struct SwarmLaunchRequest {
 /// another interface, and every `/api/v1` route requires a bearer token. The
 /// dashboard endpoints are unauthenticated but expose no data.
 pub async fn start_api_server(state: ApiState, port: u16) -> anyhow::Result<()> {
-    let bind_host = std::env::var("DREAMSWARM_API_BIND").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let bind_host =
+        std::env::var("DREAMSWARM_API_BIND").unwrap_or_else(|_| "127.0.0.1".to_string());
     if !matches!(bind_host.as_str(), "127.0.0.1" | "localhost" | "::1") {
         tracing::warn!(
             "The Oracle is binding to {} instead of loopback; confirm this is intended",
@@ -88,7 +89,10 @@ pub async fn start_api_server(state: ApiState, port: u16) -> anyhow::Result<()> 
     let (security, generated_token) = ApiSecurity::bootstrap(&bind_host, port)?;
     if let Some(token) = generated_token {
         println!("🔑 Oracle API token (this session): {}", token);
-        println!("   Send it as the '{}' header.", crate::api::auth::TOKEN_HEADER);
+        println!(
+            "   Send it as the '{}' header.",
+            crate::api::auth::TOKEN_HEADER
+        );
         println!("   Set DREAMSWARM_API_TOKEN to pin your own token.");
     }
     let dashboard = serve_dashboard;
@@ -137,10 +141,7 @@ pub async fn start_api_server(state: ApiState, port: u16) -> anyhow::Result<()> 
         // Static assets are public; they contain no session data.
         .fallback_service(ServeDir::new("static"));
 
-    let app = public
-        .merge(protected)
-        .layer(cors)
-        .with_state(state);
+    let app = public.merge(protected).layer(cors).with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("{}:{}", bind_host, port)).await?;
     tracing::info!("The Oracle listening on http://{}", listener.local_addr()?);

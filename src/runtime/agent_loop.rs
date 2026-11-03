@@ -41,8 +41,7 @@ pub struct AgentRuntime {
 
 /// Decides whether an unattended worker may run an `Ask`-level tool without a
 /// human present. Returning `false` turns the call into an error tool result.
-pub type AutoApprover =
-    Arc<dyn Fn(&str, &serde_json::Value) -> anyhow::Result<bool> + Send + Sync>;
+pub type AutoApprover = Arc<dyn Fn(&str, &serde_json::Value) -> anyhow::Result<bool> + Send + Sync>;
 
 impl AgentRuntime {
     pub fn new(

@@ -185,7 +185,10 @@ mod tests {
             .filter_map(|e| e.ok())
             .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
             .collect();
-        assert!(leftovers.is_empty(), "temp files must be renamed or removed");
+        assert!(
+            leftovers.is_empty(),
+            "temp files must be renamed or removed"
+        );
     }
 
     #[test]

@@ -275,7 +275,9 @@ mod tests {
     fn task_round_trips_atomically() {
         let dir = tempdir().unwrap();
         let tasks = list(dir.path());
-        let task = tasks.create_task("write docs", "detail", vec![], 1).unwrap();
+        let task = tasks
+            .create_task("write docs", "detail", vec![], 1)
+            .unwrap();
         let loaded = tasks.list_tasks().unwrap();
         assert_eq!(loaded.len(), 1);
         assert_eq!(loaded[0].id, task.id);
@@ -291,7 +293,10 @@ mod tests {
         let second = tasks.try_claim_task(&task.id, "worker-b");
 
         assert!(first.is_ok());
-        assert!(second.is_err(), "a claimed task must not be claimable again");
+        assert!(
+            second.is_err(),
+            "a claimed task must not be claimable again"
+        );
         let stored = tasks.list_tasks().unwrap();
         assert_eq!(stored[0].assigned_to.as_deref(), Some("worker-a"));
     }
@@ -314,7 +319,10 @@ mod tests {
                     let list = SharedTaskList {
                         base_dir: base.clone(),
                     };
-                    if list.try_claim_task(&task_id, &format!("w{}", worker)).is_ok() {
+                    if list
+                        .try_claim_task(&task_id, &format!("w{}", worker))
+                        .is_ok()
+                    {
                         successes.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                     }
                 });

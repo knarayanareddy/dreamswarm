@@ -264,8 +264,7 @@ async fn main() -> anyhow::Result<()> {
                 worker_mode: config.permission_mode.to_string(),
                 ..Default::default()
             };
-            let approver =
-                dreamswarm::swarm::approval::worker_approver(mbox.clone(), &team_config);
+            let approver = dreamswarm::swarm::approval::worker_approver(mbox.clone(), &team_config);
 
             let mut runtime =
                 AgentRuntime::new(session, query_engine, tool_registry, config, db, Some(mbox))

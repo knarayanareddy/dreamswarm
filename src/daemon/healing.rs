@@ -84,10 +84,7 @@ impl HealingManager {
             }
         };
 
-        let branch = format!(
-            "heal/{}",
-            chrono::Utc::now().format("%Y%m%d-%H%M%S")
-        );
+        let branch = format!("heal/{}", chrono::Utc::now().format("%Y%m%d-%H%M%S"));
         let worktree = self
             .state_dir
             .join("healing")
@@ -123,7 +120,9 @@ impl HealingManager {
             });
         }
 
-        let outcome = self.heal_in_worktree(&worktree, &branch, error_signal).await;
+        let outcome = self
+            .heal_in_worktree(&worktree, &branch, error_signal)
+            .await;
 
         match outcome {
             Ok(HealOutcome::Unsuccessful { reason }) => {
@@ -158,7 +157,11 @@ impl HealingManager {
         }
 
         let fix = self
-            .run(worktree, "cargo", &["fix", "--allow-dirty", "--allow-staged"])
+            .run(
+                worktree,
+                "cargo",
+                &["fix", "--allow-dirty", "--allow-staged"],
+            )
             .await?;
         if !fix.success {
             return Ok(HealOutcome::Unsuccessful {
@@ -175,7 +178,9 @@ impl HealingManager {
             });
         }
 
-        let diff = self.run(worktree, "git", &["status", "--porcelain"]).await?;
+        let diff = self
+            .run(worktree, "git", &["status", "--porcelain"])
+            .await?;
         let changed_files = diff
             .stdout
             .lines()

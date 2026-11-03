@@ -125,7 +125,9 @@ mod tests {
 
     #[test]
     fn rejects_unsafe_memory_paths() {
-        assert!(!DreamPlanner::is_safe_memory_path("../../.ssh/authorized_keys"));
+        assert!(!DreamPlanner::is_safe_memory_path(
+            "../../.ssh/authorized_keys"
+        ));
         assert!(!DreamPlanner::is_safe_memory_path("/etc/passwd"));
         assert!(!DreamPlanner::is_safe_memory_path(""));
         assert!(DreamPlanner::is_safe_memory_path("rust/borrow.md"));

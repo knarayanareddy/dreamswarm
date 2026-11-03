@@ -185,11 +185,7 @@ pub fn to_provider_messages(session: &Session) -> Vec<Value> {
         }
 
         // 3. Merge consecutive user messages so role alternation stays valid.
-        if current.role == "user"
-            && normalized
-                .last()
-                .is_some_and(|last| last.role == "user")
-        {
+        if current.role == "user" && normalized.last().is_some_and(|last| last.role == "user") {
             if let Some(last) = normalized.last_mut() {
                 last.blocks.append(&mut current.blocks);
             }

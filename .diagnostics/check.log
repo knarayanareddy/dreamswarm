@@ -19,4 +19,4 @@
    [1m[94m= [0m[1mnote[0m: `cargo::unused_dependencies` is set to `warn` by default
 [1m[96mhelp[0m: consider removing the dependency on `aws-config`
 [1m[33mwarning[0m: `dreamswarm` (manifest) generated 1 warning
-[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 3.85s
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 4.09s

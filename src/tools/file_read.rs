@@ -135,7 +135,10 @@ mod tests {
     #[tokio::test]
     async fn missing_path_argument_is_an_error() {
         let dir = tempdir().unwrap();
-        let out = tool(dir.path()).execute(&serde_json::json!({})).await.unwrap();
+        let out = tool(dir.path())
+            .execute(&serde_json::json!({}))
+            .await
+            .unwrap();
         assert!(out.is_error);
     }
 }

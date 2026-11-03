@@ -51,7 +51,10 @@ pub fn percent_encode(value: &str) -> String {
     let mut out = String::with_capacity(value.len() * 3);
     for byte in value.as_bytes() {
         let safe = byte.is_ascii_alphanumeric()
-            || matches!(*byte, b'-' | b'_' | b'.' | b'/' | b':' | b'=' | b',' | b'@' | b'+');
+            || matches!(
+                *byte,
+                b'-' | b'_' | b'.' | b'/' | b':' | b'=' | b',' | b'@' | b'+'
+            );
         if safe {
             out.push(*byte as char);
         } else {

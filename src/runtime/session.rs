@@ -124,11 +124,13 @@ impl Session {
         }
         let blocks = results
             .iter()
-            .map(|(tool_use_id, content, is_error)| ContentBlock::ToolResult {
-                tool_use_id: tool_use_id.clone(),
-                content: content.clone(),
-                is_error: *is_error,
-            })
+            .map(
+                |(tool_use_id, content, is_error)| ContentBlock::ToolResult {
+                    tool_use_id: tool_use_id.clone(),
+                    content: content.clone(),
+                    is_error: *is_error,
+                },
+            )
             .collect();
         self.messages.push(Message {
             role: Role::User,
@@ -142,11 +144,7 @@ impl Session {
 
     /// Appends a single tool result (kept for callers that have one result).
     pub fn add_tool_result(&mut self, tool_use_id: &str, content: &str, is_error: bool) {
-        self.add_tool_results(&[(
-            tool_use_id.to_string(),
-            content.to_string(),
-            is_error,
-        )]);
+        self.add_tool_results(&[(tool_use_id.to_string(), content.to_string(), is_error)]);
     }
 
     /// Returns true when every `tool_use` has a matching `tool_result` in the

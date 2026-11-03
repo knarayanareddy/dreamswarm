@@ -413,7 +413,11 @@ impl DreamEngine {
                 snapshot.topic_files.iter().map(|(p, _)| p).collect();
             for path in current_files {
                 if !known.contains(&path) {
-                    if let Ok(full) = memory.memory_dir().join("topics").join(&path).canonicalize()
+                    if let Ok(full) = memory
+                        .memory_dir()
+                        .join("topics")
+                        .join(&path)
+                        .canonicalize()
                     {
                         if full.starts_with(memory.memory_dir()) {
                             let _ = std::fs::remove_file(full);

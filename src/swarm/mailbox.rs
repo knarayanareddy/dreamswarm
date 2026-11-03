@@ -261,7 +261,8 @@ mod tests {
                 scope.spawn(move || {
                     let mbox = Mailbox::new(base, "atomic-team", &format!("w{}", sender)).unwrap();
                     for n in 0..25 {
-                        mbox.send_chat("lead", &format!("{}-{}", sender, n)).unwrap();
+                        mbox.send_chat("lead", &format!("{}-{}", sender, n))
+                            .unwrap();
                     }
                 });
             }
@@ -298,7 +299,9 @@ mod tests {
                     },
                 )
                 .unwrap();
-            sender.send_chat("lead", "unrelated task assignment").unwrap();
+            sender
+                .send_chat("lead", "unrelated task assignment")
+                .unwrap();
         }
 
         let mut lead = mailbox(&base, "lead");

@@ -260,11 +260,12 @@ impl KairosDaemon {
                         // never merged automatically; the branch is left for
                         // human review.
                         match self.healing.attempt_self_heal(&e.to_string()).await {
-                            Ok(outcome) if outcome.succeeded() => tracing::warn!(
-                                "Healing candidate staged for review: {:?}",
-                                outcome
-                            ),
-                            Ok(outcome) => tracing::info!("Self-healing produced no patch: {:?}", outcome),
+                            Ok(outcome) if outcome.succeeded() => {
+                                tracing::warn!("Healing candidate staged for review: {:?}", outcome)
+                            }
+                            Ok(outcome) => {
+                                tracing::info!("Self-healing produced no patch: {:?}", outcome)
+                            }
                             Err(e) => tracing::warn!("Self-healing failed: {}", e),
                         }
                     }

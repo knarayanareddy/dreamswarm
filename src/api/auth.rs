@@ -91,7 +91,11 @@ impl ApiSecurity {
     ) -> Result<(), Box<Response>> {
         if !self.host_allowed(headers) || !self.origin_allowed(headers) {
             return Err(Box::new(
-                (StatusCode::FORBIDDEN, "Forbidden: request origin is not allowed").into_response(),
+                (
+                    StatusCode::FORBIDDEN,
+                    "Forbidden: request origin is not allowed",
+                )
+                    .into_response(),
             ));
         }
         if uri.path() != TELEMETRY_STREAM_PATH || *method != Method::GET {
@@ -130,17 +134,28 @@ impl ApiSecurity {
     pub fn authorize(&self, method: &Method, headers: &HeaderMap) -> Result<(), Box<Response>> {
         if !self.host_allowed(headers) {
             return Err(Box::new(
-                (StatusCode::FORBIDDEN, "Forbidden: Host header is not allowed").into_response(),
+                (
+                    StatusCode::FORBIDDEN,
+                    "Forbidden: Host header is not allowed",
+                )
+                    .into_response(),
             ));
         }
         if !self.origin_allowed(headers) {
             return Err(Box::new(
-                (StatusCode::FORBIDDEN, "Forbidden: cross-origin request blocked").into_response(),
+                (
+                    StatusCode::FORBIDDEN,
+                    "Forbidden: cross-origin request blocked",
+                )
+                    .into_response(),
             ));
         }
         if !self.token_matches(headers) {
             return Err(Box::new(
-                (StatusCode::UNAUTHORIZED, "Unauthorized: missing or invalid API token")
+                (
+                    StatusCode::UNAUTHORIZED,
+                    "Unauthorized: missing or invalid API token",
+                )
                     .into_response(),
             ));
         }
@@ -290,10 +305,7 @@ mod tests {
             StatusCode::UNAUTHORIZED
         );
 
-        let map = headers(&[
-            ("host", "127.0.0.1:8080"),
-            (TOKEN_HEADER, "wrong"),
-        ]);
+        let map = headers(&[("host", "127.0.0.1:8080"), (TOKEN_HEADER, "wrong")]);
         assert_eq!(
             security()
                 .authorize(&Method::GET, &map)
@@ -321,10 +333,7 @@ mod tests {
 
     #[test]
     fn rejects_dns_rebinding_host() {
-        let map = headers(&[
-            ("host", "evil.example:8080"),
-            (TOKEN_HEADER, "test-token"),
-        ]);
+        let map = headers(&[("host", "evil.example:8080"), (TOKEN_HEADER, "test-token")]);
         assert_eq!(
             security()
                 .authorize(&Method::GET, &map)

@@ -188,9 +188,7 @@ mod tests {
         assert_eq!(resolved, dir.path().join("notes.txt"));
 
         let absolute = dir.path().join("notes.txt");
-        assert!(guard
-            .resolve_existing(absolute.to_str().unwrap())
-            .is_ok());
+        assert!(guard.resolve_existing(absolute.to_str().unwrap()).is_ok());
     }
 
     #[test]
@@ -206,9 +204,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let guard = PathGuard::new(dir.path().join("workspace")).unwrap();
         let outside = dir.path().join("outside.txt");
-        assert!(guard
-            .resolve_for_write(outside.to_str().unwrap())
-            .is_err());
+        assert!(guard.resolve_for_write(outside.to_str().unwrap()).is_err());
     }
 
     #[test]

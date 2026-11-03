@@ -150,7 +150,8 @@ impl ToolRegistry {
         working_dir: &str,
         mailbox: Option<std::sync::Arc<tokio::sync::RwLock<crate::swarm::mailbox::Mailbox>>>,
     ) -> Self {
-        let mut registry = Self::default_phase1(memory.clone(), std::path::Path::new(working_dir), mailbox);
+        let mut registry =
+            Self::default_phase1(memory.clone(), std::path::Path::new(working_dir), mailbox);
 
         // Phase 4 Tools
         let daemon_state_dir = memory

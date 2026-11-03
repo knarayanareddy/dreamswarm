@@ -1,7 +1,6 @@
 name: Compile Report
 
-# TEMPORARY (removed before merge). Resolves the newest opendal and keeps it
-# only if the tree builds and tests.
+# TEMPORARY (removed before merge).
 on:
   workflow_dispatch:
   push:
@@ -17,28 +16,29 @@ env:
 
 jobs:
   report:
-    name: opendal bump probe
+    name: opendal 0.59 probe
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
       - uses: ./.github/actions/setup-rust
+      - name: Install audit tools
+        run: cargo binstall cargo-deny --no-confirm --force
       - name: Probe
         shell: bash
         run: |
           mkdir -p .diagnostics
           set +e
-          cargo search opendal --limit 3 > .diagnostics/search.log 2>&1
-          sed -i 's/^opendal = { version = "[0-9.]*"/opendal = { version = "*"/' Cargo.toml
-          grep '^opendal' Cargo.toml >> .diagnostics/search.log
-          cargo update -p opendal > .diagnostics/update.log 2>&1
+          cargo update > .diagnostics/update.log 2>&1
           echo "update=$?" | tee .diagnostics/rc.txt
-          grep -A1 'name = "opendal"' Cargo.lock | head -3 >> .diagnostics/update.log
           cargo check --all-targets --all-features > .diagnostics/check.log 2>&1
           echo "check=$?" | tee -a .diagnostics/rc.txt
           cargo test --all-features > .diagnostics/test.log 2>&1
           echo "test=$?" | tee -a .diagnostics/rc.txt
+          cargo deny check advisories > .diagnostics/deny.log 2>&1
+          echo "deny=$?" | tee -a .diagnostics/rc.txt
+          grep -A1 'name = "quick-xml"' Cargo.lock | grep version | sort -u >> .diagnostics/update.log
       - name: Publish
         if: always()
         shell: bash
@@ -46,6 +46,6 @@ jobs:
           git config user.name "Diagnostics Bot"
           git config user.email "diagnostics@example.invalid"
           git add -A
-          git commit -m "chore(diagnostics): opendal bump probe" || exit 0
+          git commit -m "chore(diagnostics): opendal 0.59 probe" || exit 0
           git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
           git push origin "HEAD:${GITHUB_REF_NAME}"

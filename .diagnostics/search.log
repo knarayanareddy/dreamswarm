@@ -1,6 +1,0 @@
-[1m[92mopendal[0m = "0.59.5"              # Apache OpenDAL™: One Layer, All Storage.
-git-[1m[92mopendal[0m = "0.4.5"           # Use any cloud storage as a Git remote via Apache OpenDAL
-git-remote-[1m[92mopendal[0m = "0.3.0"    # Use any cloud storage as a Git remote via Apache OpenDAL
-... and 251 crates more (use --limit N to see more)
-[1m[92mnote[0m: to learn more about a package, run `[1m[96mcargo info <name>[0m`
-opendal = { version = "*", features = ["services-s3", "layers-tracing"] }

@@ -1,3 +1,0 @@
-update=0
-check=101
-test=101

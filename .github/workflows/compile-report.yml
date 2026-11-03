@@ -1,7 +1,7 @@
 name: Compile Report
 
-# TEMPORARY diagnostic workflow (removed before merge). Captures the macOS test
-# log and publishes it to the branch for reading via the API.
+# TEMPORARY diagnostic workflow (removed before merge). Captures cargo-deny /
+# cargo-audit output and publishes it to the branch.
 on:
   workflow_dispatch:
   push:
@@ -11,16 +11,10 @@ on:
 permissions:
   contents: write
 
-env:
-  CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
-  RUSTFLAGS: "-D warnings"
-  MSRV: "1.88.0"
-
 jobs:
   report:
-    name: macos test diagnostics
-    runs-on: macos-latest
+    name: audit diagnostics
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,17 +22,20 @@ jobs:
 
       - uses: ./.github/actions/setup-rust
 
-      - name: Install system dependencies
-        run: brew install tmux ripgrep
+      - name: Install audit tools
+        run: |
+          cargo binstall cargo-deny --no-confirm --force
+          cargo binstall cargo-audit --no-confirm --force
 
-      - name: Run tests
+      - name: Run checks
         shell: bash
         run: |
           mkdir -p .diagnostics
           set +e
-          cargo test --all-features > .diagnostics/macos-test.log 2>&1
-          echo "test=$?" | tee -a .diagnostics/rc.txt
-          grep -E "^(test result|failures:)" .diagnostics/macos-test.log | head -20
+          cargo deny check advisories > .diagnostics/deny.log 2>&1
+          echo "deny=$?" | tee .diagnostics/rc.txt
+          cargo audit > .diagnostics/audit.log 2>&1
+          echo "audit=$?" | tee -a .diagnostics/rc.txt
 
       - name: Publish results
         if: always()
@@ -47,6 +44,6 @@ jobs:
           git config user.name "Diagnostics Bot"
           git config user.email "diagnostics@example.invalid"
           git add -f .diagnostics
-          git commit -m "chore(diagnostics): macos test log" || exit 0
+          git commit -m "chore(diagnostics): audit log" || exit 0
           git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
           git push origin "HEAD:${GITHUB_REF_NAME}"

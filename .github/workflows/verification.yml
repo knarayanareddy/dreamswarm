@@ -14,7 +14,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          cargo test --locked --test safety_regressions --test control_end_to_end --test in_process_runtime --test provider_tool_roundtrip > /tmp/verification.log 2>&1
+          CARGO_TERM_COLOR=never cargo test --locked --test safety_regressions --test control_end_to_end --test in_process_runtime --test provider_tool_roundtrip > /tmp/verification.log 2>&1
           status=$?
           tail -200 /tmp/verification.log
           if [ "$status" -ne 0 ]; then

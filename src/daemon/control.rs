@@ -43,11 +43,14 @@ impl ControlServer {
             port: listener.local_addr()?.port(),
             token: token.clone(),
         };
-        if let Err(error) = serde_json::to_writer(&mut file, &endpoint)
-            .and_then(|_| file.flush().map_err(Into::into))
-        {
+        let write_result = (|| -> Result<()> {
+            serde_json::to_writer(&mut file, &endpoint)?;
+            file.flush()?;
+            Ok(())
+        })();
+        if let Err(error) = write_result {
             let _ = std::fs::remove_file(&path);
-            return Err(error.into());
+            return Err(error);
         }
         Ok(Self {
             listener,

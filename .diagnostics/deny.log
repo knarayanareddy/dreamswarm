@@ -1,0 +1,1111 @@
+[0m[1m[38;5;9merror[unsound][0m[1m: Unsoundness in `Error::downcast_mut()`[0m
+   [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:13:1
+   [0m[36m│[0m
+[0m[36m13[0m [0m[36m│[0m [0m[31manyhow 1.0.102 registry+https://github.com/rust-lang/crates.io-index[0m
+   [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31munsound advisory detected[0m
+   [0m[36m│[0m
+   [0m[36m├[0m ID: RUSTSEC-2026-0190
+   [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0190
+   [0m[36m├[0m Affected versions of this crate violate borrow rules, resulting in undefined behavior, when the user adds context to an error via `Error::context` and then later calls `Error::downcast_mut` on the returned `Error`.
+     
+     The flaw was corrected in commit `6e8c000` by revising how the mutable reference is constructed, avoiding inclusion of a shared reference in the resulting borrow chain.
+     
+     ## Example
+     
+     ```rust
+     use anyhow::Error;
+     use std::fmt;
+     
+     #[derive(Debug)]
+     struct ErrorContext(&'static str);
+     
+     impl fmt::Display for ErrorContext {
+         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+             fmt::Display::fmt(&self.0, f)
+         }
+     }
+     
+     fn main() {
+         let mut error = Error::msg("inner error").context(ErrorContext("old context"));
+         let context: &mut ErrorContext = error.downcast_mut().unwrap();
+         context.0 = "new context";
+         println!("{:?}", error);
+     }
+     ```
+     
+     ## Miri output
+     
+     ```
+     error: Undefined Behavior: trying to retag from <1538> for Unique permission at alloc602[0x38], but that tag only grants SharedReadOnly permission for this location
+        --> src/ptr.rs:170:18
+         |
+     170 |         unsafe { &mut *self.ptr.as_ptr() }
+         |                  ^^^^^^^^^^^^^^^^^^^^^^^ this error occurs as part of retag at alloc602[0x38..0x48]
+         |
+         = help: this indicates a potential bug in the program: it performed an invalid operation, but the Stacked Borrows rules it violated are still experimental
+         = help: see https://github.com/rust-lang/unsafe-code-guidelines/blob/master/wip/stacked-borrows.md for further information
+     help: <1538> was created by a SharedReadOnly retag at offsets [0x38..0x48]
+        --> src/ptr.rs:89:18
+         |
+      89 |             ptr: NonNull::from(ptr),
+         |                  ^^^^^^^^^^^^^^^^^^
+         = note: stack backtrace:
+                 0: anyhow::ptr::Mut::<'_, ErrorContext>::deref_mut
+                     at src/ptr.rs:170:18: 170:41
+                 1: anyhow::error::<impl anyhow::Error>::downcast_mut::<ErrorContext>
+                     at src/error.rs:560:18: 560:46
+                 2: main
+                     at examples/downcast_mut.rs:15:38: 15:58
+     ```
+   [0m[36m├[0m Announcement: https://github.com/dtolnay/anyhow/issues/451
+   [0m[36m├[0m Solution: Upgrade to >=1.0.103 (try `cargo update -p anyhow`)
+   [0m[36m├[0m anyhow v1.0.102
+     ├── av-scenechange v0.14.1
+     │   └── rav1e v0.8.1
+     │       └── ravif v0.13.0
+     │           └── image v0.25.10
+     │               └── fastembed v5.13.0
+     │                   └── dreamswarm v0.1.0
+     ├── av1-grain v0.2.5
+     │   └── rav1e v0.8.1 (*)
+     ├── dreamswarm v0.1.0 (*)
+     ├── fastembed v5.13.0 (*)
+     ├── opendal v0.50.2
+     │   └── dreamswarm v0.1.0 (*)
+     └── reqsign v0.16.5
+         └── opendal v0.50.2 (*)
+
+[0m[1m[38;5;9merror[unmaintained][0m[1m: core2 is unmaintained, all versions yanked[0m
+   [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:89:1
+   [0m[36m│[0m
+[0m[36m89[0m [0m[36m│[0m [0m[31mcore2 0.4.0 registry+https://github.com/rust-lang/crates.io-index[0m
+   [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31munmaintained advisory detected[0m
+   [0m[36m│[0m
+   [0m[36m├[0m ID: RUSTSEC-2026-0105
+   [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0105
+   [0m[36m├[0m The maintainer decided stop maintaining crate and yanked all published versions.
+     
+     Potential alternatives:
+     
+     - [`embedded-io`](https://crates.io/crates/embedded-io) solves the same general problem
+     - [`no-std-io2`](https://crates.io/crates/no-std-io2) is a maintained fork
+   [0m[36m├[0m Announcement: https://hachyderm.io/@piecritic/116404790999620656
+   [0m[36m├[0m Solution: No safe upgrade is available!
+   [0m[36m├[0m core2 v0.4.0
+     └── bitstream-io v4.9.0
+         └── rav1e v0.8.1
+             └── ravif v0.13.0
+                 └── image v0.25.10
+                     └── fastembed v5.13.0
+                         └── dreamswarm v0.1.0
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Invalid pointer dereference in `fmt::Pointer` impl for `Atomic` and `Shared` when the underlying pointer is invalid[0m
+   [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:96:1
+   [0m[36m│[0m
+[0m[36m96[0m [0m[36m│[0m [0m[31mcrossbeam-epoch 0.9.18 registry+https://github.com/rust-lang/crates.io-index[0m
+   [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+   [0m[36m│[0m
+   [0m[36m├[0m ID: RUSTSEC-2026-0204
+   [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0204
+   [0m[36m├[0m Affected versions of `fmt::Display` dereference the underlying pointer. This causes a invalid pointer dereference e.g., when a pointer created with `Atomic::null` or `Shared::null`. `fmt::Debug` impls and pre-0.9 `fmt::Display` impls, which do not dereference pointers, are not affected by this issue.
+   [0m[36m├[0m Announcement: https://github.com/crossbeam-rs/crossbeam/pull/1276
+   [0m[36m├[0m Solution: Upgrade to >=0.9.20 (try `cargo update -p crossbeam-epoch`)
+   [0m[36m├[0m crossbeam-epoch v0.9.18
+     └── crossbeam-deque v0.8.6
+         └── rayon-core v1.13.0
+             ├── exr v1.74.0
+             │   └── image v0.25.10
+             │       └── fastembed v5.13.0
+             │           └── dreamswarm v0.1.0
+             └── rayon v1.11.0
+                 ├── av-scenechange v0.14.1
+                 │   └── rav1e v0.8.1
+                 │       └── ravif v0.13.0
+                 │           └── image v0.25.10 (*)
+                 ├── image v0.25.10 (*)
+                 ├── maybe-rayon v0.1.1
+                 │   └── rav1e v0.8.1 (*)
+                 ├── ravif v0.13.0 (*)
+                 ├── rayon-cond v0.4.0
+                 │   └── tokenizers v0.22.2
+                 │       └── fastembed v5.13.0 (*)
+                 └── tokenizers v0.22.2 (*)
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: h2 unbounded empty DATA frames[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:165:1
+    [0m[36m│[0m
+[0m[36m165[0m [0m[36m│[0m [0m[31mh2 0.4.13 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0258
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0258
+    [0m[36m├[0m The h2 crate, used internally by hyper, had a flaw that would accept and queue empty DATA frames without limit.
+      If streams were not actively drained, this could lead to unbounded memory usage, or a panic if the length overflows.
+      
+      Low severity.
+      
+      Patched in v0.4.16.
+    [0m[36m├[0m Announcement: https://github.com/hyperium/h2/pull/935
+    [0m[36m├[0m Solution: Upgrade to >=0.4.16 (try `cargo update -p h2`)
+    [0m[36m├[0m h2 v0.4.13
+      ├── aws-smithy-http-client v1.1.12
+      │   └── aws-smithy-runtime v1.10.3
+      │       ├── aws-config v1.8.15
+      │       │   └── dreamswarm v0.1.0
+      │       ├── aws-runtime v1.7.2
+      │       │   ├── aws-config v1.8.15 (*)
+      │       │   ├── aws-sdk-sso v1.97.0
+      │       │   │   └── aws-config v1.8.15 (*)
+      │       │   ├── aws-sdk-ssooidc v1.99.0
+      │       │   │   └── aws-config v1.8.15 (*)
+      │       │   └── aws-sdk-sts v1.101.0
+      │       │       └── aws-config v1.8.15 (*)
+      │       ├── aws-sdk-sso v1.97.0 (*)
+      │       ├── aws-sdk-ssooidc v1.99.0 (*)
+      │       └── aws-sdk-sts v1.101.0 (*)
+      ├── hyper v1.9.0
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   ├── axum v0.7.9
+      │   │   └── dreamswarm v0.1.0 (*)
+      │   ├── hyper-rustls v0.27.7
+      │   │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   │   └── reqwest v0.12.28
+      │   │       ├── dreamswarm v0.1.0 (*)
+      │   │       ├── hf-hub v0.4.3
+      │   │       │   └── fastembed v5.13.0
+      │   │       │       └── dreamswarm v0.1.0 (*)
+      │   │       ├── opendal v0.50.2
+      │   │       │   └── dreamswarm v0.1.0 (*)
+      │   │       └── reqsign v0.16.5
+      │   │           └── opendal v0.50.2 (*)
+      │   ├── hyper-tls v0.6.0
+      │   │   └── reqwest v0.12.28 (*)
+      │   ├── hyper-util v0.1.20
+      │   │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   │   ├── axum v0.7.9 (*)
+      │   │   ├── hyper-rustls v0.27.7 (*)
+      │   │   ├── hyper-tls v0.6.0 (*)
+      │   │   └── reqwest v0.12.28 (*)
+      │   └── reqwest v0.12.28 (*)
+      └── reqwest v0.12.28 (*)
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Quadratic run time when checking a start tag for duplicate attribute names[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:306:1
+    [0m[36m│[0m
+[0m[36m306[0m [0m[36m│[0m [0m[31mquick-xml 0.36.2 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0194
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0194
+    [0m[36m├[0m `BytesStart::attributes()` returns an `Attributes` iterator which, by default
+      (`with_checks(true)`), rejects a start tag that repeats an attribute name. For
+      each attribute yielded, the iterator compared the new name against every name
+      seen so far in the same tag using a linear scan, so a start tag with `N`
+      distinct attribute names cost `O(N²)` byte comparisons. There was no bound on
+      `N` other than the size of the buffered start tag.
+      
+      ## Impact
+      
+      Any code that parses untrusted XML and iterates a start tag's attributes with
+      the default duplicate check enabled can be made to spend CPU time quadratic in
+      the number of attributes on a single tag. Because the check is pure computation
+      with no `.await`/I/O, an I/O-based timeout on the consumer (for example a read
+      or request timeout) cannot interrupt it while it runs.
+      
+      Measured cost of a single start tag, release build:
+      
+      | Attributes on one tag | Time |
+      |---|---|
+      | 80,000  | ~6 s   |
+      | 800,000 | ~10 min |
+      
+      The cost grows with the square of the attribute count, so a start tag of a few
+      tens of megabytes can stall a parsing thread for hours. No memory is exhausted
+      and the parser does not crash; the effect is CPU exhaustion on the thread doing
+      the parsing: a single crafted start tag can pin a CPU core for minutes to hours,
+      denying service to that worker. A deployment that places a wall-clock bound on
+      parsing, or confines it to a non-critical thread, may consider the availability
+      impact lower.
+      
+      ## Affected code paths
+      
+      * `BytesStart::attributes()` / `Attributes` iterated with checks enabled (the
+        default), and `BytesStart::try_get_attribute`.
+      * `NsReader`, which resolves namespaces by iterating a tag's attributes and so
+        reaches the same check internally.
+      
+      Consumers that iterate attributes with `.attributes().with_checks(false)` and do
+      not use `NsReader` are not affected.
+      
+      This was reported as reachable by a remote, unauthenticated attacker in a
+      real-world RPKI relying party (NLnet Labs Routinator) via a crafted RRDP
+      `snapshot.xml`.
+      
+      ## Remediation
+      
+      Upgrade to `quick-xml >= 0.41.0`, where the duplicate check keeps the linear
+      scan for start tags with a small number of attributes and switches to an `O(1)`
+      hash pre-filter above a threshold, making the whole tag `O(N)`. The reported
+      `AttrError::Duplicated` positions are unchanged.
+      
+      If upgrading is not possible and duplicate-name detection is not required,
+      disable it with `.attributes().with_checks(false)` (this does not help
+      `NsReader` consumers, which have no equivalent opt-out before 0.41.0).
+    [0m[36m├[0m Announcement: https://github.com/tafia/quick-xml/issues/969
+    [0m[36m├[0m Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+    [0m[36m├[0m quick-xml v0.36.2
+      └── opendal v0.50.2
+          └── dreamswarm v0.1.0
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Unbounded namespace-declaration allocation in `NsReader` enables memory-exhaustion denial of service[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:306:1
+    [0m[36m│[0m
+[0m[36m306[0m [0m[36m│[0m [0m[31mquick-xml 0.36.2 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0195
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0195
+    [0m[36m├[0m `NsReader` resolves namespaces by calling `NamespaceResolver::push` for every
+      `Start`/`Empty` event *before* the event is returned to the caller. `push`
+      iterated all `xmlns` / `xmlns:*` attributes on the start tag and, for each one,
+      appended the prefix bytes to an internal buffer and pushed a `NamespaceBinding`
+      (32 bytes on 64-bit) to an internal `Vec`, with no upper bound on the number of
+      declarations.
+      
+      ## Impact
+      
+      A start tag with `N` namespace declarations drove roughly `3×` the tag's byte
+      size in `NamespaceResolver` heap, allocated *inside* `quick-xml` before the
+      `NsReader` consumer ever received the event and could inspect or reject it. A
+      consumer that bounds its *input* size therefore still cannot bound this
+      allocation: an `M`-byte start tag yields on the order of `3 × M` bytes of
+      resolver heap the caller never sees.
+      
+      On untrusted XML this lets a remote, unauthenticated attacker force large heap
+      allocations with a single start tag. With several `NsReader`s running
+      concurrently on independent inputs (a common server pattern), the allocations
+      stack and can exhaust process memory, causing the operating system to kill the
+      process (OOM). This was confirmed against a real-world RPKI relying party (NLnet
+      Labs Routinator), where concurrent RRDP validation workers parsing a crafted
+      `snapshot.xml` exceeded the memory limit and the process was OOM-killed.
+      
+      ## Affected code paths
+      
+      Consumers using `NsReader` (which always calls `NamespaceResolver::push` before
+      yielding `Start`/`Empty`), or calling `NamespaceResolver::push` directly. A plain
+      `Reader` that does not perform namespace resolution is not affected.
+      
+      ## Remediation
+      
+      Upgrade to `quick-xml >= 0.41.0`. `NamespaceResolver::push` now rejects a start
+      tag that declares more than `DEFAULT_MAX_DECLARATIONS_PER_ELEMENT` (256)
+      namespace bindings, returning the new `NamespaceError::TooManyDeclarations`
+      instead of allocating without limit. The limit is configurable via
+      `NamespaceResolver::set_max_declarations_per_element` (use `usize::MAX` to
+      restore the previous unbounded behavior), and `NsReader::resolver_mut()` is
+      provided to reach it.
+      
+      There is no clean workaround for `NsReader` consumers before 0.41.0, as the
+      allocation happens inside the reader with no configuration knob to cap it.
+    [0m[36m├[0m Announcement: https://github.com/tafia/quick-xml/issues/970
+    [0m[36m├[0m Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+    [0m[36m├[0m quick-xml v0.36.2
+      └── opendal v0.50.2
+          └── dreamswarm v0.1.0
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Quadratic run time when checking a start tag for duplicate attribute names[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:307:1
+    [0m[36m│[0m
+[0m[36m307[0m [0m[36m│[0m [0m[31mquick-xml 0.37.5 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0194
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0194
+    [0m[36m├[0m `BytesStart::attributes()` returns an `Attributes` iterator which, by default
+      (`with_checks(true)`), rejects a start tag that repeats an attribute name. For
+      each attribute yielded, the iterator compared the new name against every name
+      seen so far in the same tag using a linear scan, so a start tag with `N`
+      distinct attribute names cost `O(N²)` byte comparisons. There was no bound on
+      `N` other than the size of the buffered start tag.
+      
+      ## Impact
+      
+      Any code that parses untrusted XML and iterates a start tag's attributes with
+      the default duplicate check enabled can be made to spend CPU time quadratic in
+      the number of attributes on a single tag. Because the check is pure computation
+      with no `.await`/I/O, an I/O-based timeout on the consumer (for example a read
+      or request timeout) cannot interrupt it while it runs.
+      
+      Measured cost of a single start tag, release build:
+      
+      | Attributes on one tag | Time |
+      |---|---|
+      | 80,000  | ~6 s   |
+      | 800,000 | ~10 min |
+      
+      The cost grows with the square of the attribute count, so a start tag of a few
+      tens of megabytes can stall a parsing thread for hours. No memory is exhausted
+      and the parser does not crash; the effect is CPU exhaustion on the thread doing
+      the parsing: a single crafted start tag can pin a CPU core for minutes to hours,
+      denying service to that worker. A deployment that places a wall-clock bound on
+      parsing, or confines it to a non-critical thread, may consider the availability
+      impact lower.
+      
+      ## Affected code paths
+      
+      * `BytesStart::attributes()` / `Attributes` iterated with checks enabled (the
+        default), and `BytesStart::try_get_attribute`.
+      * `NsReader`, which resolves namespaces by iterating a tag's attributes and so
+        reaches the same check internally.
+      
+      Consumers that iterate attributes with `.attributes().with_checks(false)` and do
+      not use `NsReader` are not affected.
+      
+      This was reported as reachable by a remote, unauthenticated attacker in a
+      real-world RPKI relying party (NLnet Labs Routinator) via a crafted RRDP
+      `snapshot.xml`.
+      
+      ## Remediation
+      
+      Upgrade to `quick-xml >= 0.41.0`, where the duplicate check keeps the linear
+      scan for start tags with a small number of attributes and switches to an `O(1)`
+      hash pre-filter above a threshold, making the whole tag `O(N)`. The reported
+      `AttrError::Duplicated` positions are unchanged.
+      
+      If upgrading is not possible and duplicate-name detection is not required,
+      disable it with `.attributes().with_checks(false)` (this does not help
+      `NsReader` consumers, which have no equivalent opt-out before 0.41.0).
+    [0m[36m├[0m Announcement: https://github.com/tafia/quick-xml/issues/969
+    [0m[36m├[0m Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+    [0m[36m├[0m quick-xml v0.37.5
+      └── reqsign v0.16.5
+          └── opendal v0.50.2
+              └── dreamswarm v0.1.0
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Unbounded namespace-declaration allocation in `NsReader` enables memory-exhaustion denial of service[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:307:1
+    [0m[36m│[0m
+[0m[36m307[0m [0m[36m│[0m [0m[31mquick-xml 0.37.5 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0195
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0195
+    [0m[36m├[0m `NsReader` resolves namespaces by calling `NamespaceResolver::push` for every
+      `Start`/`Empty` event *before* the event is returned to the caller. `push`
+      iterated all `xmlns` / `xmlns:*` attributes on the start tag and, for each one,
+      appended the prefix bytes to an internal buffer and pushed a `NamespaceBinding`
+      (32 bytes on 64-bit) to an internal `Vec`, with no upper bound on the number of
+      declarations.
+      
+      ## Impact
+      
+      A start tag with `N` namespace declarations drove roughly `3×` the tag's byte
+      size in `NamespaceResolver` heap, allocated *inside* `quick-xml` before the
+      `NsReader` consumer ever received the event and could inspect or reject it. A
+      consumer that bounds its *input* size therefore still cannot bound this
+      allocation: an `M`-byte start tag yields on the order of `3 × M` bytes of
+      resolver heap the caller never sees.
+      
+      On untrusted XML this lets a remote, unauthenticated attacker force large heap
+      allocations with a single start tag. With several `NsReader`s running
+      concurrently on independent inputs (a common server pattern), the allocations
+      stack and can exhaust process memory, causing the operating system to kill the
+      process (OOM). This was confirmed against a real-world RPKI relying party (NLnet
+      Labs Routinator), where concurrent RRDP validation workers parsing a crafted
+      `snapshot.xml` exceeded the memory limit and the process was OOM-killed.
+      
+      ## Affected code paths
+      
+      Consumers using `NsReader` (which always calls `NamespaceResolver::push` before
+      yielding `Start`/`Empty`), or calling `NamespaceResolver::push` directly. A plain
+      `Reader` that does not perform namespace resolution is not affected.
+      
+      ## Remediation
+      
+      Upgrade to `quick-xml >= 0.41.0`. `NamespaceResolver::push` now rejects a start
+      tag that declares more than `DEFAULT_MAX_DECLARATIONS_PER_ELEMENT` (256)
+      namespace bindings, returning the new `NamespaceError::TooManyDeclarations`
+      instead of allocating without limit. The limit is configurable via
+      `NamespaceResolver::set_max_declarations_per_element` (use `usize::MAX` to
+      restore the previous unbounded behavior), and `NsReader::resolver_mut()` is
+      provided to reach it.
+      
+      There is no clean workaround for `NsReader` consumers before 0.41.0, as the
+      allocation happens inside the reader with no configuration knob to cap it.
+    [0m[36m├[0m Announcement: https://github.com/tafia/quick-xml/issues/970
+    [0m[36m├[0m Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+    [0m[36m├[0m quick-xml v0.37.5
+      └── reqsign v0.16.5
+          └── opendal v0.50.2
+              └── dreamswarm v0.1.0
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:344:1
+    [0m[36m│[0m
+[0m[36m344[0m [0m[36m│[0m [0m[31mrustls 0.23.37 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0285
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0285
+    [0m[36m├[0m Rustls accepted TLS 1.3 handshake messages sent at the wrong encryption level
+      when they followed a key-changing message in the same record. For example,
+      a plaintext `EncryptedExtensions` message packed into the same record as the
+      `ServerHello` was accepted.
+      
+      RFC 8446 section 5.1 requires that handshake messages do not span key changes,
+      and that implementations terminate the connection with an "unexpected_message"
+      alert if they do.
+      
+      The handshake transcript is still authenticated, so a network-position attacker
+      cannot use this to alter or complete a handshake; the practical effect is that
+      a peer could send handshake messages that should be encrypted in plaintext
+      without rustls rejecting the connection.
+      
+      This is functionally the same bug as Go's
+      [GO-2026-4340](https://pkg.go.dev/vuln/GO-2026-4340) (CVE-2025-61730).
+    [0m[36m├[0m Announcement: https://github.com/rustls/rustls/pull/3265
+    [0m[36m├[0m Solution: Upgrade to >=0.23.45 (try `cargo update -p rustls`)
+    [0m[36m├[0m rustls v0.23.37
+      ├── aws-smithy-http-client v1.1.12
+      │   └── aws-smithy-runtime v1.10.3
+      │       ├── aws-config v1.8.15
+      │       │   └── dreamswarm v0.1.0
+      │       ├── aws-runtime v1.7.2
+      │       │   ├── aws-config v1.8.15 (*)
+      │       │   ├── aws-sdk-sso v1.97.0
+      │       │   │   └── aws-config v1.8.15 (*)
+      │       │   ├── aws-sdk-ssooidc v1.99.0
+      │       │   │   └── aws-config v1.8.15 (*)
+      │       │   └── aws-sdk-sts v1.101.0
+      │       │       └── aws-config v1.8.15 (*)
+      │       ├── aws-sdk-sso v1.97.0 (*)
+      │       ├── aws-sdk-ssooidc v1.99.0 (*)
+      │       └── aws-sdk-sts v1.101.0 (*)
+      ├── hyper-rustls v0.27.7
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   └── reqwest v0.12.28
+      │       ├── dreamswarm v0.1.0 (*)
+      │       ├── hf-hub v0.4.3
+      │       │   └── fastembed v5.13.0
+      │       │       └── dreamswarm v0.1.0 (*)
+      │       ├── opendal v0.50.2
+      │       │   └── dreamswarm v0.1.0 (*)
+      │       └── reqsign v0.16.5
+      │           └── opendal v0.50.2 (*)
+      ├── reqwest v0.12.28 (*)
+      ├── tokio-rustls v0.26.4
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   ├── hyper-rustls v0.27.7 (*)
+      │   └── reqwest v0.12.28 (*)
+      ├── ureq v2.12.1
+      │   └── hf-hub v0.4.3 (*)
+      └── ureq v3.3.0
+          └── (build) ort-sys v2.0.0-rc.11
+              └── ort v2.0.0-rc.11
+                  ├── dreamswarm v0.1.0 (*)
+                  └── fastembed v5.13.0 (*)
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: `Debug` impls for client session values expose TLS secrets[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:344:1
+    [0m[36m│[0m
+[0m[36m344[0m [0m[36m│[0m [0m[31mrustls 0.23.37 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0346
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0346
+    [0m[36m├[0m The `Debug` implementations of `Tls12ClientSessionValue` and
+      `Tls13ClientSessionValue` were derived, and so included the TLS 1.2 master
+      secret or TLS 1.3 resumption PSK in their output.
+      
+      Custom `ClientSessionStore` implementations that format these values with
+      `Debug` (for example, when logging) could disclose these secrets to readers of
+      the logs. This conflicts with rustls's
+      [key-material redaction policy](https://github.com/rustls/rustls/blob/99f2358cae2954837dbb866faf6727de75489ab9/SECURITY.md#boundary-public-api).
+      
+      Ordinary connection and built-in session cache `Debug` output is redacted and
+      is not affected.
+    [0m[36m├[0m Announcement: https://github.com/rustls/rustls/pull/3299
+    [0m[36m├[0m Solution: Upgrade to >=0.23.46 (try `cargo update -p rustls`)
+    [0m[36m├[0m rustls v0.23.37
+      ├── aws-smithy-http-client v1.1.12
+      │   └── aws-smithy-runtime v1.10.3
+      │       ├── aws-config v1.8.15
+      │       │   └── dreamswarm v0.1.0
+      │       ├── aws-runtime v1.7.2
+      │       │   ├── aws-config v1.8.15 (*)
+      │       │   ├── aws-sdk-sso v1.97.0
+      │       │   │   └── aws-config v1.8.15 (*)
+      │       │   ├── aws-sdk-ssooidc v1.99.0
+      │       │   │   └── aws-config v1.8.15 (*)
+      │       │   └── aws-sdk-sts v1.101.0
+      │       │       └── aws-config v1.8.15 (*)
+      │       ├── aws-sdk-sso v1.97.0 (*)
+      │       ├── aws-sdk-ssooidc v1.99.0 (*)
+      │       └── aws-sdk-sts v1.101.0 (*)
+      ├── hyper-rustls v0.27.7
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   └── reqwest v0.12.28
+      │       ├── dreamswarm v0.1.0 (*)
+      │       ├── hf-hub v0.4.3
+      │       │   └── fastembed v5.13.0
+      │       │       └── dreamswarm v0.1.0 (*)
+      │       ├── opendal v0.50.2
+      │       │   └── dreamswarm v0.1.0 (*)
+      │       └── reqsign v0.16.5
+      │           └── opendal v0.50.2 (*)
+      ├── reqwest v0.12.28 (*)
+      ├── tokio-rustls v0.26.4
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   ├── hyper-rustls v0.27.7 (*)
+      │   └── reqwest v0.12.28 (*)
+      ├── ureq v2.12.1
+      │   └── hf-hub v0.4.3 (*)
+      └── ureq v3.3.0
+          └── (build) ort-sys v2.0.0-rc.11
+              └── ort v2.0.0-rc.11
+                  ├── dreamswarm v0.1.0 (*)
+                  └── fastembed v5.13.0 (*)
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Brotli certificate decompression can allocate up to 1 GiB before authentication[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:344:1
+    [0m[36m│[0m
+[0m[36m344[0m [0m[36m│[0m [0m[31mrustls 0.23.37 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0348
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0348
+    [0m[36m├[0m The built-in Brotli certificate decompressor (enabled by the non-default
+      `brotli` crate feature) bounded the size of the decompressed output, but
+      accepted a peer-selected history window. Brotli's large-window extension was
+      enabled, so a five-byte header could cause an allocation of 1 GiB. A peer can
+      abort a process whose allocator cannot satisfy that request.
+      
+      No trusted certificate is required by the attacker. Affected configurations are:
+      
+      - clients that enable the `brotli` feature and connect to a malicious server, and
+      - servers that enable the `brotli` feature and request client certificates.
+      
+      Applications that do not enable the `brotli` feature are not affected.
+    [0m[36m├[0m Announcement: https://github.com/rustls/rustls/pull/3297
+    [0m[36m├[0m Solution: Upgrade to >=0.23.46 (try `cargo update -p rustls`)
+    [0m[36m├[0m rustls v0.23.37
+      ├── aws-smithy-http-client v1.1.12
+      │   └── aws-smithy-runtime v1.10.3
+      │       ├── aws-config v1.8.15
+      │       │   └── dreamswarm v0.1.0
+      │       ├── aws-runtime v1.7.2
+      │       │   ├── aws-config v1.8.15 (*)
+      │       │   ├── aws-sdk-sso v1.97.0
+      │       │   │   └── aws-config v1.8.15 (*)
+      │       │   ├── aws-sdk-ssooidc v1.99.0
+      │       │   │   └── aws-config v1.8.15 (*)
+      │       │   └── aws-sdk-sts v1.101.0
+      │       │       └── aws-config v1.8.15 (*)
+      │       ├── aws-sdk-sso v1.97.0 (*)
+      │       ├── aws-sdk-ssooidc v1.99.0 (*)
+      │       └── aws-sdk-sts v1.101.0 (*)
+      ├── hyper-rustls v0.27.7
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   └── reqwest v0.12.28
+      │       ├── dreamswarm v0.1.0 (*)
+      │       ├── hf-hub v0.4.3
+      │       │   └── fastembed v5.13.0
+      │       │       └── dreamswarm v0.1.0 (*)
+      │       ├── opendal v0.50.2
+      │       │   └── dreamswarm v0.1.0 (*)
+      │       └── reqsign v0.16.5
+      │           └── opendal v0.50.2 (*)
+      ├── reqwest v0.12.28 (*)
+      ├── tokio-rustls v0.26.4
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   ├── hyper-rustls v0.27.7 (*)
+      │   └── reqwest v0.12.28 (*)
+      ├── ureq v2.12.1
+      │   └── hf-hub v0.4.3 (*)
+      └── ureq v3.3.0
+          └── (build) ort-sys v2.0.0-rc.11
+              └── ort v2.0.0-rc.11
+                  ├── dreamswarm v0.1.0 (*)
+                  └── fastembed v5.13.0 (*)
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Unauthenticated ServerHello can downgrade later connections to classical key exchange[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:344:1
+    [0m[36m│[0m
+[0m[36m344[0m [0m[36m│[0m [0m[31mrustls 0.23.37 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0349
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0349
+    [0m[36m├[0m The client recorded the server-selected key exchange group for each server
+      name when processing the ServerHello, before the server was authenticated.
+      This record is used to predict which key share to send in future ClientHellos
+      to that server name.
+      
+      A network attacker can answer one connection attempt with a ServerHello
+      selecting X25519, and then close the connection. Later ClientHellos for that
+      name carry only an X25519 key share, while `supported_groups` still lists
+      X25519MLKEM768 first. If the genuine server accepts that share rather than
+      sending a HelloRetryRequest for its preferred hybrid group, the handshake
+      completes with classical-only key exchange and no error. This persists for as
+      long as the entry stays in the client's session store.
+      
+      The impact is loss of post-quantum confidentiality for affected connections
+      ("harvest now, decrypt later"). There is no key compromise and no
+      authentication bypass.
+      
+      The following are not affected:
+      
+      - connections to servers which send a HelloRetryRequest for their preferred group,
+      - clients with resumption disabled (as nothing is stored), and
+      - other server names.
+      
+      This behaviour is discussed in
+      [draft-ietf-tls-key-share-prediction](https://www.ietf.org/archive/id/draft-ietf-tls-key-share-prediction-01.html#name-security-considerations),
+      so the practical impact depends largely on server policy.
+    [0m[36m├[0m Announcement: https://github.com/rustls/rustls/pull/3355
+    [0m[36m├[0m Solution: Upgrade to >=0.23.46 (try `cargo update -p rustls`)
+    [0m[36m├[0m rustls v0.23.37
+      ├── aws-smithy-http-client v1.1.12
+      │   └── aws-smithy-runtime v1.10.3
+      │       ├── aws-config v1.8.15
+      │       │   └── dreamswarm v0.1.0
+      │       ├── aws-runtime v1.7.2
+      │       │   ├── aws-config v1.8.15 (*)
+      │       │   ├── aws-sdk-sso v1.97.0
+      │       │   │   └── aws-config v1.8.15 (*)
+      │       │   ├── aws-sdk-ssooidc v1.99.0
+      │       │   │   └── aws-config v1.8.15 (*)
+      │       │   └── aws-sdk-sts v1.101.0
+      │       │       └── aws-config v1.8.15 (*)
+      │       ├── aws-sdk-sso v1.97.0 (*)
+      │       ├── aws-sdk-ssooidc v1.99.0 (*)
+      │       └── aws-sdk-sts v1.101.0 (*)
+      ├── hyper-rustls v0.27.7
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   └── reqwest v0.12.28
+      │       ├── dreamswarm v0.1.0 (*)
+      │       ├── hf-hub v0.4.3
+      │       │   └── fastembed v5.13.0
+      │       │       └── dreamswarm v0.1.0 (*)
+      │       ├── opendal v0.50.2
+      │       │   └── dreamswarm v0.1.0 (*)
+      │       └── reqsign v0.16.5
+      │           └── opendal v0.50.2 (*)
+      ├── reqwest v0.12.28 (*)
+      ├── tokio-rustls v0.26.4
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   ├── hyper-rustls v0.27.7 (*)
+      │   └── reqwest v0.12.28 (*)
+      ├── ureq v2.12.1
+      │   └── hf-hub v0.4.3 (*)
+      └── ureq v3.3.0
+          └── (build) ort-sys v2.0.0-rc.11
+              └── ort v2.0.0-rc.11
+                  ├── dreamswarm v0.1.0 (*)
+                  └── fastembed v5.13.0 (*)
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Reachable panic in certificate revocation list parsing[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:347:1
+    [0m[36m│[0m
+[0m[36m347[0m [0m[36m│[0m [0m[31mrustls-webpki 0.103.12 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0104
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0104
+    [0m[36m├[0m A panic was reachable when parsing certificate revocation lists via [`BorrowedCertRevocationList::from_der`]
+      or [`OwnedCertRevocationList::from_der`].  This was the result of mishandling a syntactically valid empty
+      `BIT STRING` appearing in the `onlySomeReasons` element of a `IssuingDistributionPoint` CRL extension.
+      
+      This panic is reachable prior to a CRL's signature being verified.
+      
+      Applications that do not use CRLs are not affected.
+      
+      Thank you to [@tynus3](https://github.com/tynus3) for the report.
+    [0m[36m├[0m Solution: Upgrade to >=0.103.13, <0.104.0-alpha.1 OR >=0.104.0-alpha.7 (try `cargo update -p rustls-webpki`)
+    [0m[36m├[0m rustls-webpki v0.103.12
+      └── rustls v0.23.37
+          ├── aws-smithy-http-client v1.1.12
+          │   └── aws-smithy-runtime v1.10.3
+          │       ├── aws-config v1.8.15
+          │       │   └── dreamswarm v0.1.0
+          │       ├── aws-runtime v1.7.2
+          │       │   ├── aws-config v1.8.15 (*)
+          │       │   ├── aws-sdk-sso v1.97.0
+          │       │   │   └── aws-config v1.8.15 (*)
+          │       │   ├── aws-sdk-ssooidc v1.99.0
+          │       │   │   └── aws-config v1.8.15 (*)
+          │       │   └── aws-sdk-sts v1.101.0
+          │       │       └── aws-config v1.8.15 (*)
+          │       ├── aws-sdk-sso v1.97.0 (*)
+          │       ├── aws-sdk-ssooidc v1.99.0 (*)
+          │       └── aws-sdk-sts v1.101.0 (*)
+          ├── hyper-rustls v0.27.7
+          │   ├── aws-smithy-http-client v1.1.12 (*)
+          │   └── reqwest v0.12.28
+          │       ├── dreamswarm v0.1.0 (*)
+          │       ├── hf-hub v0.4.3
+          │       │   └── fastembed v5.13.0
+          │       │       └── dreamswarm v0.1.0 (*)
+          │       ├── opendal v0.50.2
+          │       │   └── dreamswarm v0.1.0 (*)
+          │       └── reqsign v0.16.5
+          │           └── opendal v0.50.2 (*)
+          ├── reqwest v0.12.28 (*)
+          ├── tokio-rustls v0.26.4
+          │   ├── aws-smithy-http-client v1.1.12 (*)
+          │   ├── hyper-rustls v0.27.7 (*)
+          │   └── reqwest v0.12.28 (*)
+          ├── ureq v2.12.1
+          │   └── hf-hub v0.4.3 (*)
+          └── ureq v3.3.0
+              └── (build) ort-sys v2.0.0-rc.11
+                  └── ort v2.0.0-rc.11
+                      ├── dreamswarm v0.1.0 (*)
+                      └── fastembed v5.13.0 (*)
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Certificate verification may accept distrusted intermediates[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:347:1
+    [0m[36m│[0m
+[0m[36m347[0m [0m[36m│[0m [0m[31mrustls-webpki 0.103.12 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0382
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0382
+    [0m[36m├[0m Affected versions may accept certificate paths containing distrusted emSign
+      intermediate public keys when the configured trust anchors allow such paths.
+      The private keys corresponding to these intermediates are now well known.
+      
+      Versions 0.103.16 and 0.104.0-alpha.8 reject paths containing these public keys.
+    [0m[36m├[0m Announcement: https://github.com/rustls/webpki/pull/546
+    [0m[36m├[0m Solution: Upgrade to >=0.103.16, <0.104.0-alpha.1 OR >=0.104.0-alpha.8 (try `cargo update -p rustls-webpki`)
+    [0m[36m├[0m rustls-webpki v0.103.12
+      └── rustls v0.23.37
+          ├── aws-smithy-http-client v1.1.12
+          │   └── aws-smithy-runtime v1.10.3
+          │       ├── aws-config v1.8.15
+          │       │   └── dreamswarm v0.1.0
+          │       ├── aws-runtime v1.7.2
+          │       │   ├── aws-config v1.8.15 (*)
+          │       │   ├── aws-sdk-sso v1.97.0
+          │       │   │   └── aws-config v1.8.15 (*)
+          │       │   ├── aws-sdk-ssooidc v1.99.0
+          │       │   │   └── aws-config v1.8.15 (*)
+          │       │   └── aws-sdk-sts v1.101.0
+          │       │       └── aws-config v1.8.15 (*)
+          │       ├── aws-sdk-sso v1.97.0 (*)
+          │       ├── aws-sdk-ssooidc v1.99.0 (*)
+          │       └── aws-sdk-sts v1.101.0 (*)
+          ├── hyper-rustls v0.27.7
+          │   ├── aws-smithy-http-client v1.1.12 (*)
+          │   └── reqwest v0.12.28
+          │       ├── dreamswarm v0.1.0 (*)
+          │       ├── hf-hub v0.4.3
+          │       │   └── fastembed v5.13.0
+          │       │       └── dreamswarm v0.1.0 (*)
+          │       ├── opendal v0.50.2
+          │       │   └── dreamswarm v0.1.0 (*)
+          │       └── reqsign v0.16.5
+          │           └── opendal v0.50.2 (*)
+          ├── reqwest v0.12.28 (*)
+          ├── tokio-rustls v0.26.4
+          │   ├── aws-smithy-http-client v1.1.12 (*)
+          │   ├── hyper-rustls v0.27.7 (*)
+          │   └── reqwest v0.12.28 (*)
+          ├── ureq v2.12.1
+          │   └── hf-hub v0.4.3 (*)
+          └── ureq v3.3.0
+              └── (build) ort-sys v2.0.0-rc.11
+                  └── ort v2.0.0-rc.11
+                      ├── dreamswarm v0.1.0 (*)
+                      └── fastembed v5.13.0 (*)
+
+[0m[1m[38;5;9merror[unsound][0m[1m: `AsyncFd::new` and related constructors violate I/O safety[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:403:1
+    [0m[36m│[0m
+[0m[36m403[0m [0m[36m│[0m [0m[31mtokio 1.51.0 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31munsound advisory detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0386
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0386
+    [0m[36m├[0m `tokio::io::unix::AsyncFd` provides safe constructors (`new`, `with_interest`, `try_new`, and `try_with_interest`) that accept any `T: AsRawFd` rather than requiring proof of ownership or validity of the file descriptor. Because `RawFd` implements `AsRawFd`, safe code can construct an `AsyncFd` from an arbitrary or closed file descriptor, or close/replace the underlying file descriptor while the `AsyncFd` is still alive.
+      
+      This violates I/O safety in two ways:
+      
+      1. `AsyncFd<T>` implements `AsFd` for all `T: AsRawFd` by calling `BorrowedFd::borrow_raw(self.as_raw_fd())`, allowing safe code to obtain an arbitrary `BorrowedFd<'_>` without owning the file descriptor.
+      2. Tokio's I/O driver stores a pointer to an internal allocation in the `epoll`/`kqueue` user data for registered file descriptors. If the underlying file descriptor is duplicated and then closed while an `AsyncFd` is alive, and the OS reuses that file descriptor number for a another IO resource on the same runtime, dropping the first `AsyncFd` deregisters the reused file descriptor number and frees the first while the original file description remains registered in `epoll`, leading to a use-after-free when a readiness event fires.
+      
+      Starting in Tokio 1.51.6, 1.53.3, and 1.54.0, `AsyncFd::new`, `AsyncFd::with_interest`, `AsyncFd::try_new`, and `AsyncFd::try_with_interest` are deprecated in favor of the `unsafe` constructors `AsyncFd::register` and `AsyncFd::register_with_interest`. Callers must ensure that the file descriptor remains valid, open, and unchanged for the lifetime of the `AsyncFd`.
+    [0m[36m├[0m Announcement: https://github.com/tokio-rs/tokio/pull/8587
+    [0m[36m├[0m Solution: Upgrade to >=1.51.6, <1.52.0 OR >=1.53.3 (try `cargo update -p tokio`)
+    [0m[36m├[0m tokio v1.51.0
+      ├── aws-config v1.8.15
+      │   └── dreamswarm v0.1.0
+      ├── aws-smithy-async v1.2.14
+      │   ├── aws-config v1.8.15 (*)
+      │   ├── aws-credential-types v1.2.14
+      │   │   ├── aws-config v1.8.15 (*)
+      │   │   ├── aws-runtime v1.7.2
+      │   │   │   ├── aws-config v1.8.15 (*)
+      │   │   │   ├── aws-sdk-sso v1.97.0
+      │   │   │   │   └── aws-config v1.8.15 (*)
+      │   │   │   ├── aws-sdk-ssooidc v1.99.0
+      │   │   │   │   └── aws-config v1.8.15 (*)
+      │   │   │   └── aws-sdk-sts v1.101.0
+      │   │   │       └── aws-config v1.8.15 (*)
+      │   │   ├── aws-sdk-sso v1.97.0 (*)
+      │   │   ├── aws-sdk-ssooidc v1.99.0 (*)
+      │   │   ├── aws-sdk-sts v1.101.0 (*)
+      │   │   ├── aws-sigv4 v1.4.2
+      │   │   │   └── aws-runtime v1.7.2 (*)
+      │   │   └── aws-types v1.3.14
+      │   │       ├── aws-config v1.8.15 (*)
+      │   │       ├── aws-runtime v1.7.2 (*)
+      │   │       ├── aws-sdk-sso v1.97.0 (*)
+      │   │       ├── aws-sdk-ssooidc v1.99.0 (*)
+      │   │       └── aws-sdk-sts v1.101.0 (*)
+      │   ├── aws-runtime v1.7.2 (*)
+      │   ├── aws-sdk-sso v1.97.0 (*)
+      │   ├── aws-sdk-ssooidc v1.99.0 (*)
+      │   ├── aws-sdk-sts v1.101.0 (*)
+      │   ├── aws-smithy-http-client v1.1.12
+      │   │   └── aws-smithy-runtime v1.10.3
+      │   │       ├── aws-config v1.8.15 (*)
+      │   │       ├── aws-runtime v1.7.2 (*)
+      │   │       ├── aws-sdk-sso v1.97.0 (*)
+      │   │       ├── aws-sdk-ssooidc v1.99.0 (*)
+      │   │       └── aws-sdk-sts v1.101.0 (*)
+      │   ├── aws-smithy-runtime v1.10.3 (*)
+      │   ├── aws-smithy-runtime-api v1.11.6
+      │   │   ├── aws-config v1.8.15 (*)
+      │   │   ├── aws-credential-types v1.2.14 (*)
+      │   │   ├── aws-runtime v1.7.2 (*)
+      │   │   ├── aws-sdk-sso v1.97.0 (*)
+      │   │   ├── aws-sdk-ssooidc v1.99.0 (*)
+      │   │   ├── aws-sdk-sts v1.101.0 (*)
+      │   │   ├── aws-sigv4 v1.4.2 (*)
+      │   │   ├── aws-smithy-http v0.63.6
+      │   │   │   ├── aws-config v1.8.15 (*)
+      │   │   │   ├── aws-runtime v1.7.2 (*)
+      │   │   │   ├── aws-sdk-sso v1.97.0 (*)
+      │   │   │   ├── aws-sdk-ssooidc v1.99.0 (*)
+      │   │   │   ├── aws-sdk-sts v1.101.0 (*)
+      │   │   │   ├── aws-sigv4 v1.4.2 (*)
+      │   │   │   └── aws-smithy-runtime v1.10.3 (*)
+      │   │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   │   ├── aws-smithy-observability v0.2.6
+      │   │   │   ├── aws-sdk-sso v1.97.0 (*)
+      │   │   │   ├── aws-sdk-ssooidc v1.99.0 (*)
+      │   │   │   ├── aws-sdk-sts v1.101.0 (*)
+      │   │   │   └── aws-smithy-runtime v1.10.3 (*)
+      │   │   ├── aws-smithy-runtime v1.10.3 (*)
+      │   │   └── aws-types v1.3.14 (*)
+      │   └── aws-types v1.3.14 (*)
+      ├── aws-smithy-http-client v1.1.12 (*)
+      ├── aws-smithy-runtime v1.10.3 (*)
+      ├── aws-smithy-runtime-api v1.11.6 (*)
+      ├── axum v0.7.9
+      │   └── dreamswarm v0.1.0 (*)
+      ├── backon v1.6.0
+      │   └── opendal v0.50.2
+      │       └── dreamswarm v0.1.0 (*)
+      ├── dreamswarm v0.1.0 (*)
+      ├── h2 v0.4.13
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   ├── hyper v1.9.0
+      │   │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   │   ├── axum v0.7.9 (*)
+      │   │   ├── hyper-rustls v0.27.7
+      │   │   │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   │   │   └── reqwest v0.12.28
+      │   │   │       ├── dreamswarm v0.1.0 (*)
+      │   │   │       ├── hf-hub v0.4.3
+      │   │   │       │   └── fastembed v5.13.0
+      │   │   │       │       └── dreamswarm v0.1.0 (*)
+      │   │   │       ├── opendal v0.50.2 (*)
+      │   │   │       └── reqsign v0.16.5
+      │   │   │           └── opendal v0.50.2 (*)
+      │   │   ├── hyper-tls v0.6.0
+      │   │   │   └── reqwest v0.12.28 (*)
+      │   │   ├── hyper-util v0.1.20
+      │   │   │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   │   │   ├── axum v0.7.9 (*)
+      │   │   │   ├── hyper-rustls v0.27.7 (*)
+      │   │   │   ├── hyper-tls v0.6.0 (*)
+      │   │   │   └── reqwest v0.12.28 (*)
+      │   │   └── reqwest v0.12.28 (*)
+      │   └── reqwest v0.12.28 (*)
+      ├── hyper v1.9.0 (*)
+      ├── hyper-rustls v0.27.7 (*)
+      ├── hyper-tls v0.6.0 (*)
+      ├── hyper-util v0.1.20 (*)
+      ├── opendal v0.50.2 (*)
+      ├── reqsign v0.16.5 (*)
+      ├── reqwest v0.12.28 (*)
+      ├── tokio-native-tls v0.3.1
+      │   ├── hyper-tls v0.6.0 (*)
+      │   └── reqwest v0.12.28 (*)
+      ├── tokio-rustls v0.26.4
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   ├── hyper-rustls v0.27.7 (*)
+      │   └── reqwest v0.12.28 (*)
+      ├── tokio-stream v0.1.18
+      │   └── dreamswarm v0.1.0 (*)
+      ├── tokio-util v0.7.18
+      │   ├── dreamswarm v0.1.0 (*)
+      │   ├── h2 v0.4.13 (*)
+      │   ├── reqwest v0.12.28 (*)
+      │   ├── tokio-stream v0.1.18 (*)
+      │   └── tower-http v0.5.2
+      │       └── dreamswarm v0.1.0 (*)
+      ├── tower v0.5.3
+      │   ├── aws-smithy-http-client v1.1.12 (*)
+      │   ├── axum v0.7.9 (*)
+      │   ├── reqwest v0.12.28 (*)
+      │   └── tower-http v0.6.8
+      │       └── reqwest v0.12.28 (*)
+      └── tower-http v0.5.2 (*)
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Bundled root certificates allow trust in distrusted emSign intermediates[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:460:1
+    [0m[36m│[0m
+[0m[36m460[0m [0m[36m│[0m [0m[31mwebpki-root-certs 1.0.6 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0383
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0383
+    [0m[36m├[0m Affected versions include `emSign ECC Root CA - G3`, which can allow certificate
+      paths through distrusted emSign intermediates.
+      
+      Affected versions may accept certificate paths containing distrusted emSign
+      intermediate public keys. The private keys corresponding to these intermediates
+      are now well known.
+      
+      Version 1.0.10+ removes this root.
+      
+      Version 0.26.11 is a compatibility wrapper that re-exports
+      `parent::TLS_SERVER_ROOT_CERTS` from its `webpki-root-certs` 1.x dependency; it
+      contains no separate root certificate list. Its resolved 1.x dependency must be
+      updated to 1.0.10 or later.
+    [0m[36m├[0m Announcement: https://github.com/rustls/webpki-roots/pull/133
+    [0m[36m├[0m Solution: Upgrade to >=1.0.10 (try `cargo update -p webpki-root-certs`)
+    [0m[36m├[0m webpki-root-certs v1.0.6
+      └── ureq v3.3.0
+          └── (build) ort-sys v2.0.0-rc.11
+              └── ort v2.0.0-rc.11
+                  ├── dreamswarm v0.1.0
+                  └── fastembed v5.13.0
+                      └── dreamswarm v0.1.0 (*)
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Bundled root certificates allow trust in distrusted emSign intermediates[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:462:1
+    [0m[36m│[0m
+[0m[36m462[0m [0m[36m│[0m [0m[31mwebpki-roots 1.0.6 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0381
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0381
+    [0m[36m├[0m Affected versions include `emSign ECC Root CA - G3`, which can allow certificate
+      paths through distrusted emSign intermediates.
+      
+      Affected versions may accept certificate paths containing distrusted emSign
+      intermediate public keys. The private keys corresponding to these intermediates
+      are now well known.
+      
+      Version 1.0.10+ removes this root.
+      
+      The `webpki-roots` 0.26.11 compatibility package contains no independent trust
+      store and re-exports the roots from its separately resolved 1.x dependency.
+      That parent dependency must resolve to 1.0.10 or newer; an older parent remains
+      affected by this advisory.
+    [0m[36m├[0m Announcement: https://github.com/rustls/webpki-roots/pull/133
+    [0m[36m├[0m Solution: Upgrade to >=1.0.10 (try `cargo update -p webpki-roots`)
+    [0m[36m├[0m webpki-roots v1.0.6
+      ├── hyper-rustls v0.27.7
+      │   ├── aws-smithy-http-client v1.1.12
+      │   │   └── aws-smithy-runtime v1.10.3
+      │   │       ├── aws-config v1.8.15
+      │   │       │   └── dreamswarm v0.1.0
+      │   │       ├── aws-runtime v1.7.2
+      │   │       │   ├── aws-config v1.8.15 (*)
+      │   │       │   ├── aws-sdk-sso v1.97.0
+      │   │       │   │   └── aws-config v1.8.15 (*)
+      │   │       │   ├── aws-sdk-ssooidc v1.99.0
+      │   │       │   │   └── aws-config v1.8.15 (*)
+      │   │       │   └── aws-sdk-sts v1.101.0
+      │   │       │       └── aws-config v1.8.15 (*)
+      │   │       ├── aws-sdk-sso v1.97.0 (*)
+      │   │       ├── aws-sdk-ssooidc v1.99.0 (*)
+      │   │       └── aws-sdk-sts v1.101.0 (*)
+      │   └── reqwest v0.12.28
+      │       ├── dreamswarm v0.1.0 (*)
+      │       ├── hf-hub v0.4.3
+      │       │   └── fastembed v5.13.0
+      │       │       └── dreamswarm v0.1.0 (*)
+      │       ├── opendal v0.50.2
+      │       │   └── dreamswarm v0.1.0 (*)
+      │       └── reqsign v0.16.5
+      │           └── opendal v0.50.2 (*)
+      ├── reqwest v0.12.28 (*)
+      ├── ureq v3.3.0
+      │   └── (build) ort-sys v2.0.0-rc.11
+      │       └── ort v2.0.0-rc.11
+      │           ├── dreamswarm v0.1.0 (*)
+      │           └── fastembed v5.13.0 (*)
+      └── webpki-roots v0.26.11
+          └── ureq v2.12.1
+              └── hf-hub v0.4.3 (*)
+
+[0m[1m[38;5;11mwarning[yanked][0m[1m: detected yanked crate (try `cargo update -p chacha20`)[0m
+   [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:70:1
+   [0m[36m│[0m
+[0m[36m70[0m [0m[36m│[0m [0m[33mchacha20 0.10.0 registry+https://github.com/rust-lang/crates.io-index[0m
+   [0m[36m│[0m [0m[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[33myanked version[0m
+   [0m[36m│[0m
+   [0m[36m├[0m chacha20 v0.10.0
+     └── rand v0.10.1
+         ├── dreamswarm v0.1.0
+         └── uuid v1.23.0
+             ├── aws-runtime v1.7.2
+             │   ├── aws-config v1.8.15
+             │   │   └── dreamswarm v0.1.0 (*)
+             │   ├── aws-sdk-sso v1.97.0
+             │   │   └── aws-config v1.8.15 (*)
+             │   ├── aws-sdk-ssooidc v1.99.0
+             │   │   └── aws-config v1.8.15 (*)
+             │   └── aws-sdk-sts v1.101.0
+             │       └── aws-config v1.8.15 (*)
+             ├── dreamswarm v0.1.0 (*)
+             ├── opendal v0.50.2
+             │   └── dreamswarm v0.1.0 (*)
+             └── r2d2_sqlite v0.24.0
+                 └── dreamswarm v0.1.0 (*)
+
+[0m[1m[38;5;11mwarning[yanked][0m[1m: detected yanked crate (try `cargo update -p core2`)[0m
+   [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:89:1
+   [0m[36m│[0m
+[0m[36m89[0m [0m[36m│[0m [0m[33mcore2 0.4.0 registry+https://github.com/rust-lang/crates.io-index[0m
+   [0m[36m│[0m [0m[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[33myanked version[0m
+   [0m[36m│[0m
+   [0m[36m├[0m core2 v0.4.0
+     └── bitstream-io v4.9.0
+         └── rav1e v0.8.1
+             └── ravif v0.13.0
+                 └── image v0.25.10
+                     └── fastembed v5.13.0
+                         └── dreamswarm v0.1.0
+
+[0m[1m[38;5;11mwarning[yanked][0m[1m: detected yanked crate (try `cargo update -p der`)[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:107:1
+    [0m[36m│[0m
+[0m[36m107[0m [0m[36m│[0m [0m[33mder 0.8.0 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[33myanked version[0m
+    [0m[36m│[0m
+    [0m[36m├[0m der v0.8.0
+      └── ureq v3.3.0
+          └── (build) ort-sys v2.0.0-rc.11
+              └── ort v2.0.0-rc.11
+                  ├── dreamswarm v0.1.0
+                  └── fastembed v5.13.0
+                      └── dreamswarm v0.1.0 (*)
+
+advisories [31mFAILED[0m

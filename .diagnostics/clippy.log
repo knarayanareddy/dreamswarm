@@ -1,0 +1,517 @@
+[1m[33mwarning[0m[1m: `package.homepage` is redundant with `package.repository`[0m
+ [1m[94m--> [0mCargo.toml:8:12
+  [1m[94m|[0m
+[1m[94m7[0m [1m[94m|[0m repository = "https://github.com/knarayanareddy/dreamswarm"
+  [1m[94m|[0m              [1m[94m----------------------------------------------[0m
+[1m[94m8[0m [1m[94m|[0m homepage = "https://github.com/knarayanareddy/dreamswarm"
+  [1m[94m|[0m            [1m[33m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [1m[94m|[0m
+  [1m[94m= [0m[1mnote[0m: `cargo::redundant_homepage` is set to `warn` by default
+[1m[96mhelp[0m: consider removing `package.homepage`
+[1m[33mwarning[0m: `dreamswarm` (manifest) generated 1 warning
+[1m[92m   Compiling[0m proc-macro2 v1.0.106
+[1m[92m   Compiling[0m quote v1.0.45
+[1m[92m   Compiling[0m unicode-ident v1.0.24
+[1m[92m   Compiling[0m libc v0.2.184
+[1m[92m    Checking[0m cfg-if v1.0.4
+[1m[92m   Compiling[0m shlex v1.3.0
+[1m[92m   Compiling[0m find-msvc-tools v0.1.9
+[1m[92m    Checking[0m smallvec v1.15.1
+[1m[92m    Checking[0m memchr v2.8.0
+[1m[92m   Compiling[0m syn v2.0.117
+[1m[92m    Checking[0m once_cell v1.21.4
+[1m[92m    Checking[0m log v0.4.29
+[1m[92m   Compiling[0m jobserver v0.1.34
+[1m[92m   Compiling[0m serde_core v1.0.228
+[1m[92m   Compiling[0m cc v1.2.59
+[1m[92m    Checking[0m pin-project-lite v0.2.17
+[1m[92m    Checking[0m itoa v1.0.18
+[1m[92m    Checking[0m bytes v1.11.1
+[1m[92m   Compiling[0m parking_lot_core v0.9.12
+[1m[92m    Checking[0m scopeguard v1.2.0
+[1m[92m    Checking[0m lock_api v0.4.14
+[1m[92m    Checking[0m futures-core v0.3.32
+[1m[92m    Checking[0m parking_lot v0.12.5
+[1m[92m    Checking[0m errno v0.3.14
+[1m[92m   Compiling[0m autocfg v1.5.0
+[1m[92m    Checking[0m signal-hook-registry v1.4.8
+[1m[92m   Compiling[0m pkg-config v0.3.32
+[1m[92m   Compiling[0m num-traits v0.2.19
+[1m[92m    Checking[0m futures-sink v0.3.32
+[1m[92m    Checking[0m futures-channel v0.3.32
+[1m[92m    Checking[0m socket2 v0.6.3
+[1m[92m    Checking[0m mio v1.2.0
+[1m[92m    Checking[0m futures-io v0.3.32
+[1m[92m    Checking[0m futures-task v0.3.32
+[1m[92m    Checking[0m slab v0.4.12
+[1m[92m    Checking[0m http v1.4.0
+[1m[92m    Checking[0m tracing-core v0.1.36
+[1m[92m   Compiling[0m vcpkg v0.2.15
+[1m[92m    Checking[0m either v1.15.0
+[1m[92m    Checking[0m http-body v1.0.1
+[1m[92m   Compiling[0m ring v0.17.14
+[1m[92m    Checking[0m equivalent v1.0.2
+[1m[92m   Compiling[0m serde v1.0.228
+[1m[92m   Compiling[0m version_check v0.9.5
+[1m[92m    Checking[0m fnv v1.0.7
+[1m[92m    Checking[0m allocator-api2 v0.2.21
+[1m[92m    Checking[0m zeroize v1.8.2
+[1m[92m    Checking[0m ryu v1.0.23
+[1m[92m    Checking[0m num-integer v0.1.46
+[1m[92m    Checking[0m stable_deref_trait v1.2.1
+[1m[92m    Checking[0m http-body-util v0.1.3
+[1m[92m    Checking[0m bitflags v2.11.0
+[1m[92m    Checking[0m foldhash v0.1.5
+[1m[92m    Checking[0m hashbrown v0.15.5
+[1m[92m   Compiling[0m synstructure v0.13.2
+[1m[92m   Compiling[0m cmake v0.1.58
+[1m[92m   Compiling[0m zerocopy v0.8.48
+[1m[92m   Compiling[0m fs_extra v1.3.0
+[1m[92m   Compiling[0m dunce v1.0.5
+[1m[92m    Checking[0m percent-encoding v2.3.2
+[1m[92m    Checking[0m foldhash v0.2.0
+[1m[92m   Compiling[0m futures-macro v0.3.32
+[1m[92m   Compiling[0m tokio-macros v2.7.0
+[1m[92m   Compiling[0m tracing-attributes v0.1.31
+[1m[92m    Checking[0m tokio v1.51.0
+[1m[92m    Checking[0m futures-util v0.3.32
+[1m[92m    Checking[0m tracing v0.1.44
+[1m[92m   Compiling[0m serde_derive v1.0.228
+[1m[92m    Checking[0m hashbrown v0.16.1
+[1m[92m   Compiling[0m aws-lc-sys v0.39.1
+[1m[92m   Compiling[0m zerocopy-derive v0.8.48
+[1m[92m    Checking[0m subtle v2.6.1
+[1m[92m   Compiling[0m zerofrom-derive v0.1.7
+[1m[92m    Checking[0m getrandom v0.2.17
+[1m[92m    Checking[0m zerofrom v0.1.7
+[1m[92m    Checking[0m tokio-util v0.7.18
+[1m[92m    Checking[0m indexmap v2.13.1
+[1m[92m   Compiling[0m yoke-derive v0.8.2
+[1m[92m    Checking[0m rustls-pki-types v1.14.0
+[1m[92m    Checking[0m tower-service v0.3.3
+[1m[92m   Compiling[0m aws-lc-rs v1.16.2
+[1m[92m   Compiling[0m httparse v1.10.1
+[1m[92m    Checking[0m yoke v0.8.2
+[1m[92m   Compiling[0m zerovec-derive v0.11.3
+[1m[92m    Checking[0m untrusted v0.9.0
+[1m[92m    Checking[0m openssl-probe v0.2.1
+[1m[92m    Checking[0m httpdate v1.0.3
+[1m[92m    Checking[0m try-lock v0.2.5
+[1m[92m    Checking[0m powerfmt v0.2.0
+[1m[92m    Checking[0m atomic-waker v1.1.2
+[1m[92m   Compiling[0m typenum v1.19.0
+[1m[92m    Checking[0m h2 v0.4.13
+[1m[92m    Checking[0m zerovec v0.11.6
+[1m[92m    Checking[0m deranged v0.5.8
+[1m[92m    Checking[0m want v0.3.1
+[1m[92m   Compiling[0m openssl-macros v0.1.1
+[1m[92m   Compiling[0m displaydoc v0.2.5
+[1m[92m   Compiling[0m generic-array v0.14.7
+[1m[92m    Checking[0m http v0.2.12
+[1m[92m    Checking[0m base64 v0.22.1
+[1m[92m    Checking[0m tower-layer v0.3.3
+[1m[92m    Checking[0m time-core v0.1.8
+[1m[92m    Checking[0m vsimd v0.8.0
+[1m[92m   Compiling[0m getrandom v0.3.4
+[1m[92m   Compiling[0m crossbeam-utils v0.8.21
+[1m[92m    Checking[0m num-conv v0.2.1
+[1m[92m   Compiling[0m rustls v0.23.37
+[1m[92m    Checking[0m outref v0.5.2
+[1m[92m    Checking[0m base64-simd v0.8.0
+[1m[92m    Checking[0m time v0.3.47
+[1m[92m    Checking[0m hyper v1.9.0
+[1m[92m    Checking[0m http-body v0.4.6
+[1m[92m    Checking[0m bytes-utils v0.1.4
+[1m[92m    Checking[0m sync_wrapper v1.0.2
+[1m[92m    Checking[0m pin-utils v0.1.0
+[1m[92m    Checking[0m ipnet v2.12.0
+[1m[92m    Checking[0m aws-smithy-types v1.4.7
+[1m[92m    Checking[0m hyper-util v0.1.20
+[1m[92m    Checking[0m webpki-roots v1.0.6
+[1m[92m    Checking[0m form_urlencoded v1.2.2
+[1m[92m   Compiling[0m openssl-src v300.5.5+3.5.5
+[1m[92m    Checking[0m tower v0.5.3
+[1m[92m   Compiling[0m openssl-sys v0.9.112
+[1m[92m    Checking[0m tinystr v0.8.3
+[1m[92m    Checking[0m writeable v0.6.3
+[1m[92m    Checking[0m litemap v0.8.2
+[1m[92m    Checking[0m icu_locale_core v2.2.0
+[1m[92m    Checking[0m crypto-common v0.1.7
+[1m[92m    Checking[0m block-buffer v0.10.4
+[1m[92m    Checking[0m zerotrie v0.2.4
+[1m[92m    Checking[0m potential_utf v0.1.5
+[1m[92m    Checking[0m rustls-native-certs v0.8.3
+[1m[92m    Checking[0m aws-smithy-async v1.2.14
+[1m[92m   Compiling[0m icu_normalizer_data v2.2.0
+[1m[92m    Checking[0m const-oid v0.9.6
+[1m[92m    Checking[0m utf8_iter v1.0.4
+[1m[92m   Compiling[0m icu_properties_data v2.2.0
+[1m[92m   Compiling[0m semver v1.0.28
+[1m[92m    Checking[0m icu_collections v2.2.0
+[1m[92m   Compiling[0m rustc_version v0.4.1
+[1m[92m    Checking[0m digest v0.10.7
+[1m[92m    Checking[0m icu_provider v2.2.0
+[1m[92m    Checking[0m aws-smithy-runtime-api v1.11.6
+[1m[92m    Checking[0m crossbeam-epoch v0.9.18
+[1m[92m   Compiling[0m ahash v0.8.12
+[1m[92m   Compiling[0m rustversion v1.0.22
+[1m[92m    Checking[0m rand_core v0.10.0
+[1m[92m   Compiling[0m rayon-core v1.13.0
+[1m[92m   Compiling[0m zmij v1.0.21
+[1m[92m   Compiling[0m getrandom v0.4.2
+[1m[92m    Checking[0m crossbeam-deque v0.8.6
+[1m[92m   Compiling[0m serde_json v1.0.149
+[1m[92m    Checking[0m simd-adler32 v0.3.9
+[1m[92m   Compiling[0m openssl v0.10.76
+[1m[92m    Checking[0m foreign-types-shared v0.1.1
+[1m[92m    Checking[0m foreign-types v0.3.2
+[1m[92m    Checking[0m icu_properties v2.2.0
+[1m[92m    Checking[0m icu_normalizer v2.2.0
+[1m[92m   Compiling[0m crunchy v0.2.4
+[1m[92m    Checking[0m cpufeatures v0.3.0
+[1m[92m   Compiling[0m anyhow v1.0.102
+[1m[92m   Compiling[0m native-tls v0.2.18
+[1m[92m    Checking[0m cpufeatures v0.2.17
+[1m[92m    Checking[0m chacha20 v0.10.0
+[1m[92m    Checking[0m idna_adapter v1.2.1
+[1m[92m    Checking[0m ppv-lite86 v0.2.21
+[1m[92m   Compiling[0m equator-macro v0.4.2
+[1m[92m   Compiling[0m paste v1.0.15
+[1m[92m    Checking[0m mime v0.3.17
+[1m[92m   Compiling[0m tiny-keccak v2.0.2
+[1m[92m    Checking[0m fastrand v2.4.1
+[1m[92m    Checking[0m adler2 v2.0.1
+[1m[92m   Compiling[0m crc32fast v1.5.0
+[1m[92m   Compiling[0m thiserror v2.0.18
+[1m[92m    Checking[0m miniz_oxide v0.8.9
+[1m[92m    Checking[0m equator v0.4.2
+[1m[92m    Checking[0m idna v1.1.0
+[1m[92m    Checking[0m rand v0.10.1
+[1m[92m    Checking[0m sha2 v0.10.9
+[1m[92m    Checking[0m rayon v1.11.0
+[1m[92m    Checking[0m hmac v0.12.1
+[1m[92m   Compiling[0m thiserror-impl v2.0.18
+[1m[92m   Compiling[0m ident_case v1.0.1
+[1m[92m   Compiling[0m strsim v0.11.1
+[1m[92m    Checking[0m hex v0.4.3
+[1m[92m   Compiling[0m base64ct v1.8.3
+[1m[92m   Compiling[0m pem-rfc7468 v1.0.0
+[1m[92m   Compiling[0m darling_core v0.20.11
+[1m[92m    Checking[0m uuid v1.23.0
+[1m[92m   Compiling[0m rustls-webpki v0.103.12
+[1m[92m    Checking[0m url v2.5.8
+[1m[92m    Checking[0m aligned-vec v0.6.4
+[1m[92m    Checking[0m hashbrown v0.14.5
+[1m[92m    Checking[0m aws-smithy-http v0.63.6
+[1m[92m    Checking[0m aws-credential-types v1.2.14
+[1m[92m   Compiling[0m aws-types v1.3.14
+[1m[92m    Checking[0m num-bigint v0.4.6
+[1m[92m    Checking[0m arrayvec v0.7.6
+[1m[92m   Compiling[0m byteorder v1.5.0
+[1m[92m   Compiling[0m ureq-proto v0.6.0
+[1m[92m    Checking[0m num-rational v0.4.2
+[1m[92m   Compiling[0m socks v0.3.4
+[1m[92m    Checking[0m flate2 v1.1.9
+[1m[92m    Checking[0m v_frame v0.3.9
+[1m[92m   Compiling[0m const-random-macro v0.1.16
+[1m[92m   Compiling[0m darling_macro v0.20.11
+[1m[92m   Compiling[0m der v0.8.0
+[1m[92m   Compiling[0m webpki-root-certs v1.0.6
+[1m[92m    Checking[0m aws-smithy-observability v0.2.6
+[1m[92m    Checking[0m serde_urlencoded v0.7.1
+[1m[92m    Checking[0m as-slice v0.2.1
+[1m[92m    Checking[0m itertools v0.14.0
+[1m[92m   Compiling[0m av-scenechange v0.14.1
+[1m[92m   Compiling[0m utf8-zero v0.8.1
+[1m[92m    Checking[0m iri-string v0.7.12
+[1m[92m    Checking[0m option-ext v0.2.0
+[1m[92m   Compiling[0m built v0.8.0
+[1m[92m    Checking[0m tower-http v0.6.8
+[1m[92m   Compiling[0m rav1e v0.8.1
+[1m[92m   Compiling[0m ureq v3.3.0
+[1m[92m    Checking[0m aligned v0.4.3
+[1m[92m   Compiling[0m darling v0.20.11
+[1m[92m    Checking[0m const-random v0.1.18
+[1m[92m    Checking[0m aws-sigv4 v1.4.2
+[1m[92m    Checking[0m castaway v0.2.4
+[1m[92m    Checking[0m rand_core v0.9.5
+[1m[92m   Compiling[0m profiling-procmacros v1.0.17
+[1m[92m   Compiling[0m arg_enum_proc_macro v0.3.4
+[1m[92m   Compiling[0m onig_sys v69.9.1
+[1m[92m   Compiling[0m matrixmultiply v0.3.10
+[1m[92m    Checking[0m nom v8.0.0
+[1m[92m    Checking[0m core2 v0.4.0
+[1m[92m    Checking[0m encoding_rs v0.8.35
+[1m[92m   Compiling[0m pastey v0.1.1
+[1m[92m   Compiling[0m hmac-sha256 v1.1.14
+[1m[92m   Compiling[0m portable-atomic v1.13.1
+[1m[92m   Compiling[0m heck v0.5.0
+[1m[92m    Checking[0m quick-error v2.0.1
+[1m[92m    Checking[0m unicode-segmentation v1.13.2
+[1m[92m   Compiling[0m lzma-rust2 v0.15.7
+[1m[92m    Checking[0m y4m v0.8.0
+[1m[92m    Checking[0m static_assertions v1.1.0
+[1m[92m   Compiling[0m signal-hook v0.3.18
+[1m[92m   Compiling[0m ort-sys v2.0.0-rc.11
+[1m[92m    Checking[0m av1-grain v0.2.5
+[1m[92m    Checking[0m bitstream-io v4.9.0
+[1m[92m    Checking[0m profiling v1.0.17
+[1m[92m    Checking[0m rand_chacha v0.9.0
+[1m[92m    Checking[0m dlv-list v0.5.2
+[1m[92m   Compiling[0m derive_builder_core v0.20.2
+[1m[92m    Checking[0m maybe-rayon v0.1.1
+[1m[92m    Checking[0m aws-smithy-json v0.62.5
+[1m[92m    Checking[0m half v2.7.1
+[1m[92m    Checking[0m rand_core v0.6.4
+[1m[92m   Compiling[0m fax_derive v0.2.0
+[1m[92m   Compiling[0m async-trait v0.1.89
+[1m[92m   Compiling[0m num-derive v0.4.2
+[1m[92m   Compiling[0m libsqlite3-sys v0.28.0
+[1m[92m    Checking[0m mio v0.8.11
+[1m[92m   Compiling[0m simd_helpers v0.1.0
+[1m[92m    Checking[0m aho-corasick v1.1.4
+[1m[92m    Checking[0m zune-core v0.5.1
+[1m[92m    Checking[0m weezl v0.1.12
+[1m[92m   Compiling[0m cfg_aliases v0.2.1
+[1m[92m    Checking[0m imgref v1.12.0
+[1m[92m    Checking[0m regex-lite v0.1.9
+[1m[92m    Checking[0m new_debug_unreachable v1.0.6
+[1m[92m    Checking[0m utf8parse v0.2.2
+[1m[92m    Checking[0m unicode-width v0.2.2
+[1m[92m    Checking[0m minimal-lexical v0.2.1
+[1m[92m    Checking[0m rawpointer v0.2.1
+[1m[92m    Checking[0m regex-syntax v0.8.10
+[1m[92m   Compiling[0m esaxx-rs v0.1.10
+[1m[92m   Compiling[0m unicase v2.9.0
+[1m[92m   Compiling[0m noop_proc_macro v0.3.0
+[1m[92m   Compiling[0m mime_guess v2.0.5
+[1m[92m    Checking[0m regex-automata v0.4.14
+[1m[92m    Checking[0m nom v7.1.3
+[1m[92m    Checking[0m console v0.15.11
+[1m[92m    Checking[0m anstyle-parse v1.0.0
+[1m[92m    Checking[0m loop9 v0.1.5
+[1m[92m   Compiling[0m nix v0.31.2
+[1m[92m    Checking[0m zune-jpeg v0.5.15
+[1m[92m    Checking[0m fax v0.2.6
+[1m[92m    Checking[0m rand_chacha v0.3.1
+[1m[92m   Compiling[0m derive_builder_macro v0.20.2
+[1m[92m    Checking[0m ordered-multimap v0.7.3
+[1m[92m    Checking[0m rand v0.9.2
+[1m[92m    Checking[0m dirs-sys v0.5.0
+[1m[92m    Checking[0m avif-serialize v0.8.8
+[1m[92m    Checking[0m sha1 v0.10.6
+[1m[92m    Checking[0m fdeflate v0.3.7
+[1m[92m    Checking[0m zune-inflate v0.2.54
+[1m[92m   Compiling[0m crc32c v0.6.8
+[1m[92m    Checking[0m webpki-roots v0.26.11
+[1m[92m   Compiling[0m monostate-impl v0.1.18
+[1m[92m    Checking[0m num-complex v0.4.6
+[1m[92m    Checking[0m colorchoice v1.0.5
+[1m[92m    Checking[0m base64 v0.13.1
+[1m[92m    Checking[0m pxfm v0.1.28
+[1m[92m    Checking[0m byteorder-lite v0.1.0
+[1m[92m    Checking[0m color_quant v1.1.0
+[1m[92m   Compiling[0m macro_rules_attribute-proc_macro v0.2.2
+[1m[92m    Checking[0m iana-time-zone v0.1.65
+[1m[92m    Checking[0m bytemuck v1.25.0
+[1m[92m    Checking[0m lazy_static v1.5.0
+[1m[92m    Checking[0m xmlparser v0.13.6
+[1m[92m    Checking[0m lebe v0.5.3
+[1m[92m    Checking[0m number_prefix v0.4.0
+[1m[92m    Checking[0m bit_field v0.10.3
+[1m[92m    Checking[0m is_terminal_polyfill v1.70.2
+[1m[92m    Checking[0m urlencoding v2.1.3
+[1m[92m    Checking[0m anstyle v1.0.14
+[1m[92m   Compiling[0m rustix v1.1.4
+[1m[92m    Checking[0m rgb v0.8.53
+[1m[92m    Checking[0m anstyle-query v1.1.5
+[1m[92m    Checking[0m anstream v1.0.0
+[1m[92m    Checking[0m ravif v0.13.0
+[1m[92m    Checking[0m aws-smithy-query v0.60.15
+[1m[92m    Checking[0m exr v1.74.0
+[1m[92m    Checking[0m indicatif v0.17.11
+[1m[92m    Checking[0m aws-smithy-xml v0.60.15
+[1m[92m    Checking[0m qoi v0.4.1
+[1m[92m    Checking[0m chrono v0.4.44
+[1m[92m    Checking[0m macro_rules_attribute v0.2.2
+[1m[92m    Checking[0m gif v0.14.1
+[1m[92m    Checking[0m image-webp v0.2.4
+[1m[92m    Checking[0m moxcms v0.8.1
+[1m[92m    Checking[0m spm_precompiled v0.1.4
+[1m[92m    Checking[0m ndarray v0.17.2
+[1m[92m    Checking[0m monostate v0.1.18
+[1m[92m    Checking[0m png v0.18.1
+[1m[92m    Checking[0m dirs v6.0.0
+[1m[92m    Checking[0m signal-hook-mio v0.2.5
+[1m[92m    Checking[0m rust-ini v0.21.3
+[1m[92m    Checking[0m derive_builder v0.20.2
+[1m[92m    Checking[0m rand v0.8.5
+[1m[92m    Checking[0m tiff v0.11.3
+[1m[92m    Checking[0m regex v1.12.3
+[1m[92m    Checking[0m onig v6.5.1
+[1m[92m    Checking[0m compact_str v0.9.0
+[1m[92m   Compiling[0m strum_macros v0.26.4
+[1m[92m    Checking[0m rayon-cond v0.4.0
+[1m[92m    Checking[0m hashlink v0.9.1
+[1m[92m    Checking[0m dary_heap v0.3.8
+[1m[92m    Checking[0m toml_datetime v0.6.11
+[1m[92m    Checking[0m quick-xml v0.37.5
+[1m[92m    Checking[0m serde_spanned v0.6.9
+[1m[92m    Checking[0m futures-executor v0.3.32
+[1m[92m    Checking[0m itertools v0.13.0
+[1m[92m    Checking[0m scheduled-thread-pool v0.2.7
+[1m[92m    Checking[0m inotify-sys v0.1.5
+[1m[92m    Checking[0m unicode-normalization-alignments v0.1.12
+[1m[92m    Checking[0m libloading v0.9.0
+[1m[92m    Checking[0m clap_lex v1.1.0
+[1m[92m    Checking[0m unicode-width v0.1.14
+[1m[92m    Checking[0m winnow v0.7.15
+[1m[92m    Checking[0m same-file v1.0.6
+[1m[92m    Checking[0m fallible-iterator v0.3.0
+[1m[92m    Checking[0m toml_write v0.1.2
+[1m[92m    Checking[0m fallible-streaming-iterator v0.1.9
+[1m[92m    Checking[0m unicode_categories v0.1.1
+[1m[92m    Checking[0m home v0.5.12
+[1m[92m    Checking[0m bitflags v1.3.2
+[1m[92m    Checking[0m linux-raw-sys v0.12.1
+[1m[92m    Checking[0m toml_edit v0.22.27
+[1m[92m    Checking[0m inotify v0.9.6
+[1m[92m    Checking[0m tokenizers v0.22.2
+[1m[92m    Checking[0m rusqlite v0.31.0
+[1m[92m    Checking[0m walkdir v2.5.0
+[1m[92m    Checking[0m clap_builder v4.6.0
+[1m[92m    Checking[0m unicode-truncate v1.1.0
+[1m[92m    Checking[0m ort v2.0.0-rc.11
+[1m[92m    Checking[0m r2d2 v0.8.10
+[1m[92m    Checking[0m futures v0.3.32
+[1m[92m    Checking[0m strum v0.26.3
+[1m[92m    Checking[0m image v0.25.10
+[1m[92m    Checking[0m crossterm v0.27.0
+[1m[92m    Checking[0m sharded-slab v0.1.7
+[1m[92m    Checking[0m axum-core v0.4.5
+[1m[92m    Checking[0m compact_str v0.7.1
+[1m[92m   Compiling[0m clap_derive v4.6.0
+[1m[92m    Checking[0m dirs-sys v0.4.1
+[1m[92m    Checking[0m backon v1.6.0
+[1m[92m    Checking[0m safetensors v0.7.0
+[1m[92m    Checking[0m md-5 v0.10.6
+[1m[92m    Checking[0m crossbeam-channel v0.5.15
+[1m[92m    Checking[0m quick-xml v0.36.2
+[1m[92m   Compiling[0m axum-macros v0.4.2
+[1m[92m   Compiling[0m stability v0.2.1
+[1m[92m    Checking[0m lru v0.12.5
+[1m[92m    Checking[0m itertools v0.12.1
+[1m[92m    Checking[0m tracing-log v0.2.0
+[1m[92m    Checking[0m serde_path_to_error v0.1.20
+[1m[92m    Checking[0m filetime v0.2.27
+[1m[92m    Checking[0m thread_local v1.1.9
+[1m[92m    Checking[0m matchit v0.7.3
+[1m[92m    Checking[0m flagset v0.4.7
+[1m[92m    Checking[0m nu-ansi-term v0.50.3
+[1m[92m    Checking[0m http-range-header v0.4.2
+[1m[92m    Checking[0m cassowary v0.3.0
+[1m[92m    Checking[0m tower-http v0.5.2
+[1m[92m    Checking[0m ratatui v0.26.3
+[1m[92m    Checking[0m tracing-subscriber v0.3.23
+[1m[92m    Checking[0m axum v0.7.9
+[1m[92m    Checking[0m notify v6.1.1
+[1m[92m    Checking[0m clap v4.6.0
+[1m[92m    Checking[0m dirs v5.0.1
+[1m[92m    Checking[0m ctrlc v3.5.2
+[1m[92m    Checking[0m r2d2_sqlite v0.24.0
+[1m[92m    Checking[0m toml v0.8.23
+[1m[92m    Checking[0m tempfile v3.27.0
+[1m[92m    Checking[0m colored v2.2.0
+[1m[92m    Checking[0m tokio-stream v0.1.18
+[1m[92m    Checking[0m tokio-rustls v0.26.4
+[1m[92m    Checking[0m hyper-rustls v0.27.7
+[1m[92m    Checking[0m aws-smithy-http-client v1.1.12
+[1m[92m    Checking[0m aws-smithy-runtime v1.10.3
+[1m[92m    Checking[0m aws-runtime v1.7.2
+[1m[92m    Checking[0m aws-sdk-ssooidc v1.99.0
+[1m[92m    Checking[0m aws-sdk-sso v1.97.0
+[1m[92m    Checking[0m aws-sdk-sts v1.101.0
+[1m[92m    Checking[0m aws-config v1.8.15
+[1m[92m    Checking[0m tokio-native-tls v0.3.1
+[1m[92m    Checking[0m ureq v2.12.1
+[1m[92m    Checking[0m hyper-tls v0.6.0
+[1m[92m    Checking[0m reqwest v0.12.28
+[1m[92m    Checking[0m reqsign v0.16.5
+[1m[92m    Checking[0m hf-hub v0.4.3
+[1m[92m    Checking[0m fastembed v5.13.0
+[1m[92m    Checking[0m opendal v0.50.2
+[1m[92m    Checking[0m dreamswarm v0.1.0 (/home/runner/work/dreamswarm/dreamswarm)
+[1m[91merror[0m[1m: the `Err`-variant returned from this function is very large[0m
+  [1m[94m--> [0msrc/api/auth.rs:91:10
+   [1m[94m|[0m
+[1m[94m91[0m [1m[94m|[0m     ) -> Result<(), Response> {
+   [1m[94m|[0m          [1m[91m^^^^^^^^^^^^^^^^^^^^[0m [1m[91mthe `Err`-variant is at least 128 bytes[0m
+   [1m[94m|[0m
+   [1m[94m= [0m[1mhelp[0m: try reducing the size of `axum::http::Response<axum::body::Body>`, for example by boxing large elements or replacing it with `Box<axum::http::Response<axum::body::Body>>`
+   [1m[94m= [0m[1mhelp[0m: for further information visit https://clippy.rust-lang.org/main/index.html#result_large_err
+   [1m[94m= [0m[1mnote[0m: `-D clippy::result-large-err` implied by `-D warnings`
+   [1m[94m= [0m[1mhelp[0m: to override `-D warnings` add `#[allow(clippy::result_large_err)]`
+
+[1m[91merror[0m[1m: the `Err`-variant returned from this function is very large[0m
+   [1m[94m--> [0msrc/api/auth.rs:128:70
+    [1m[94m|[0m
+[1m[94m128[0m [1m[94m|[0m     pub fn authorize(&self, method: &Method, headers: &HeaderMap) -> Result<(), Response> {
+    [1m[94m|[0m                                                                      [1m[91m^^^^^^^^^^^^^^^^^^^^[0m [1m[91mthe `Err`-variant is at least 128 bytes[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: try reducing the size of `axum::http::Response<axum::body::Body>`, for example by boxing large elements or replacing it with `Box<axum::http::Response<axum::body::Body>>`
+    [1m[94m= [0m[1mhelp[0m: for further information visit https://clippy.rust-lang.org/main/index.html#result_large_err
+
+[1m[91merror[0m[1m: consider using `sort_by_key`[0m
+   [1m[94m--> [0msrc/daemon/daily_log.rs:200:9
+    [1m[94m|[0m
+[1m[94m200[0m [1m[94m|[0m         all.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+    [1m[94m|[0m         [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: for further information visit https://clippy.rust-lang.org/main/index.html#unnecessary_sort_by
+    [1m[94m= [0m[1mnote[0m: `-D clippy::unnecessary-sort-by` implied by `-D warnings`
+    [1m[94m= [0m[1mhelp[0m: to override `-D warnings` add `#[allow(clippy::unnecessary_sort_by)]`
+[1m[96mhelp[0m: try
+    [1m[94m|[0m
+[1m[94m200[0m [91m- [0m        all.[91msort_by(|a, b| a.timestamp.cmp(&b.timestamp))[0m;
+[1m[94m200[0m [92m+ [0m        all.[92msort_by_key(|a| a.timestamp)[0m;
+    [1m[94m|[0m
+
+[1m[91merror[0m[1m: `to_string` applied to a type that implements `Display` in `format!` args[0m
+  [1m[94m--> [0msrc/daemon/healing.rs:89:55
+   [1m[94m|[0m
+[1m[94m89[0m [1m[94m|[0m             chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string()
+   [1m[94m|[0m                                                       [1m[91m^^^^^^^^^^^^[0m [1m[91mhelp: remove this[0m
+   [1m[94m|[0m
+   [1m[94m= [0m[1mhelp[0m: for further information visit https://clippy.rust-lang.org/main/index.html#to_string_in_format_args
+   [1m[94m= [0m[1mnote[0m: `-D clippy::to-string-in-format-args` implied by `-D warnings`
+   [1m[94m= [0m[1mhelp[0m: to override `-D warnings` add `#[allow(clippy::to_string_in_format_args)]`
+
+[1m[91merror[0m[1m: consider using `sort_by_key`[0m
+  [1m[94m--> [0msrc/dream/collector.rs:25:9
+   [1m[94m|[0m
+[1m[94m25[0m [1m[94m|[0m         observations.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+   [1m[94m|[0m         [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+   [1m[94m|[0m
+   [1m[94m= [0m[1mhelp[0m: for further information visit https://clippy.rust-lang.org/main/index.html#unnecessary_sort_by
+[1m[96mhelp[0m: try
+   [1m[94m|[0m
+[1m[94m25[0m [91m- [0m        observations.[91msort_by(|a, b| a.timestamp.cmp(&b.timestamp))[0m;
+[1m[94m25[0m [92m+ [0m        observations.[92msort_by_key(|a| a.timestamp)[0m;
+   [1m[94m|[0m
+
+[1m[91merror[0m[1m: consider using `sort_by_key`[0m
+   [1m[94m--> [0msrc/memory/index.rs:198:9
+    [1m[94m|[0m
+[1m[94m198[0m [1m[94m|[0m         scored.sort_by(|a, b| b.1.cmp(&a.1));
+    [1m[94m|[0m         [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: for further information visit https://clippy.rust-lang.org/main/index.html#unnecessary_sort_by
+[1m[96mhelp[0m: try
+    [1m[94m|[0m
+[1m[94m198[0m [91m- [0m        scored.[91msort_by(|a, b| b.1.cmp(&a.1))[0m;
+[1m[94m198[0m [92m+ [0m        scored.[92msort_by_key(|a| std::cmp::Reverse(a.1))[0m;
+    [1m[94m|[0m
+
+[1m[91merror[0m: could not compile `dreamswarm` (lib) due to 6 previous errors
+[1m[33mwarning[0m: build failed, waiting for other jobs to finish...
+[1m[91merror[0m: could not compile `dreamswarm` (lib test) due to 6 previous errors

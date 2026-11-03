@@ -1,0 +1,3 @@
+fmt=1
+clippy=101
+check=0

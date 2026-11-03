@@ -98,7 +98,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          cargo deny check advisories > /tmp/audit.log 2>&1
+          cargo deny --color never check advisories > /tmp/audit.log 2>&1
           status=$?
           cat /tmp/audit.log
           if [ "$status" -ne 0 ]; then
@@ -106,6 +106,8 @@ jobs:
           import pathlib
           lines = pathlib.Path('/tmp/audit.log').read_text(errors='replace').splitlines()
           positions = [i for i, line in enumerate(lines) if line.startswith('error[') or 'error:' in line]
+          if not positions:
+              positions = [max(0, len(lines) - 30)]
           for i in positions[:10]:
               message = '\n'.join(lines[i:i + 18])[:3800].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
               print(f'::error::{message}')

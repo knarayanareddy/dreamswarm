@@ -22,7 +22,7 @@ impl ObservationCollector {
         observations.extend(self.collect_from_daemon_logs()?);
         observations.extend(self.collect_from_transcripts(memory)?);
         observations.extend(self.collect_from_current_memory(memory)?);
-        observations.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+        observations.sort_by_key(|a| a.timestamp);
         observations.truncate(self.config.max_entries_per_cycle);
         tracing::info!("Collected {} observations", observations.len());
         Ok(observations)

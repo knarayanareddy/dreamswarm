@@ -34,7 +34,7 @@ impl Tool for FileReadTool {
 
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
         let path = input["path"].as_str().unwrap_or_default();
-        match tokio::fs::read_to_string(path).await {
+        match tokio::fs::read_to_string(super::workspace::resolve(path)).await {
             Ok(content) => Ok(ToolOutput {
                 content,
                 is_error: false,

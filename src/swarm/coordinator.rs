@@ -25,10 +25,50 @@ pub struct SwarmCoordinator {
 
 impl SwarmCoordinator {
     pub fn new(config: TeamConfig, working_dir: &str, state_dir: PathBuf) -> anyhow::Result<Self> {
+        Self::with_app_config(
+            config,
+            working_dir,
+            state_dir,
+            crate::runtime::config::AppConfig::default(),
+        )
+    }
+
+    pub fn with_app_config(
+        mut config: TeamConfig,
+        working_dir: &str,
+        state_dir: PathBuf,
+        app_config: crate::runtime::config::AppConfig,
+    ) -> anyhow::Result<Self> {
+        if !config.worker_directories.is_empty() {
+            if config.spawn_strategy != SpawnStrategy::InProcess {
+                anyhow::bail!("Worker directories are supported only for in-process workers");
+            }
+            if config.worker_directories.len() < config.max_workers {
+                anyhow::bail!("Provide one worker directory per maximum worker");
+            }
+            let mut dirs: Vec<PathBuf> = Vec::new();
+            for path in &config.worker_directories {
+                let dir = std::fs::canonicalize(path)?;
+                if !dir.is_dir() {
+                    anyhow::bail!("Worker directory is not a directory: {}", dir.display());
+                }
+                if dirs
+                    .iter()
+                    .any(|other| dir.starts_with(other) || other.starts_with(&dir))
+                {
+                    anyhow::bail!("Worker directories must not overlap");
+                }
+                dirs.push(dir);
+            }
+            config.worker_directories = dirs
+                .iter()
+                .map(|dir| dir.to_string_lossy().into_owned())
+                .collect();
+        }
         let task_list = SharedTaskList::new(&config.team_name)?;
         let mailbox = Mailbox::new(state_dir.clone(), &config.team_name, "lead")?;
         let executor: Box<dyn TeammateExecutor> = match config.spawn_strategy {
-            SpawnStrategy::InProcess => Box::new(InProcessExecutor::new()),
+            SpawnStrategy::InProcess => Box::new(InProcessExecutor::with_config(app_config)),
             SpawnStrategy::TmuxPane => {
                 let session =
                     TmuxExecutor::current_session().unwrap_or_else(|| "dreamswarm".to_string());
@@ -106,7 +146,11 @@ impl SwarmCoordinator {
             instructions: instructions.to_string(),
             model: self.config.worker_model.clone(),
             permission_mode: self.config.worker_mode.clone(),
-            working_dir: self.working_dir.clone(),
+            working_dir: if self.config.worker_directories.is_empty() {
+                self.working_dir.clone()
+            } else {
+                self.config.worker_directories[self.workers.len()].clone()
+            },
             state_dir: self.state_dir.clone(),
             remote_host,
         };
@@ -215,11 +259,20 @@ impl SwarmCoordinator {
             match &msg.content {
                 MessageContent::TaskResult { task_id, result } => {
                     tracing::info!("Worker '{}' completed task '{}'", msg.from, task_id);
-                    let _ = self.task_list.update_task(
+                    self.task_list.update_task(
                         task_id,
                         TaskStatus::Completed,
                         Some(result.clone()),
-                    );
+                    )?;
+                }
+                MessageContent::TaskFailed { task_id, error } => {
+                    self.task_list.update_task(
+                        task_id,
+                        TaskStatus::Failed {
+                            error: error.clone(),
+                        },
+                        None,
+                    )?;
                 }
                 MessageContent::StatusUpdate { status } => {
                     self.update_worker_status(&msg.from, status.clone());
@@ -327,9 +380,9 @@ impl SwarmCoordinator {
         for worker in &self.workers {
             if self.executor.is_alive(worker).await {
                 tracing::warn!("Force-killing worker '{}'", worker.name);
-                let _ = self.executor.force_kill(worker).await;
+                self.executor.force_kill(worker).await?;
             }
-            let _ = self.executor.cleanup(worker).await;
+            self.executor.cleanup(worker).await?;
         }
         let _ = Mailbox::cleanup_team(self.state_dir.clone(), &self.config.team_name);
         self.state.status = TeamStatus::Completed;

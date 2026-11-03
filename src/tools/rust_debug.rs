@@ -24,10 +24,9 @@ impl Tool for RustCheckTool {
         RiskLevel::Safe
     }
     async fn execute(&self, _input: &Value) -> anyhow::Result<ToolOutput> {
-        let output = Command::new("cargo")
-            .args(["check", "--message-format=json"])
-            .output()
-            .await?;
+        let mut command = Command::new("cargo");
+        command.args(["check", "--message-format=json"]);
+        let output = super::process::output(&mut command).await?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let mut error_summary = String::new();
@@ -94,13 +93,15 @@ impl Tool for DebuggerTool {
         let debugger = input["debugger"].as_str().unwrap_or("lldb");
 
         let mut command = Command::new(debugger);
+        command.kill_on_drop(true);
         if debugger == "lldb" {
             command.args(["--batch", "-o", "run", "-o", "bt", "-o", "quit", "--"]);
         } else {
             command.args(["-batch", "-ex", "run", "-ex", "bt", "-ex", "quit", "--args"]);
         }
 
-        let output = command.args(cmd_str.split_whitespace()).output().await?;
+        command.args(cmd_str.split_whitespace());
+        let output = super::process::output(&mut command).await?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);

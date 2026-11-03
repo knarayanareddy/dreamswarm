@@ -2,6 +2,7 @@
 name = "dreamswarm"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.91.1"
 license = "MIT OR Apache-2.0"
 description = "An autonomous multi-agent AI coding assistant with swarm intelligence, role-based personas, and a persistent knowledge graph"
 repository = "https://github.com/knarayanareddy/dreamswarm"
@@ -19,7 +20,7 @@ tokio-util = { version = "0.7", features = ["full"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
 axum = { version = "0.7", features = ["macros"] }
 tower-http = { version = "0.5", features = ["cors", "fs", "trace"] }
-opendal = { version = "0.50", features = ["services-s3", "layers-tracing"] }
+opendal = { version = "0.59.5", features = ["services-s3", "layers-tracing"] }
 aws-config = "1.1"
 
 # Database
@@ -53,11 +54,18 @@ fastembed = { version = "5.13.0", features = ["ort-download-binaries-rustls-tls"
 ort = { version = "=2.0.0-rc.11", features = ["load-dynamic", "download-binaries", "copy-dylibs", "ndarray", "tls-rustls"] }
 ndarray = "0.17.2"
 futures = "0.3.32"
+fs2 = "0.4"
 tokio-stream = { version = "0.1.18", features = ["sync"] }
 r2d2 = "0.8.10"
 r2d2_sqlite = "0.24.0"
 rand = "0.10.0"
 toml = "0.8"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
 
 [dev-dependencies]
 filetime = "0.2"

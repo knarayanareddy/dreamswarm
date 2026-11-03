@@ -42,6 +42,7 @@ impl Tool for GrepTool {
         let semantic = input["semantic"].as_bool().unwrap_or(false);
 
         let mut cmd = tokio::process::Command::new("rg");
+        cmd.kill_on_drop(true);
         cmd.arg("-n").arg(pattern);
 
         if semantic {
@@ -58,7 +59,7 @@ impl Tool for GrepTool {
             cmd.arg(path);
         }
 
-        let output = cmd.output().await?;
+        let output = super::process::output(&mut cmd).await?;
 
         let is_error = !output.status.success() && output.status.code() != Some(1); // 1 = no matches
         let content = String::from_utf8_lossy(if is_error {

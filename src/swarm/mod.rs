@@ -12,6 +12,9 @@ pub struct TeamConfig {
     pub timeout_seconds: u64,
     pub remote_hosts: Vec<String>,
     pub linked_repositories: Vec<String>,
+    /// Optional pre-provisioned, distinct directories for in-process workers.
+    #[serde(default)]
+    pub worker_directories: Vec<String>,
 }
 
 impl Default for TeamConfig {
@@ -26,6 +29,7 @@ impl Default for TeamConfig {
             timeout_seconds: 600,
             remote_hosts: vec![],
             linked_repositories: vec![],
+            worker_directories: vec![],
         }
     }
 }
@@ -98,6 +102,10 @@ pub enum MessageContent {
     TaskResult {
         task_id: String,
         result: String,
+    },
+    TaskFailed {
+        task_id: String,
+        error: String,
     },
     StatusUpdate {
         status: WorkerStatus,

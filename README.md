@@ -85,6 +85,8 @@ graph TD
 
 ### Installation
 
+The minimum supported Rust version is 1.91.1; CI checks all features and targets on Linux with this toolchain.
+
 ```bash
 # Clone the repository
 git clone https://github.com/knarayanareddy/dreamswarm.git
@@ -97,8 +99,8 @@ cargo install --path .
 ### Initial Setup
 
 ```bash
-# Initialize the DreamSwarm environment
-dreamswarm init
+# Set your provider credentials (or use --provider mock for local testing)
+export ANTHROPIC_API_KEY=your_key_here
 
 # Start the KAIROS Background Daemon
 dreamswarm daemon start
@@ -111,21 +113,34 @@ dreamswarm daemon start
 | Command | Action |
 | :--- | :--- |
 | `dreamswarm chat` | Start an interactive session with the Swarm Lead. |
-| `dreamswarm swarm run` | Deploy a parallel multi-agent swarm for a complex task. |
+| `dreamswarm swarm --team NAME` | Open the swarm dashboard for a team. |
 | `dreamswarm daemon run` | Run the KAIROS heart in the foreground for debugging. |
-| `dreamswarm memory audit` | Inspect the 3-layer memory index and health. |
+| `dreamswarm daemon status` | Show daemon status. |
 | `dreamswarm api start` | Force start "The Oracle" REST API on a specific port. |
 
 ---
 
 ## 📡 The Oracle API
 
-DreamSwarm exposes a high-performance REST API (default port `8080`) for external monitoring and control:
+DreamSwarm exposes a local REST API (default port `8080`). The dashboard is served at
+`http://localhost:8080/`; other clients must send the bearer token printed at startup.
+The API rejects non-local Host headers and cross-origin requests. Keep the token private. After a daemon crash, a stale `~/.dreamswarm/daemon/control.json` may need to be removed manually after confirming no daemon is running.
+The default in-process workers execute tasks through the agent runtime. By default they
+share the project directory. To use separate workspaces, provision a distinct directory
+or Git worktree for each worker and set `team_config.worker_directories` in the launch
+request. Supply at least `max_workers` non-overlapping directories. Relative file and
+subprocess operations use the assigned directory without changing the process-wide
+directory. Changes remain in those directories and are not merged automatically.
+This is not a filesystem sandbox: absolute paths, symlinks, and shell commands can
+access other locations. Use OS-level isolation for untrusted work.
+Non-interactive workers deny operations requiring approval unless an explicit
+permission mode or rule permits them.
 
-- **GET `/consensus`**: View the current hive state and trust index.
+- **GET `/consensus`**: View a placeholder consensus response.
+- **GET `/api/v1/swarm/tasks`**: Poll task status, results and failures for the active swarm.
 - **GET `/api/v1/telemetry/stream`**: Real-time SSE stream of swarm activity.
 - **POST `/api/v1/control/war-room`**: Initiate high-intensity stress diagnostics.
-- **POST `/api/v1/control/stop`**: Emergency broadcast to stop all active swarms.
+- **POST `/api/v1/control/stop`**: Stop the API-managed swarm and request the daemon to stop over an authenticated local control channel. Success acknowledges that the daemon loop stopped and coordinator cleanup returned successfully; a timeout or failure is reported as unconfirmed. On Unix, cancelling supported tool commands kills their process group. On Windows, supported commands are assigned to a kill-on-close job. Processes that escape the Unix group, or spawn and escape before Windows job assignment, may survive. External executor cleanup is not verified, and this is not an OS sandbox.
 
 ---
 
@@ -134,7 +149,7 @@ DreamSwarm exposes a high-performance REST API (default port `8080`) for externa
 DreamSwarm is built on a **Security-First** foundation:
 - **5-Layer Permission Gate**: Tool execution is evaluated based on Mode, Deny-lists, Allow-lists, Risk Scoring, and final User Approval.
 - **Sandboxed Consolidation**: Memory pruning and background analysis never touch source files directly; they operate in restricted buffers.
-- **Immutable Audit Logs**: Every autonomous action is signed and recorded in an immutable JSONL log.
+- **Audit limitations**: Logs are not signed or immutable. Permission rules and shell blocklists are not an OS sandbox; run untrusted work in an isolated environment.
 
 ---
 

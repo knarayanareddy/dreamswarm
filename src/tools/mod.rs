@@ -14,11 +14,13 @@ pub mod grep_tool;
 pub mod js_tool;
 pub mod memory_tools;
 pub mod monitor_tool;
+mod process;
 pub mod push_notification;
 pub mod python_tool;
 pub mod rust_debug;
 pub mod swarm_tools;
 pub mod synthesis;
+pub(crate) mod workspace;
 
 #[derive(Debug, Clone)]
 pub struct ToolCall {
@@ -33,6 +35,8 @@ pub struct ToolOutput {
     pub is_error: bool,
 }
 
+// async_trait emits #[must_use] on boxed futures; recent Clippy flags that expansion.
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait Tool: Send + Sync {
     fn name(&self) -> &str;

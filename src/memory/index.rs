@@ -195,7 +195,7 @@ impl MemoryIndex {
             })
             .collect();
 
-        scored.sort_by(|a, b| b.1.cmp(&a.1));
+        scored.sort_by_key(|a| std::cmp::Reverse(a.1));
         Ok(scored.into_iter().map(|(entry, _)| entry).collect())
     }
 

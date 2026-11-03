@@ -29,16 +29,16 @@ struct Cli {
     command: Option<Commands>,
 
     /// Model to use
-    #[arg(short, long, default_value = "claude-sonnet-4-20250514", global = true)]
-    model: String,
+    #[arg(short, long, global = true)]
+    model: Option<String>,
 
     /// Provider (anthropic, openai, mock)
-    #[arg(short, long, default_value = "anthropic", global = true)]
-    provider: String,
+    #[arg(short, long, global = true)]
+    provider: Option<String>,
 
     /// Permission mode
-    #[arg(long, default_value = "default", global = true)]
-    mode: String,
+    #[arg(long, global = true)]
+    mode: Option<String>,
 
     /// Initial system prompt (for workers)
     #[arg(long, global = true)]
@@ -112,7 +112,7 @@ enum ApiAction {
     /// Start The Oracle API server and open the web dashboard
     Start {
         /// Port to listen on
-        #[arg(short, long, default_value = "8080")]
+        #[arg(short = 'P', long, default_value = "8080")]
         port: u16,
     },
 }
@@ -122,8 +122,25 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     let cli = Cli::parse();
-    let config = AppConfig::new(cli.model.clone(), cli.provider.clone(), cli.mode.clone());
-    let daemon_config = DaemonConfig::default();
+    let state_dir = AppConfig::default().state_dir;
+    let mut config = AppConfig::load_from_toml(&state_dir);
+    if let Some(model) = &cli.model {
+        config.model = model.clone();
+    }
+    if let Some(provider) = &cli.provider {
+        config.provider = provider.clone();
+    }
+    if let Some(mode) = &cli.mode {
+        config.permission_mode = mode
+            .parse()
+            .map_err(|_| anyhow::anyhow!("Unknown permission mode: {}", mode))?;
+    }
+    if let Some(directory) = &cli.directory {
+        config.working_dir = directory.clone();
+    }
+    std::env::set_current_dir(&config.working_dir)?;
+    let mut daemon_config = DaemonConfig::default();
+    daemon_config.state_dir = config.state_dir.join("daemon");
 
     // Initialize Memory System
     let memory_dir = config.state_dir.join("memory");
@@ -172,7 +189,8 @@ async fn main() -> anyhow::Result<()> {
                         memory,
                         db.clone(),
                         None,
-                    )?;
+                    )
+                    .await?;
                     daemon.run().await?;
                 }
                 DaemonAction::Log { count } => {
@@ -252,11 +270,14 @@ async fn main() -> anyhow::Result<()> {
             let mut runtime =
                 AgentRuntime::new(session, query_engine, tool_registry, config, db, Some(mbox));
 
-            // In worker mode, we assume semi-autonomy or piping
-            // We use an auto-approver for Dangerous tools for now (or until mailbox is ready)
-            let auto_approve = |name: String, _input: serde_json::Value| async move {
-                println!("  [Worker Auto-Approve] Executing Dangerous tool: {}", name);
-                true
+            // Non-interactive workers cannot obtain approval. Fail closed unless
+            // the operator explicitly selects bypass mode or configures a rule.
+            let deny_unapproved = |name: String, _input: serde_json::Value| async move {
+                eprintln!(
+                    "  [Worker] Approval required for {}; denied in non-interactive mode",
+                    name
+                );
+                false
             };
 
             // Simple line-by-line REPL for the orchestration layer (e.g. Tmux) to drive
@@ -270,7 +291,7 @@ async fn main() -> anyhow::Result<()> {
                     break;
                 }
 
-                let result = runtime.run_turn(&input, auto_approve).await?;
+                let result = runtime.run_turn(&input, deny_unapproved).await?;
                 println!("{}", result.final_text);
                 stdout.flush()?;
             }

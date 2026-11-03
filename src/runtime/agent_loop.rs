@@ -128,7 +128,13 @@ impl AgentRuntime {
                             "is_error": is_error,
                         }])
                     }
-                    _ => serde_json::json!([{"type": "text", "text": "[unsupported content]"}]),
+                    crate::runtime::session::MessageContent::Mixed(blocks) => {
+                        serde_json::Value::Array(blocks.iter().map(|block| match block {
+                            crate::runtime::session::ContentBlock::Text(text) => serde_json::json!({"type":"text", "text":text}),
+                            crate::runtime::session::ContentBlock::ToolUse { id, name, input } => serde_json::json!({"type":"tool_use", "id":id, "name":name, "input":input}),
+                            crate::runtime::session::ContentBlock::ToolResult { tool_use_id, content, is_error } => serde_json::json!({"type":"tool_result", "tool_use_id":tool_use_id, "content":content, "is_error":is_error}),
+                        }).collect())
+                    },
                 };
 
                 messages.push(serde_json::json!({
@@ -170,7 +176,7 @@ impl AgentRuntime {
                         let signature = tool.command_signature(&input);
                         let permission =
                             self.permission_gate
-                                .check(&name, tool.risk_level(), &signature);
+                                .check(tool.name(), tool.risk_level(), &signature);
 
                         let mut final_allowed = false;
                         let mut error_content: Option<String> = None;
@@ -234,22 +240,39 @@ impl AgentRuntime {
 
             final_text = assistant_text.clone();
 
-            // Update session with assistant message (including tool calls if any)
-            // For now we simplify by detecting if it's mixed or text
-            if !all_tool_calls.is_empty() {
-                // Actually need a way to store multi-part messages in Session
-                // For Phase 1 simplified: just store as text if no results, otherwise handled below
+            let mut blocks = Vec::new();
+            for content in &response.content {
+                match content.get("type").and_then(|v| v.as_str()) {
+                    Some("text") => blocks.push(crate::runtime::session::ContentBlock::Text(
+                        content["text"].as_str().unwrap_or_default().to_string(),
+                    )),
+                    Some("tool_use") => {
+                        blocks.push(crate::runtime::session::ContentBlock::ToolUse {
+                            id: content["id"].as_str().unwrap_or_default().to_string(),
+                            name: content["name"].as_str().unwrap_or_default().to_string(),
+                            input: content["input"].clone(),
+                        })
+                    }
+                    _ => {}
+                }
             }
-
             self.session.add_assistant_message(
-                crate::runtime::session::MessageContent::Text(assistant_text),
+                crate::runtime::session::MessageContent::Mixed(blocks),
                 response.usage.total_tokens,
                 response.usage.cost_usd,
             );
-
-            // Add tool results to session
-            for (id, _name, _input, content, is_error) in tool_results {
-                self.session.add_tool_result(&id, &content, is_error);
+            if !tool_results.is_empty() {
+                let blocks = tool_results
+                    .into_iter()
+                    .map(|(id, _, _, content, is_error)| {
+                        crate::runtime::session::ContentBlock::ToolResult {
+                            tool_use_id: id,
+                            content,
+                            is_error,
+                        }
+                    })
+                    .collect();
+                self.session.add_tool_results(blocks);
             }
 
             if !made_tool_call {

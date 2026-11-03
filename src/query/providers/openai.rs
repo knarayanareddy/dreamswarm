@@ -138,37 +138,25 @@ impl LLMProvider for OpenAIProvider {
                     oai_messages.push(serde_json::json!({ "role": role, "content": text }));
                 }
                 Value::Array(blocks) => {
-                    // Flatten content blocks into OpenAI format
+                    let mut text = String::new();
+                    let mut calls = Vec::new();
                     for block in &blocks {
                         match block["type"].as_str() {
-                            Some("text") => {
-                                oai_messages.push(serde_json::json!({
-                                    "role": role,
-                                    "content": block["text"]
-                                }));
-                            }
-                            Some("tool_use") => {
-                                oai_messages.push(serde_json::json!({
-                                    "role": "assistant",
-                                    "tool_calls": [{
-                                        "id": block["id"],
-                                        "type": "function",
-                                        "function": {
-                                            "name": block["name"],
-                                            "arguments": block["input"].to_string()
-                                        }
-                                    }]
-                                }));
-                            }
-                            Some("tool_result") => {
-                                oai_messages.push(serde_json::json!({
-                                    "role": "tool",
-                                    "tool_call_id": block["tool_use_id"],
-                                    "content": block["content"]
-                                }));
-                            }
+                            Some("text") => text.push_str(block["text"].as_str().unwrap_or_default()),
+                            Some("tool_use") => calls.push(serde_json::json!({
+                                "id": block["id"], "type": "function",
+                                "function": {"name": block["name"], "arguments": block["input"].to_string()}
+                            })),
+                            Some("tool_result") => oai_messages.push(serde_json::json!({
+                                "role":"tool", "tool_call_id":block["tool_use_id"], "content":block["content"]
+                            })),
                             _ => {}
                         }
+                    }
+                    if !calls.is_empty() {
+                        oai_messages.push(serde_json::json!({"role":"assistant", "content": if text.is_empty() { None } else { Some(text) }, "tool_calls": calls}));
+                    } else if !text.is_empty() {
+                        oai_messages.push(serde_json::json!({"role":role, "content":text}));
                     }
                 }
                 _ => {}

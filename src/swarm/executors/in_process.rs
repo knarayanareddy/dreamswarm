@@ -9,6 +9,7 @@ use tokio_util::sync::CancellationToken;
 
 pub struct InProcessExecutor {
     workers: Arc<RwLock<HashMap<String, WorkerHandle>>>,
+    app_config: crate::runtime::config::AppConfig,
 }
 
 struct WorkerHandle {
@@ -27,6 +28,14 @@ impl InProcessExecutor {
     pub fn new() -> Self {
         Self {
             workers: Arc::new(RwLock::new(HashMap::new())),
+            app_config: crate::runtime::config::AppConfig::default(),
+        }
+    }
+
+    pub fn with_config(app_config: crate::runtime::config::AppConfig) -> Self {
+        Self {
+            workers: Arc::new(RwLock::new(HashMap::new())),
+            app_config,
         }
     }
 }
@@ -57,6 +66,34 @@ impl TeammateExecutor for InProcessExecutor {
         let team_name = config.team_name.clone();
         let worker_id = config.id.clone();
         let state_dir = config.state_dir.clone();
+        let mut app_config = self.app_config.clone();
+        app_config.state_dir = state_dir.clone();
+        app_config.working_dir = config.working_dir.clone().into();
+        use crate::runtime::permissions::AgentMode;
+        let requested: AgentMode = config
+            .permission_mode
+            .parse()
+            .map_err(|_| anyhow::anyhow!("Invalid worker permission mode"))?;
+        // A team request may restrict the operator's mode, but never elevate it.
+        app_config.permission_mode = match (app_config.permission_mode, requested) {
+            (AgentMode::Plan, _) | (_, AgentMode::Plan) => AgentMode::Plan,
+            (AgentMode::ReadOnly, _) | (_, AgentMode::ReadOnly) => AgentMode::ReadOnly,
+            (AgentMode::Default, AgentMode::AcceptEdits | AgentMode::BypassPermissions) => {
+                AgentMode::Default
+            }
+            (AgentMode::AcceptEdits, AgentMode::BypassPermissions) => AgentMode::AcceptEdits,
+            (_, mode) => mode,
+        };
+        if let Some(model) = &config.model {
+            app_config.model = model.clone();
+        }
+        // Never change the process-wide current directory. Tools receive this
+        // worker's directory through task-local context instead.
+        app_config.working_dir = std::fs::canonicalize(&app_config.working_dir)?;
+        if !app_config.working_dir.is_dir() {
+            anyhow::bail!("Worker working directory is not a directory");
+        }
+        let worker_instructions = config.instructions.clone();
         let join_handle = tokio::spawn(async move {
             tracing::info!("In-process worker '{}' started", worker_id);
             let mut mailbox =
@@ -86,10 +123,17 @@ impl TeammateExecutor for InProcessExecutor {
                                         }
                                         MessageContent::TaskAssignment { task_id, instructions } => {
                                             tracing::info!("Worker '{}' task: {}", worker_id, task_id);
-                                            let _ = mailbox.send(&msg.from, MessageContent::TaskResult {
-                                                task_id,
-                                                result: format!("Worker {} acknowledged task: {}", worker_id, instructions)
-                                            });
+                                            let result = tokio::select! {
+                                                _ = token_clone.cancelled() => return,
+                                                result = run_task(&app_config, &worker_instructions, &instructions) => result,
+                                            };
+                                            let content = match result {
+                                                Ok(result) => MessageContent::TaskResult { task_id, result },
+                                                Err(error) => MessageContent::TaskFailed { task_id, error: error.to_string() },
+                                            };
+                                            if let Err(error) = mailbox.send(&msg.from, content) {
+                                                tracing::error!("Worker {} could not report task result: {}", worker_id, error);
+                                            }
                                         }
                                         _ => {}
                                     }
@@ -139,6 +183,7 @@ impl TeammateExecutor for InProcessExecutor {
         if let Some(handle) = workers.remove(&worker.id) {
             handle.cancel_token.cancel();
             handle.join_handle.abort();
+            let _ = handle.join_handle.await;
         }
         Ok(())
     }
@@ -149,5 +194,38 @@ impl TeammateExecutor for InProcessExecutor {
 
     fn strategy(&self) -> SpawnStrategy {
         SpawnStrategy::InProcess
+    }
+}
+
+/// Execute a task through the same runtime and permission gate as an interactive agent.
+async fn run_task(
+    config: &crate::runtime::config::AppConfig,
+    role: &str,
+    instructions: &str,
+) -> anyhow::Result<String> {
+    use crate::runtime::{
+        agent_loop::{AgentRuntime, StopReason},
+        session::Session,
+    };
+    let memory = Arc::new(RwLock::new(crate::memory::MemorySystem::new(
+        config.state_dir.join("memory"),
+    )?));
+    let db = crate::db::Database::new(&config.state_dir)?;
+    db.migrate()?;
+    let engine = crate::query::engine::QueryEngine::new(&config.provider, &config.model, config)?;
+    let tools = crate::tools::ToolRegistry::default_phase1(memory, None);
+    let mut runtime = AgentRuntime::new(Session::new(), engine, tools, config.clone(), db, None);
+    let prompt = format!(
+        "Worker instructions: {}\n\nAssigned task: {}",
+        role, instructions
+    );
+    let result = crate::tools::workspace::scope(
+        config.working_dir.clone(),
+        runtime.run_turn(&prompt, |_, _| async { false }),
+    )
+    .await?;
+    match result.stop_reason {
+        StopReason::EndTurn => Ok(result.final_text),
+        _ => anyhow::bail!("Worker stopped before finishing the task"),
     }
 }

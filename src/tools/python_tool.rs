@@ -28,7 +28,9 @@ impl Tool for PythonExecuteTool {
     }
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
         let code = input["code"].as_str().unwrap_or_default();
-        let output = Command::new("python3").args(["-c", code]).output().await?;
+        let mut child = Command::new("python3");
+        child.args(["-c", code]);
+        let output = super::process::output(&mut child).await?;
 
         Ok(ToolOutput {
             content: String::from_utf8_lossy(&output.stdout).to_string()

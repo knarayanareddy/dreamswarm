@@ -98,12 +98,7 @@ impl Tool for BashTool {
 
     fn command_signature(&self, input: &Value) -> String {
         let command = input["command"].as_str().unwrap_or_default();
-        // Return the first word (the command itself) for signature matching
-        command
-            .split_whitespace()
-            .next()
-            .unwrap_or("unknown")
-            .to_string()
+        command.trim().to_string()
     }
 
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
@@ -116,11 +111,9 @@ impl Tool for BashTool {
             });
         }
 
-        let output = tokio::process::Command::new("bash")
-            .arg("-c")
-            .arg(command)
-            .output()
-            .await?;
+        let mut child = tokio::process::Command::new("bash");
+        child.arg("-c").arg(command);
+        let output = super::process::output(&mut child).await?;
 
         let is_error = !output.status.success();
         let mut content = String::from_utf8_lossy(&output.stdout).to_string();

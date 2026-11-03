@@ -1,9 +1,13 @@
 use crate::swarm::{AgentMessage, MessageContent};
 use chrono::Utc;
+use fs2::FileExt;
+use std::fs::{File, OpenOptions};
+use std::path::Path;
 use std::path::PathBuf;
 
 pub struct Mailbox {
     inboxes_dir: PathBuf,
+    lock_path: PathBuf,
     agent_name: String,
     relay_dir: Option<PathBuf>,
     pub poll_count: u64,
@@ -23,8 +27,10 @@ impl Mailbox {
             let _ = std::fs::create_dir_all(rd);
         }
 
+        let lock_path = Self::lock_path(&base_dir, team_name)?;
         Ok(Self {
             inboxes_dir,
+            lock_path,
             agent_name: agent_name.to_string(),
             relay_dir,
             poll_count: 0,
@@ -44,22 +50,49 @@ impl Mailbox {
             .inboxes_dir
             .join(format!("{}.jsonl", Self::sanitize(to)));
 
-        Self::write_to_path(&inbox_path, &msg)?;
+        {
+            let _lock = Self::lock(&self.lock_path)?;
+            Self::write_to_path(&inbox_path, &msg)?;
+        }
 
         // Global Relay sync: If the message is directed at "coordinator" or "global",
         // we mirror it to the relay directory so other repo swarms can see it.
         if to == "lead" || to == "global" {
             if let Some(ref rd) = self.relay_dir {
                 let relay_path = rd.join("global_relay.jsonl");
-                let _ = Self::write_to_path(&relay_path, &msg);
+                if let Ok(_lock) = Self::lock(&rd.join("global_relay.lock")) {
+                    let _ = Self::write_to_path(&relay_path, &msg);
+                }
             }
         }
 
         Ok(())
     }
 
-    fn write_to_path(path: &PathBuf, msg: &AgentMessage) -> anyhow::Result<()> {
+    fn lock_path(base_dir: &Path, team_name: &str) -> anyhow::Result<PathBuf> {
+        let locks = base_dir.join("teams").join(".mailbox-locks");
+        std::fs::create_dir_all(&locks)?;
+        Ok(locks.join(format!("{}.lock", Self::sanitize(team_name))))
+    }
+
+    // Keep the lock file separate from the data file: clear and team cleanup may
+    // replace or remove the inbox while another process is waiting on the lock.
+    fn lock(path: &Path) -> anyhow::Result<File> {
+        let file = OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .truncate(false)
+            .open(path)?;
+        FileExt::lock_exclusive(&file)?;
+        Ok(file)
+    }
+
+    fn write_to_path(path: &Path, msg: &AgentMessage) -> anyhow::Result<()> {
         use std::io::Write;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
@@ -134,6 +167,7 @@ impl Mailbox {
 
     pub fn receive(&mut self) -> anyhow::Result<Vec<AgentMessage>> {
         self.poll_count += 1;
+        let _lock = Self::lock(&self.lock_path)?;
         let inbox_path = self
             .inboxes_dir
             .join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
@@ -144,8 +178,8 @@ impl Mailbox {
         let mut all_messages: Vec<AgentMessage> = content
             .lines()
             .filter(|line| !line.trim().is_empty())
-            .filter_map(|line| serde_json::from_str(line).ok())
-            .collect();
+            .map(serde_json::from_str)
+            .collect::<Result<_, _>>()?;
 
         let unread: Vec<AgentMessage> = all_messages.iter().filter(|m| !m.read).cloned().collect();
         if unread.is_empty() {
@@ -166,6 +200,7 @@ impl Mailbox {
     }
 
     pub fn peek(&self) -> anyhow::Result<Vec<AgentMessage>> {
+        let _lock = Self::lock(&self.lock_path)?;
         let inbox_path = self
             .inboxes_dir
             .join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
@@ -182,6 +217,7 @@ impl Mailbox {
     }
 
     pub fn clear(&self) -> anyhow::Result<()> {
+        let _lock = Self::lock(&self.lock_path)?;
         let inbox_path = self
             .inboxes_dir
             .join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
@@ -196,8 +232,18 @@ impl Mailbox {
             .join("teams")
             .join(Self::sanitize(team_name))
             .join("inboxes");
+        let _lock = Self::lock(&Self::lock_path(&base_dir, team_name)?)?;
         if inboxes_dir.exists() {
             std::fs::remove_dir_all(&inboxes_dir)?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn cleanup_team_directory(base_dir: &Path, team_name: &str) -> anyhow::Result<()> {
+        let _lock = Self::lock(&Self::lock_path(base_dir, team_name)?)?;
+        let team_dir = base_dir.join("teams").join(Self::sanitize(team_name));
+        if team_dir.exists() {
+            std::fs::remove_dir_all(team_dir)?;
         }
         Ok(())
     }

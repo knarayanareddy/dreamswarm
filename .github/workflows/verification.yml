@@ -1,0 +1,196 @@
+name: Focused Rust Verification
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run focused integration tests
+        shell: bash
+        run: |
+          set +e
+          CARGO_TERM_COLOR=never cargo test --locked --test process_shutdown --test mailbox_concurrency --test safety_regressions --test control_end_to_end --test in_process_runtime --test provider_tool_roundtrip > /tmp/verification.log 2>&1
+          status=$?
+          tail -200 /tmp/verification.log
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PY'
+          import pathlib
+          lines = pathlib.Path('/tmp/verification.log').read_text(errors='replace').splitlines()
+          positions = [i for i, line in enumerate(lines) if 'error:' in line or line.startswith('error[') or line.startswith('failures:') or 'panicked at' in line]
+          for i in positions[-20:]:
+              message = '\n'.join(lines[i:i + 18])[:5000]
+              message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          if not positions:
+              message = '\n'.join(lines[-40:]).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          PY
+          fi
+          exit "$status"
+
+      - name: Test per-task tool directories
+        run: cargo test --locked --lib simultaneous_contexts_use_distinct_directories
+
+      - name: Run clippy with readable diagnostics
+        shell: bash
+        run: |
+          set +e
+          CARGO_TERM_COLOR=never cargo clippy --locked --all-targets --all-features -- -D warnings > /tmp/clippy.log 2>&1
+          status=$?
+          tail -200 /tmp/clippy.log
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PY'
+          import pathlib
+          lines = pathlib.Path('/tmp/clippy.log').read_text(errors='replace').splitlines()
+          positions = [i for i, line in enumerate(lines) if 'error:' in line or line.startswith('error[') or line.startswith('failures:') or 'panicked at' in line]
+          for i in positions[-20:]:
+              message = '\n'.join(lines[i:i + 18])[:5000]
+              message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          if not positions:
+              message = '\n'.join(lines[-40:]).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          PY
+          fi
+          exit "$status"
+
+  macos-diagnostics:
+    runs-on: macos-latest
+    env:
+      RUSTFLAGS: "-D warnings"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: brew install tmux ripgrep
+      - name: Diagnose full macOS test suite
+        shell: bash
+        run: |
+          set +e
+          CARGO_TERM_COLOR=never cargo test --all-features --locked > /tmp/macos.log 2>&1
+          status=$?
+          tail -200 /tmp/macos.log
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PY'
+          import pathlib
+          lines = pathlib.Path('/tmp/macos.log').read_text(errors='replace').splitlines()
+          positions = [i for i, line in enumerate(lines) if 'error:' in line or line.startswith('error[') or line.startswith('failures:') or 'panicked at' in line]
+          for i in positions[-20:]:
+              message = '\n'.join(lines[i:i + 18])[:5000]
+              message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          if not positions:
+              message = '\n'.join(lines[-40:]).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          PY
+          fi
+          exit "$status"
+
+  audit-diagnostics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-rust
+      - run: cargo binstall cargo-deny cargo-audit --no-confirm --force
+      - name: Check dependency advisories
+        shell: bash
+        run: |
+          set +e
+          cargo deny --color never check advisories > /tmp/audit.log 2>&1
+          status=$?
+          cat /tmp/audit.log
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PY'
+          import pathlib
+          lines = pathlib.Path('/tmp/audit.log').read_text(errors='replace').splitlines()
+          positions = [i for i, line in enumerate(lines) if line.startswith('error[') or 'error:' in line]
+          if not positions:
+              positions = [max(0, len(lines) - 30)]
+          for i in positions[:10]:
+              message = '\n'.join(lines[i:i + 18])[:3800].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          PY
+          fi
+          exit "$status"
+      - name: Cargo audit
+        shell: bash
+        run: |
+          set +e
+          cargo audit --color never > /tmp/cargo-audit.log 2>&1
+          status=$?
+          cat /tmp/cargo-audit.log
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PY'
+          import pathlib
+          lines = pathlib.Path('/tmp/cargo-audit.log').read_text(errors='replace').splitlines()
+          for i in range(0, min(len(lines), 180), 18):
+              message = '\n'.join(lines[i:i + 18])[:3800].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          PY
+          fi
+          exit "$status"
+
+  rust-requirements:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Inspect declared dependency Rust requirements
+        run: |
+          cargo metadata --locked --format-version 1 > /tmp/metadata.json
+          python3 - <<'PY'
+          import json
+          packages = json.load(open('/tmp/metadata.json'))['packages']
+          versions = [(tuple(int(p) for p in v.split('.') if p.isdigit()), v, x['name']) for x in packages if (v := x.get('rust_version'))]
+          for _, version, name in sorted(versions, reverse=True)[:15]:
+              print(f'::notice::Rust requirement {version}: {name}')
+          PY
+
+  msrv-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.91.1
+      - uses: Swatinem/rust-cache@v2
+      - name: Check minimum Rust toolchain
+        shell: bash
+        run: |
+          set +e
+          CARGO_TERM_COLOR=never cargo check --locked --all-features --all-targets > /tmp/msrv.log 2>&1
+          status=$?
+          tail -100 /tmp/msrv.log
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PY'
+          import pathlib
+          lines = pathlib.Path('/tmp/msrv.log').read_text(errors='replace').splitlines()
+          positions = [i for i, line in enumerate(lines) if line.startswith('error')]
+          for i in positions[-10:] or [max(0, len(lines) - 20)]:
+              message = '\n'.join(lines[i:i + 18])[:3800].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          PY
+          fi
+          exit "$status"
+
+  windows-process-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Test Windows job cancellation
+        shell: pwsh
+        run: |
+          cargo test --locked --lib cancelling_a_command_kills_job_descendants 2>&1 | Tee-Object -FilePath test.log
+          if ($LASTEXITCODE -ne 0) {
+            $text = (Get-Content test.log -Tail 50) -join "`n"
+            $text = $text.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error::$text"
+            exit $LASTEXITCODE
+          }

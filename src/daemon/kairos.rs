@@ -42,7 +42,7 @@ pub struct KairosDaemon {
 }
 
 impl KairosDaemon {
-    pub fn new(
+    pub async fn new(
         config: DaemonConfig,
         app_config: &AppConfig,
         query_engine: Option<Arc<QueryEngine>>,
@@ -66,7 +66,9 @@ impl KairosDaemon {
         let telemetry = telemetry.unwrap_or_else(|| Arc::new(TelemetryHub::new(db.clone())));
 
         let evolution_analyzer = crate::swarm::evolution::prompt_evolution::PromptAnalyzer::new(
-            query_engine.clone().unwrap(),
+            query_engine
+                .clone()
+                .ok_or_else(|| anyhow::anyhow!("KAIROS requires a query engine"))?,
             telemetry.clone(),
         );
         let evolution = Arc::new(
@@ -77,25 +79,22 @@ impl KairosDaemon {
             ),
         );
 
-        let mut relay = None;
-        if let Some(s3_conf) = &app_config.s3_relay_config {
-            let mem_dir = memory
-                .try_read()
-                .map(|m| m.memory_dir().clone())
-                .unwrap_or_default();
-            if let Ok(r) =
-                tokio::runtime::Handle::current().block_on(crate::memory::relay::S3Relay::new(
+        let relay = if let Some(s3_conf) = &app_config.s3_relay_config {
+            let mem_dir = memory.read().await.memory_dir().clone();
+            Some(Arc::new(
+                crate::memory::relay::S3Relay::new(
                     &s3_conf.endpoint,
                     &s3_conf.bucket,
                     &s3_conf.region,
                     &s3_conf.access_key,
                     &s3_conf.secret_key,
                     mem_dir,
-                ))
-            {
-                relay = Some(Arc::new(r));
-            }
-        }
+                )
+                .await?,
+            ))
+        } else {
+            None
+        };
 
         Ok(Self {
             app_config: app_config.clone(),
@@ -139,7 +138,9 @@ impl KairosDaemon {
             .await;
 
         // Phase 10: Control Signal Listener
+        let shutdown_signal = tokio_util::sync::CancellationToken::new();
         let running_ctrl = self.running.clone();
+        let telemetry_shutdown = shutdown_signal.clone();
         let mut control_rx = self.telemetry.subscribe();
         tokio::spawn(async move {
             while let Ok(event) = control_rx.recv().await {
@@ -149,6 +150,7 @@ impl KairosDaemon {
                         "STOP" => {
                             tracing::warn!("Sovereign Interface: EMERGENCY STOP received.");
                             *running_ctrl.write().await = false;
+                            telemetry_shutdown.cancel();
                         }
                         "DREAM" => {
                             tracing::info!("Sovereign Interface: MANUAL DREAM triggered.");
@@ -198,6 +200,11 @@ impl KairosDaemon {
         }
         let _ = self.attempt_auto_resume().await;
 
+        // The control endpoint is published only after initialization succeeds.
+        let control = crate::daemon::control::ControlServer::bind(&self.config.state_dir).await?;
+        let api_shutdown = tokio_util::sync::CancellationToken::new();
+        let mut api_task = None;
+        let mut api_coordinator = None;
         // Phase 6: Start The Oracle API
         if self.config.api_enabled {
             let api_state = crate::api::server::ApiState {
@@ -207,26 +214,48 @@ impl KairosDaemon {
                 workers: std::sync::Arc::new(tokio::sync::RwLock::new(vec![])),
                 coordinator: std::sync::Arc::new(tokio::sync::Mutex::new(None)),
             };
+            api_coordinator = Some(api_state.coordinator.clone());
             let port = self.config.api_port;
-            tokio::spawn(async move {
-                if let Err(e) = crate::api::server::start_api_server(api_state, port).await {
+            let shutdown = api_shutdown.clone();
+            api_task = Some(tokio::spawn(async move {
+                if let Err(e) = crate::api::server::start_api_server_with_shutdown(
+                    api_state,
+                    port,
+                    async move { shutdown.cancelled().await },
+                )
+                .await
+                {
                     tracing::error!("The Oracle API failed to start: {}", e);
                 }
-            });
+            }));
         }
 
         let running = self.running.clone();
+        let signal_shutdown = shutdown_signal.clone();
         tokio::spawn(async move {
             tokio::signal::ctrl_c().await.ok();
             *running.write().await = false;
+            signal_shutdown.cancel();
         });
 
         let mut last_date = Utc::now().date_naive();
+        let mut stop_stream = None;
         loop {
             if !*self.running.read().await {
                 break;
             }
-            self.heartbeat.wait_tick().await;
+            tokio::select! {
+                _ = shutdown_signal.cancelled() => break,
+                result = control.accept_stop() => {
+                    stop_stream = Some(result?);
+                    *self.running.write().await = false;
+                    break;
+                }
+                _ = self.heartbeat.wait_tick() => {}
+            }
+            if !*self.running.read().await {
+                break;
+            }
 
             let current_date = Utc::now().date_naive();
             if current_date != last_date {
@@ -289,6 +318,21 @@ impl KairosDaemon {
             }
             // Simplified checkpoint: persist the coordinator state if it were here
             let _ = self.persistence.checkpoint(vec![]);
+        }
+        if let Some(coordinator) = api_coordinator {
+            let mut guard = coordinator.lock().await;
+            if let Some(team) = guard.as_mut() {
+                team.shutdown_team().await?;
+                *guard = None;
+            }
+        }
+        if let Some(stream) = stop_stream {
+            crate::daemon::control::acknowledge(stream).await?;
+        }
+        api_shutdown.cancel();
+        if let Some(task) = api_task {
+            // SSE clients can otherwise keep graceful shutdown open indefinitely.
+            let _ = tokio::time::timeout(std::time::Duration::from_secs(5), task).await;
         }
         Ok(())
     }

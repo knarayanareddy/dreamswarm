@@ -35,7 +35,11 @@ impl ModelRouter {
         if let Some(ds_conf) = &config.deepseek_config {
             if let Ok(p) = crate::query::providers::deepseek::DeepSeekProvider::new(
                 &ds_conf.model,
-                Some(ds_conf.api_key.clone()),
+                if ds_conf.api_key.is_empty() {
+                    None
+                } else {
+                    Some(ds_conf.api_key.clone())
+                },
             ) {
                 providers.insert("deepseek".to_string(), Box::new(p));
             }

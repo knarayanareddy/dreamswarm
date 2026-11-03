@@ -16,6 +16,8 @@ pub struct WorkerConfig {
     pub remote_host: Option<String>,
 }
 
+// async_trait emits #[must_use] on boxed futures; recent Clippy flags that expansion.
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait TeammateExecutor: Send + Sync {
     /// Spawn a new worker

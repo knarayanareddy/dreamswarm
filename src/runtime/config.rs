@@ -27,6 +27,7 @@ pub enum RoutingPolicy {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeepSeekConfig {
+    #[serde(skip_serializing, default)]
     pub api_key: String,
     pub model: String,
 }
@@ -43,8 +44,10 @@ pub struct S3RelayConfig {
     pub bucket: String,
     pub region: String,
     #[serde(skip_serializing)] // never persist secrets to disk
+    #[serde(default)]
     pub access_key: String,
     #[serde(skip_serializing)]
+    #[serde(default)]
     pub secret_key: String,
 }
 
@@ -57,7 +60,7 @@ impl Default for AppConfig {
             permission_mode: AgentMode::Default,
             allow_patterns: vec![
                 "Bash(git status)".into(),
-                "Bash(ls*)".into(),
+                "Bash(ls)".into(),
                 "FileRead(*)".into(),
                 "Bash(cargo check)".into(),
                 "Bash(cargo test)".into(),
@@ -67,6 +70,7 @@ impl Default for AppConfig {
                 "Bash(sudo *)".into(),
                 "Bash(curl * | bash)".into(),
                 "FileWrite(.env*)".into(),
+                "FileWrite(*/.env*)".into(),
             ],
             working_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             state_dir: home.join(".dreamswarm"),

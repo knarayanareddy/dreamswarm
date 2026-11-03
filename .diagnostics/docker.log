@@ -1,263 +1,0 @@
-#0 building with "default" instance using docker driver
-
-#1 [internal] load build definition from Dockerfile
-#1 transferring dockerfile: 1.39kB 0.0s done
-#1 DONE 0.0s
-
-#2 [auth] library/rust:pull token for registry-1.docker.io
-#2 DONE 0.0s
-
-#3 [auth] library/alpine:pull token for registry-1.docker.io
-#3 DONE 0.0s
-
-#4 [internal] load metadata for docker.io/library/rust:1.95-slim-bookworm
-#4 DONE 0.6s
-
-#5 [internal] load metadata for docker.io/library/alpine:3.19
-#5 DONE 0.6s
-
-#6 [internal] load .dockerignore
-#6 transferring context: 86B done
-#6 DONE 0.0s
-
-#7 [internal] load build context
-#7 transferring context: 2.88MB 0.0s done
-#7 DONE 0.0s
-
-#8 [stage-1 1/6] FROM docker.io/library/alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1
-#8 resolve docker.io/library/alpine:3.19@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1 done
-#8 extracting sha256:17a39c0ba978cc27001e9c56a480f98106e1ab74bd56eb302f9fd4cf758ea43f
-#8 sha256:b58899f069c47216f6002a6850143dc6fae0d35eb8b0df9300bbe6327b9c2171 1.02kB / 1.02kB done
-#8 sha256:83b2b6703a620bf2e001ab57f7adc414d891787b3c59859b1b62909e48dd2242 581B / 581B done
-#8 sha256:17a39c0ba978cc27001e9c56a480f98106e1ab74bd56eb302f9fd4cf758ea43f 3.42MB / 3.42MB 0.1s done
-#8 sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1 8.08kB / 8.08kB done
-#8 extracting sha256:17a39c0ba978cc27001e9c56a480f98106e1ab74bd56eb302f9fd4cf758ea43f 0.1s done
-#8 DONE 0.3s
-
-#9 [builder  1/10] FROM docker.io/library/rust:1.95-slim-bookworm@sha256:d7482085ff5b415f84dba5647ae71606650bdef00db7aeb69f4b3d170c3e4082
-#9 resolve docker.io/library/rust:1.95-slim-bookworm@sha256:d7482085ff5b415f84dba5647ae71606650bdef00db7aeb69f4b3d170c3e4082 done
-#9 sha256:535517ecfe2cf00b51c2c108272fa846de2e71b62275535e8da1cf186d515ad1 3.28kB / 3.28kB done
-#9 sha256:068fedd6b0f109b8186d00d49327b6fc6747c428fd3c9a8739424ff5f38d7531 28.23MB / 28.23MB 0.1s done
-#9 sha256:b4ccf27c4837092078b76ab11024c3af625ae68e5a10aa62444217ca0c799c99 63.96MB / 286.00MB 0.3s
-#9 sha256:d7482085ff5b415f84dba5647ae71606650bdef00db7aeb69f4b3d170c3e4082 7.80kB / 7.80kB done
-#9 sha256:6f9e63259f12e1e599296f5ecfed2bae46de4af0ee0525dd8b89c046e236d5c5 1.37kB / 1.37kB done
-#9 extracting sha256:068fedd6b0f109b8186d00d49327b6fc6747c428fd3c9a8739424ff5f38d7531 0.1s
-#9 sha256:b4ccf27c4837092078b76ab11024c3af625ae68e5a10aa62444217ca0c799c99 95.42MB / 286.00MB 0.4s
-#9 sha256:b4ccf27c4837092078b76ab11024c3af625ae68e5a10aa62444217ca0c799c99 122.68MB / 286.00MB 0.5s
-#9 sha256:b4ccf27c4837092078b76ab11024c3af625ae68e5a10aa62444217ca0c799c99 159.38MB / 286.00MB 0.6s
-#9 sha256:b4ccf27c4837092078b76ab11024c3af625ae68e5a10aa62444217ca0c799c99 199.23MB / 286.00MB 0.7s
-#9 sha256:b4ccf27c4837092078b76ab11024c3af625ae68e5a10aa62444217ca0c799c99 261.10MB / 286.00MB 0.9s
-#9 sha256:b4ccf27c4837092078b76ab11024c3af625ae68e5a10aa62444217ca0c799c99 286.00MB / 286.00MB 1.0s
-#9 sha256:b4ccf27c4837092078b76ab11024c3af625ae68e5a10aa62444217ca0c799c99 286.00MB / 286.00MB 1.4s done
-#9 ...
-
-#10 [stage-1 2/6] RUN apk add --no-cache     tmux     git     ripgrep     bash     ca-certificates     tini
-#10 0.217 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/main/x86_64/APKINDEX.tar.gz
-#10 0.333 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/community/x86_64/APKINDEX.tar.gz
-#10 0.674 (1/20) Installing ncurses-terminfo-base (6.4_p20231125-r0)
-#10 0.688 (2/20) Installing libncursesw (6.4_p20231125-r0)
-#10 0.698 (3/20) Installing readline (8.2.1-r2)
-#10 0.705 (4/20) Installing bash (5.2.21-r0)
-#10 0.754 Executing bash-5.2.21-r0.post-install
-#10 0.757 (5/20) Installing ca-certificates (20261020-r0)
-#10 0.778 (6/20) Installing brotli-libs (1.1.0-r1)
-#10 0.790 (7/20) Installing c-ares (1.27.0-r0)
-#10 0.794 (8/20) Installing libunistring (1.1-r2)
-#10 0.807 (9/20) Installing libidn2 (2.3.4-r4)
-#10 0.812 (10/20) Installing nghttp2-libs (1.58.0-r0)
-#10 0.816 (11/20) Installing libpsl (0.21.5-r0)
-#10 0.820 (12/20) Installing libcurl (8.14.1-r2)
-#10 0.830 (13/20) Installing libexpat (2.7.3-r0)
-#10 0.834 (14/20) Installing pcre2 (10.42-r2)
-#10 0.845 (15/20) Installing git (2.43.7-r0)
-#10 0.946 (16/20) Installing libgcc (13.2.1_git20231014-r0)
-#10 0.950 (17/20) Installing ripgrep (14.0.3-r0)
-#10 0.977 (18/20) Installing tini (0.19.0-r2)
-#10 0.981 (19/20) Installing libevent (2.1.12-r7)
-#10 0.991 (20/20) Installing tmux (3.3a_git20230428-r0)
-#10 1.003 Executing busybox-1.36.1-r20.trigger
-#10 1.010 Executing ca-certificates-20261020-r0.trigger
-#10 1.182 OK: 25 MiB in 35 packages
-#10 DONE 1.5s
-
-#9 [builder  1/10] FROM docker.io/library/rust:1.95-slim-bookworm@sha256:d7482085ff5b415f84dba5647ae71606650bdef00db7aeb69f4b3d170c3e4082
-#9 extracting sha256:068fedd6b0f109b8186d00d49327b6fc6747c428fd3c9a8739424ff5f38d7531 1.6s done
-#9 ...
-
-#11 [stage-1 3/6] RUN addgroup -S dreamswarm && adduser -S dreamswarm -G dreamswarm
-#11 DONE 0.2s
-
-#9 [builder  1/10] FROM docker.io/library/rust:1.95-slim-bookworm@sha256:d7482085ff5b415f84dba5647ae71606650bdef00db7aeb69f4b3d170c3e4082
-#9 extracting sha256:b4ccf27c4837092078b76ab11024c3af625ae68e5a10aa62444217ca0c799c99
-#9 ...
-
-#12 [stage-1 4/6] WORKDIR /home/dreamswarm
-#12 DONE 0.0s
-
-#9 [builder  1/10] FROM docker.io/library/rust:1.95-slim-bookworm@sha256:d7482085ff5b415f84dba5647ae71606650bdef00db7aeb69f4b3d170c3e4082
-#9 extracting sha256:b4ccf27c4837092078b76ab11024c3af625ae68e5a10aa62444217ca0c799c99 4.3s done
-#9 DONE 7.9s
-
-#13 [builder  2/10] RUN apt-get update && apt-get install -y     pkg-config     libssl-dev     musl-tools     perl     make     && rm -rf /var/lib/apt/lists/*     && rustup target add x86_64-unknown-linux-musl
-#13 0.154 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
-#13 0.165 Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
-#13 0.165 Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [34.8 kB]
-#13 0.227 Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8790 kB]
-#13 0.279 Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [6924 B]
-#13 0.327 Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [360 kB]
-#13 1.133 Fetched 9398 kB in 1s (9493 kB/s)
-#13 1.133 Reading package lists...
-#13 1.629 Reading package lists...
-#13 2.125 Building dependency tree...
-#13 2.259 Reading state information...
-#13 2.376 The following additional packages will be installed:
-#13 2.377   libgdbm-compat4 libgdbm6 libperl5.36 libpkgconf3 libssl3 musl musl-dev
-#13 2.377   netbase openssl perl-base perl-modules-5.36 pkgconf pkgconf-bin
-#13 2.377 Suggested packages:
-#13 2.377   gdbm-l10n sensible-utils libssl-doc make-doc perl-doc
-#13 2.377   libterm-readline-gnu-perl | libterm-readline-perl-perl
-#13 2.377   libtap-harness-archive-perl
-#13 2.377 Recommended packages:
-#13 2.377   linux-musl-dev
-#13 2.456 The following NEW packages will be installed:
-#13 2.456   libgdbm-compat4 libgdbm6 libperl5.36 libpkgconf3 libssl-dev make musl
-#13 2.456   musl-dev musl-tools netbase perl perl-modules-5.36 pkg-config pkgconf
-#13 2.457   pkgconf-bin
-#13 2.457 The following packages will be upgraded:
-#13 2.457   libssl3 openssl perl-base
-#13 2.485 3 upgraded, 15 newly installed, 0 to remove and 12 not upgraded.
-#13 2.485 Need to get 16.5 MB of archives.
-#13 2.485 After this operation, 67.1 MB of additional disk space will be used.
-#13 2.485 Get:1 http://deb.debian.org/debian-security bookworm-security/main amd64 perl-base amd64 5.36.0-7+deb12u4 [1610 kB]
-#13 2.494 Get:2 http://deb.debian.org/debian-security bookworm-security/main amd64 perl-modules-5.36 all 5.36.0-7+deb12u4 [2817 kB]
-#13 2.500 Get:3 http://deb.debian.org/debian bookworm/main amd64 libgdbm6 amd64 1.23-3 [72.2 kB]
-#13 2.501 Get:4 http://deb.debian.org/debian bookworm/main amd64 libgdbm-compat4 amd64 1.23-3 [48.2 kB]
-#13 2.501 Get:5 http://deb.debian.org/debian-security bookworm-security/main amd64 libperl5.36 amd64 5.36.0-7+deb12u4 [4208 kB]
-#13 2.510 Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 perl amd64 5.36.0-7+deb12u4 [239 kB]
-#13 2.511 Get:7 http://deb.debian.org/debian bookworm/main amd64 netbase all 6.4 [12.8 kB]
-#13 2.513 Get:8 http://deb.debian.org/debian bookworm/main amd64 libpkgconf3 amd64 1.8.1-1 [36.1 kB]
-#13 2.513 Get:9 http://deb.debian.org/debian-security bookworm-security/main amd64 libssl3 amd64 3.0.22-1~deb12u2 [2040 kB]
-#13 2.516 Get:10 http://deb.debian.org/debian-security bookworm-security/main amd64 libssl-dev amd64 3.0.22-1~deb12u2 [2450 kB]
-#13 2.521 Get:11 http://deb.debian.org/debian bookworm/main amd64 make amd64 4.3-4.1 [396 kB]
-#13 2.523 Get:12 http://deb.debian.org/debian bookworm/main amd64 musl amd64 1.2.3-1 [406 kB]
-#13 2.525 Get:13 http://deb.debian.org/debian bookworm/main amd64 musl-dev amd64 1.2.3-1 [587 kB]
-#13 2.528 Get:14 http://deb.debian.org/debian bookworm/main amd64 musl-tools amd64 1.2.3-1 [42.3 kB]
-#13 2.528 Get:15 http://deb.debian.org/debian-security bookworm-security/main amd64 openssl amd64 3.0.22-1~deb12u2 [1442 kB]
-#13 2.531 Get:16 http://deb.debian.org/debian bookworm/main amd64 pkgconf-bin amd64 1.8.1-1 [29.5 kB]
-#13 2.531 Get:17 http://deb.debian.org/debian bookworm/main amd64 pkgconf amd64 1.8.1-1 [25.9 kB]
-#13 2.532 Get:18 http://deb.debian.org/debian bookworm/main amd64 pkg-config amd64 1.8.1-1 [13.7 kB]
-#13 2.640 debconf: delaying package configuration, since apt-utils is not installed
-#13 2.665 Fetched 16.5 MB in 0s (235 MB/s)
-#13 2.679 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 9036 files and directories currently installed.)
-#13 2.687 Preparing to unpack .../perl-base_5.36.0-7+deb12u4_amd64.deb ...
-#13 2.698 Unpacking perl-base (5.36.0-7+deb12u4) over (5.36.0-7+deb12u3) ...
-#13 3.221 Setting up perl-base (5.36.0-7+deb12u4) ...
-#13 3.244 Selecting previously unselected package perl-modules-5.36.
-#13 3.244 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 9036 files and directories currently installed.)
-#13 3.253 Preparing to unpack .../00-perl-modules-5.36_5.36.0-7+deb12u4_all.deb ...
-#13 3.254 Unpacking perl-modules-5.36 (5.36.0-7+deb12u4) ...
-#13 3.550 Selecting previously unselected package libgdbm6:amd64.
-#13 3.552 Preparing to unpack .../01-libgdbm6_1.23-3_amd64.deb ...
-#13 3.553 Unpacking libgdbm6:amd64 (1.23-3) ...
-#13 3.572 Selecting previously unselected package libgdbm-compat4:amd64.
-#13 3.573 Preparing to unpack .../02-libgdbm-compat4_1.23-3_amd64.deb ...
-#13 3.574 Unpacking libgdbm-compat4:amd64 (1.23-3) ...
-#13 3.592 Selecting previously unselected package libperl5.36:amd64.
-#13 3.594 Preparing to unpack .../03-libperl5.36_5.36.0-7+deb12u4_amd64.deb ...
-#13 3.595 Unpacking libperl5.36:amd64 (5.36.0-7+deb12u4) ...
-#13 3.898 Selecting previously unselected package perl.
-#13 3.900 Preparing to unpack .../04-perl_5.36.0-7+deb12u4_amd64.deb ...
-#13 3.905 Unpacking perl (5.36.0-7+deb12u4) ...
-#13 3.935 Selecting previously unselected package netbase.
-#13 3.936 Preparing to unpack .../05-netbase_6.4_all.deb ...
-#13 3.937 Unpacking netbase (6.4) ...
-#13 3.952 Selecting previously unselected package libpkgconf3:amd64.
-#13 3.954 Preparing to unpack .../06-libpkgconf3_1.8.1-1_amd64.deb ...
-#13 3.954 Unpacking libpkgconf3:amd64 (1.8.1-1) ...
-#13 3.972 Preparing to unpack .../07-libssl3_3.0.22-1~deb12u2_amd64.deb ...
-#13 3.974 Unpacking libssl3:amd64 (3.0.22-1~deb12u2) over (3.0.20-1~deb12u1) ...
-#13 4.105 Selecting previously unselected package libssl-dev:amd64.
-#13 4.106 Preparing to unpack .../08-libssl-dev_3.0.22-1~deb12u2_amd64.deb ...
-#13 4.107 Unpacking libssl-dev:amd64 (3.0.22-1~deb12u2) ...
-#13 4.276 Selecting previously unselected package make.
-#13 4.278 Preparing to unpack .../09-make_4.3-4.1_amd64.deb ...
-#13 4.279 Unpacking make (4.3-4.1) ...
-#13 4.320 Selecting previously unselected package musl:amd64.
-#13 4.322 Preparing to unpack .../10-musl_1.2.3-1_amd64.deb ...
-#13 4.322 Unpacking musl:amd64 (1.2.3-1) ...
-#13 4.362 Selecting previously unselected package musl-dev:amd64.
-#13 4.364 Preparing to unpack .../11-musl-dev_1.2.3-1_amd64.deb ...
-#13 4.365 Unpacking musl-dev:amd64 (1.2.3-1) ...
-#13 4.422 Selecting previously unselected package musl-tools.
-#13 4.424 Preparing to unpack .../12-musl-tools_1.2.3-1_amd64.deb ...
-#13 4.425 Unpacking musl-tools (1.2.3-1) ...
-#13 4.442 Preparing to unpack .../13-openssl_3.0.22-1~deb12u2_amd64.deb ...
-#13 4.443 Unpacking openssl (3.0.22-1~deb12u2) over (3.0.20-1~deb12u1) ...
-#13 4.544 Selecting previously unselected package pkgconf-bin.
-#13 4.546 Preparing to unpack .../14-pkgconf-bin_1.8.1-1_amd64.deb ...
-#13 4.547 Unpacking pkgconf-bin (1.8.1-1) ...
-#13 4.562 Selecting previously unselected package pkgconf:amd64.
-#13 4.564 Preparing to unpack .../15-pkgconf_1.8.1-1_amd64.deb ...
-#13 4.566 Unpacking pkgconf:amd64 (1.8.1-1) ...
-#13 4.582 Selecting previously unselected package pkg-config:amd64.
-#13 4.583 Preparing to unpack .../16-pkg-config_1.8.1-1_amd64.deb ...
-#13 4.585 Unpacking pkg-config:amd64 (1.8.1-1) ...
-#13 4.608 Setting up libssl3:amd64 (3.0.22-1~deb12u2) ...
-#13 4.609 Setting up perl-modules-5.36 (5.36.0-7+deb12u4) ...
-#13 4.611 Setting up libpkgconf3:amd64 (1.8.1-1) ...
-#13 4.613 Setting up make (4.3-4.1) ...
-#13 4.614 Setting up libssl-dev:amd64 (3.0.22-1~deb12u2) ...
-#13 4.616 Setting up pkgconf-bin (1.8.1-1) ...
-#13 4.617 Setting up musl:amd64 (1.2.3-1) ...
-#13 4.620 Setting up netbase (6.4) ...
-#13 4.626 Setting up openssl (3.0.22-1~deb12u2) ...
-#13 4.630 Setting up libgdbm6:amd64 (1.23-3) ...
-#13 4.631 Setting up pkgconf:amd64 (1.8.1-1) ...
-#13 4.633 Setting up musl-dev:amd64 (1.2.3-1) ...
-#13 4.635 Setting up pkg-config:amd64 (1.8.1-1) ...
-#13 4.637 Setting up libgdbm-compat4:amd64 (1.23-3) ...
-#13 4.638 Setting up libperl5.36:amd64 (5.36.0-7+deb12u4) ...
-#13 4.640 Setting up musl-tools (1.2.3-1) ...
-#13 4.642 Setting up perl (5.36.0-7+deb12u4) ...
-#13 4.651 Processing triggers for libc-bin (2.36-9+deb12u14) ...
-#13 4.740 info: downloading component rust-std
-#13 DONE 8.4s
-
-#14 [builder  3/10] WORKDIR /build
-#14 DONE 0.0s
-
-#15 [builder  4/10] COPY Cargo.toml Cargo.lock ./
-#15 DONE 0.0s
-
-#16 [builder  5/10] RUN mkdir src && echo "fn main() {}" > src/main.rs
-#16 DONE 0.1s
-
-#17 [builder  6/10] RUN cargo build --release --target x86_64-unknown-linux-musl 2>/dev/null || true
-#17 DONE 389.8s
-
-#18 [builder  7/10] RUN rm -rf src
-#18 DONE 0.1s
-
-#19 [builder  8/10] COPY . .
-#19 DONE 0.0s
-
-#20 [builder  9/10] RUN cargo build --release --target x86_64-unknown-linux-musl
-#20 0.532    Compiling dreamswarm v0.1.0 (/build)
-#20 40.36     Finished `release` profile [optimized] target(s) in 40.22s
-#20 DONE 40.4s
-
-#21 [builder 10/10] RUN strip target/x86_64-unknown-linux-musl/release/dreamswarm
-#21 DONE 0.2s
-
-#22 [stage-1 5/6] COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/dreamswarm /usr/local/bin/dreamswarm
-#22 DONE 0.0s
-
-#23 [stage-1 6/6] RUN mkdir -p .dreamswarm/memory/topics              .dreamswarm/memory/transcripts              .dreamswarm/daemon/logs              .dreamswarm/teams
-#23 DONE 0.1s
-
-#24 exporting to image
-#24 exporting layers
-#24 exporting layers 0.8s done
-#24 writing image sha256:11e129b2311693684deec2be9a8fea1cb686a5b40121e09757902433f07a700a done
-#24 naming to docker.io/library/ds-probe done
-#24 DONE 0.8s

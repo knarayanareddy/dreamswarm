@@ -1,0 +1,251 @@
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Quadratic run time when checking a start tag for duplicate attribute names[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:323:1
+    [0m[36m│[0m
+[0m[36m323[0m [0m[36m│[0m [0m[31mquick-xml 0.36.2 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0194
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0194
+    [0m[36m├[0m `BytesStart::attributes()` returns an `Attributes` iterator which, by default
+      (`with_checks(true)`), rejects a start tag that repeats an attribute name. For
+      each attribute yielded, the iterator compared the new name against every name
+      seen so far in the same tag using a linear scan, so a start tag with `N`
+      distinct attribute names cost `O(N²)` byte comparisons. There was no bound on
+      `N` other than the size of the buffered start tag.
+      
+      ## Impact
+      
+      Any code that parses untrusted XML and iterates a start tag's attributes with
+      the default duplicate check enabled can be made to spend CPU time quadratic in
+      the number of attributes on a single tag. Because the check is pure computation
+      with no `.await`/I/O, an I/O-based timeout on the consumer (for example a read
+      or request timeout) cannot interrupt it while it runs.
+      
+      Measured cost of a single start tag, release build:
+      
+      | Attributes on one tag | Time |
+      |---|---|
+      | 80,000  | ~6 s   |
+      | 800,000 | ~10 min |
+      
+      The cost grows with the square of the attribute count, so a start tag of a few
+      tens of megabytes can stall a parsing thread for hours. No memory is exhausted
+      and the parser does not crash; the effect is CPU exhaustion on the thread doing
+      the parsing: a single crafted start tag can pin a CPU core for minutes to hours,
+      denying service to that worker. A deployment that places a wall-clock bound on
+      parsing, or confines it to a non-critical thread, may consider the availability
+      impact lower.
+      
+      ## Affected code paths
+      
+      * `BytesStart::attributes()` / `Attributes` iterated with checks enabled (the
+        default), and `BytesStart::try_get_attribute`.
+      * `NsReader`, which resolves namespaces by iterating a tag's attributes and so
+        reaches the same check internally.
+      
+      Consumers that iterate attributes with `.attributes().with_checks(false)` and do
+      not use `NsReader` are not affected.
+      
+      This was reported as reachable by a remote, unauthenticated attacker in a
+      real-world RPKI relying party (NLnet Labs Routinator) via a crafted RRDP
+      `snapshot.xml`.
+      
+      ## Remediation
+      
+      Upgrade to `quick-xml >= 0.41.0`, where the duplicate check keeps the linear
+      scan for start tags with a small number of attributes and switches to an `O(1)`
+      hash pre-filter above a threshold, making the whole tag `O(N)`. The reported
+      `AttrError::Duplicated` positions are unchanged.
+      
+      If upgrading is not possible and duplicate-name detection is not required,
+      disable it with `.attributes().with_checks(false)` (this does not help
+      `NsReader` consumers, which have no equivalent opt-out before 0.41.0).
+    [0m[36m├[0m Announcement: https://github.com/tafia/quick-xml/issues/969
+    [0m[36m├[0m Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+    [0m[36m├[0m quick-xml v0.36.2
+      └── opendal v0.50.2
+          └── dreamswarm v0.1.0
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Unbounded namespace-declaration allocation in `NsReader` enables memory-exhaustion denial of service[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:323:1
+    [0m[36m│[0m
+[0m[36m323[0m [0m[36m│[0m [0m[31mquick-xml 0.36.2 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0195
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0195
+    [0m[36m├[0m `NsReader` resolves namespaces by calling `NamespaceResolver::push` for every
+      `Start`/`Empty` event *before* the event is returned to the caller. `push`
+      iterated all `xmlns` / `xmlns:*` attributes on the start tag and, for each one,
+      appended the prefix bytes to an internal buffer and pushed a `NamespaceBinding`
+      (32 bytes on 64-bit) to an internal `Vec`, with no upper bound on the number of
+      declarations.
+      
+      ## Impact
+      
+      A start tag with `N` namespace declarations drove roughly `3×` the tag's byte
+      size in `NamespaceResolver` heap, allocated *inside* `quick-xml` before the
+      `NsReader` consumer ever received the event and could inspect or reject it. A
+      consumer that bounds its *input* size therefore still cannot bound this
+      allocation: an `M`-byte start tag yields on the order of `3 × M` bytes of
+      resolver heap the caller never sees.
+      
+      On untrusted XML this lets a remote, unauthenticated attacker force large heap
+      allocations with a single start tag. With several `NsReader`s running
+      concurrently on independent inputs (a common server pattern), the allocations
+      stack and can exhaust process memory, causing the operating system to kill the
+      process (OOM). This was confirmed against a real-world RPKI relying party (NLnet
+      Labs Routinator), where concurrent RRDP validation workers parsing a crafted
+      `snapshot.xml` exceeded the memory limit and the process was OOM-killed.
+      
+      ## Affected code paths
+      
+      Consumers using `NsReader` (which always calls `NamespaceResolver::push` before
+      yielding `Start`/`Empty`), or calling `NamespaceResolver::push` directly. A plain
+      `Reader` that does not perform namespace resolution is not affected.
+      
+      ## Remediation
+      
+      Upgrade to `quick-xml >= 0.41.0`. `NamespaceResolver::push` now rejects a start
+      tag that declares more than `DEFAULT_MAX_DECLARATIONS_PER_ELEMENT` (256)
+      namespace bindings, returning the new `NamespaceError::TooManyDeclarations`
+      instead of allocating without limit. The limit is configurable via
+      `NamespaceResolver::set_max_declarations_per_element` (use `usize::MAX` to
+      restore the previous unbounded behavior), and `NsReader::resolver_mut()` is
+      provided to reach it.
+      
+      There is no clean workaround for `NsReader` consumers before 0.41.0, as the
+      allocation happens inside the reader with no configuration knob to cap it.
+    [0m[36m├[0m Announcement: https://github.com/tafia/quick-xml/issues/970
+    [0m[36m├[0m Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+    [0m[36m├[0m quick-xml v0.36.2
+      └── opendal v0.50.2
+          └── dreamswarm v0.1.0
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Quadratic run time when checking a start tag for duplicate attribute names[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:324:1
+    [0m[36m│[0m
+[0m[36m324[0m [0m[36m│[0m [0m[31mquick-xml 0.37.5 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0194
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0194
+    [0m[36m├[0m `BytesStart::attributes()` returns an `Attributes` iterator which, by default
+      (`with_checks(true)`), rejects a start tag that repeats an attribute name. For
+      each attribute yielded, the iterator compared the new name against every name
+      seen so far in the same tag using a linear scan, so a start tag with `N`
+      distinct attribute names cost `O(N²)` byte comparisons. There was no bound on
+      `N` other than the size of the buffered start tag.
+      
+      ## Impact
+      
+      Any code that parses untrusted XML and iterates a start tag's attributes with
+      the default duplicate check enabled can be made to spend CPU time quadratic in
+      the number of attributes on a single tag. Because the check is pure computation
+      with no `.await`/I/O, an I/O-based timeout on the consumer (for example a read
+      or request timeout) cannot interrupt it while it runs.
+      
+      Measured cost of a single start tag, release build:
+      
+      | Attributes on one tag | Time |
+      |---|---|
+      | 80,000  | ~6 s   |
+      | 800,000 | ~10 min |
+      
+      The cost grows with the square of the attribute count, so a start tag of a few
+      tens of megabytes can stall a parsing thread for hours. No memory is exhausted
+      and the parser does not crash; the effect is CPU exhaustion on the thread doing
+      the parsing: a single crafted start tag can pin a CPU core for minutes to hours,
+      denying service to that worker. A deployment that places a wall-clock bound on
+      parsing, or confines it to a non-critical thread, may consider the availability
+      impact lower.
+      
+      ## Affected code paths
+      
+      * `BytesStart::attributes()` / `Attributes` iterated with checks enabled (the
+        default), and `BytesStart::try_get_attribute`.
+      * `NsReader`, which resolves namespaces by iterating a tag's attributes and so
+        reaches the same check internally.
+      
+      Consumers that iterate attributes with `.attributes().with_checks(false)` and do
+      not use `NsReader` are not affected.
+      
+      This was reported as reachable by a remote, unauthenticated attacker in a
+      real-world RPKI relying party (NLnet Labs Routinator) via a crafted RRDP
+      `snapshot.xml`.
+      
+      ## Remediation
+      
+      Upgrade to `quick-xml >= 0.41.0`, where the duplicate check keeps the linear
+      scan for start tags with a small number of attributes and switches to an `O(1)`
+      hash pre-filter above a threshold, making the whole tag `O(N)`. The reported
+      `AttrError::Duplicated` positions are unchanged.
+      
+      If upgrading is not possible and duplicate-name detection is not required,
+      disable it with `.attributes().with_checks(false)` (this does not help
+      `NsReader` consumers, which have no equivalent opt-out before 0.41.0).
+    [0m[36m├[0m Announcement: https://github.com/tafia/quick-xml/issues/969
+    [0m[36m├[0m Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+    [0m[36m├[0m quick-xml v0.37.5
+      └── reqsign v0.16.5
+          └── opendal v0.50.2
+              └── dreamswarm v0.1.0
+
+[0m[1m[38;5;9merror[vulnerability][0m[1m: Unbounded namespace-declaration allocation in `NsReader` enables memory-exhaustion denial of service[0m
+    [0m[36m┌─[0m /home/runner/work/dreamswarm/dreamswarm/Cargo.lock:324:1
+    [0m[36m│[0m
+[0m[36m324[0m [0m[36m│[0m [0m[31mquick-xml 0.37.5 registry+https://github.com/rust-lang/crates.io-index[0m
+    [0m[36m│[0m [0m[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [0m[31msecurity vulnerability detected[0m
+    [0m[36m│[0m
+    [0m[36m├[0m ID: RUSTSEC-2026-0195
+    [0m[36m├[0m Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0195
+    [0m[36m├[0m `NsReader` resolves namespaces by calling `NamespaceResolver::push` for every
+      `Start`/`Empty` event *before* the event is returned to the caller. `push`
+      iterated all `xmlns` / `xmlns:*` attributes on the start tag and, for each one,
+      appended the prefix bytes to an internal buffer and pushed a `NamespaceBinding`
+      (32 bytes on 64-bit) to an internal `Vec`, with no upper bound on the number of
+      declarations.
+      
+      ## Impact
+      
+      A start tag with `N` namespace declarations drove roughly `3×` the tag's byte
+      size in `NamespaceResolver` heap, allocated *inside* `quick-xml` before the
+      `NsReader` consumer ever received the event and could inspect or reject it. A
+      consumer that bounds its *input* size therefore still cannot bound this
+      allocation: an `M`-byte start tag yields on the order of `3 × M` bytes of
+      resolver heap the caller never sees.
+      
+      On untrusted XML this lets a remote, unauthenticated attacker force large heap
+      allocations with a single start tag. With several `NsReader`s running
+      concurrently on independent inputs (a common server pattern), the allocations
+      stack and can exhaust process memory, causing the operating system to kill the
+      process (OOM). This was confirmed against a real-world RPKI relying party (NLnet
+      Labs Routinator), where concurrent RRDP validation workers parsing a crafted
+      `snapshot.xml` exceeded the memory limit and the process was OOM-killed.
+      
+      ## Affected code paths
+      
+      Consumers using `NsReader` (which always calls `NamespaceResolver::push` before
+      yielding `Start`/`Empty`), or calling `NamespaceResolver::push` directly. A plain
+      `Reader` that does not perform namespace resolution is not affected.
+      
+      ## Remediation
+      
+      Upgrade to `quick-xml >= 0.41.0`. `NamespaceResolver::push` now rejects a start
+      tag that declares more than `DEFAULT_MAX_DECLARATIONS_PER_ELEMENT` (256)
+      namespace bindings, returning the new `NamespaceError::TooManyDeclarations`
+      instead of allocating without limit. The limit is configurable via
+      `NamespaceResolver::set_max_declarations_per_element` (use `usize::MAX` to
+      restore the previous unbounded behavior), and `NsReader::resolver_mut()` is
+      provided to reach it.
+      
+      There is no clean workaround for `NsReader` consumers before 0.41.0, as the
+      allocation happens inside the reader with no configuration knob to cap it.
+    [0m[36m├[0m Announcement: https://github.com/tafia/quick-xml/issues/970
+    [0m[36m├[0m Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+    [0m[36m├[0m quick-xml v0.37.5
+      └── reqsign v0.16.5
+          └── opendal v0.50.2
+              └── dreamswarm v0.1.0
+
+advisories [31mFAILED[0m

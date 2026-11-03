@@ -490,6 +490,10 @@
           </div>
         </div>
         <div class="form-group">
+          <label class="form-label">Worker directories <span class="form-hint">(optional; one existing, non-overlapping path per in-process worker)</span></label>
+          <textarea class="form-textarea" id="swarm-worker-directories" style="min-height:60px" placeholder="/path/to/worker-one&#10;/path/to/worker-two"></textarea>
+        </div>
+        <div class="form-group">
           <label class="form-label">Linked Repositories <span class="form-hint">(one path per line)</span></label>
           <textarea class="form-textarea" id="swarm-repos" style="min-height:60px" placeholder="/path/to/other-repo"></textarea>
         </div>
@@ -806,6 +810,7 @@ async function launchSwarm() {
   const strategy = document.getElementById('swarm-strategy').value;
   const maxWorkers = parseInt(document.getElementById('swarm-workers').value);
   const repos = document.getElementById('swarm-repos').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const workerDirectories = document.getElementById('swarm-worker-directories').value.split('\n').map(s=>s.trim()).filter(Boolean);
 
   const payload = {
     mission,
@@ -819,6 +824,7 @@ async function launchSwarm() {
       timeout_seconds: 600,
       remote_hosts: [],
       linked_repositories: repos,
+      worker_directories: workerDirectories,
     }
   };
 

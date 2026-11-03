@@ -112,6 +112,17 @@ impl Session {
         self.updated_at = Utc::now();
     }
 
+    pub fn add_tool_results(&mut self, blocks: Vec<ContentBlock>) {
+        self.messages.push(Message {
+            role: Role::ToolResult,
+            content: MessageContent::Mixed(blocks),
+            timestamp: Utc::now(),
+            token_count: None,
+            turn_number: self.turn_count,
+        });
+        self.updated_at = Utc::now();
+    }
+
     pub fn add_tool_result(&mut self, tool_use_id: &str, content: &str, is_error: bool) {
         self.messages.push(Message {
             role: Role::ToolResult,

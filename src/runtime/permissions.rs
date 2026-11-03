@@ -31,10 +31,13 @@ impl std::str::FromStr for AgentMode {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "accept-edits" | "acceptedits" => Ok(AgentMode::AcceptEdits),
-            "bypass" | "yolo" | "dangerously-skip-permissions" => Ok(AgentMode::BypassPermissions),
+            "bypass" | "bypass-permissions" | "yolo" | "dangerously-skip-permissions" => {
+                Ok(AgentMode::BypassPermissions)
+            }
             "readonly" | "read-only" => Ok(AgentMode::ReadOnly),
             "plan" => Ok(AgentMode::Plan),
-            _ => Ok(AgentMode::Default),
+            "default" => Ok(AgentMode::Default),
+            _ => Err(()),
         }
     }
 }
@@ -101,10 +104,12 @@ impl GlobPattern {
             if let Some(close) = s.find(')') {
                 let tool_name = s[..open].trim().to_string();
                 let pattern_str = &s[open + 1..close];
-                let regex_str = pattern_str.replace('*', ".*").replace('?', ".");
+                let regex_str = regex::escape(pattern_str)
+                    .replace(r"\*", ".*")
+                    .replace(r"\?", ".");
                 return Some(Self {
                     tool_name,
-                    pattern: Regex::new(&format!("^{}$", regex_str)).ok(),
+                    pattern: Some(Regex::new(&format!("^{}$", regex_str)).ok()?),
                 });
             }
         }
@@ -159,9 +164,31 @@ impl PermissionGate {
             }
         }
 
+        // An allow rule for a simple command must never authorize shell syntax.
+        // Compound commands require explicit approval, even when their prefix matches.
+        let shell_syntax = tool_name.eq_ignore_ascii_case("Bash")
+            && signature.chars().any(|c| {
+                matches!(
+                    c,
+                    ';' | '&'
+                        | '|'
+                        | '>'
+                        | '<'
+                        | '`'
+                        | '$'
+                        | '\n'
+                        | '\r'
+                        | '('
+                        | ')'
+                        | '\''
+                        | '"'
+                        | '\\'
+                )
+            });
+
         // LAYER 3: Allow list
         for pattern in &self.allow_patterns {
-            if pattern.matches(tool_name, signature) {
+            if !shell_syntax && pattern.matches(tool_name, signature) {
                 return Permission::Allow;
             }
         }

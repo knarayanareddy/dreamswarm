@@ -455,6 +455,10 @@
       </div>
     </div>
 
+    <div class="card">
+      <div class="card-title">Tasks and results</div>
+      <pre id="swarm-tasks" style="white-space:pre-wrap;overflow-wrap:anywhere">No active tasks.</pre>
+    </div>
     <div class="card launch-form">
       <div class="config-section-title">Launch New Swarm</div>
       <div class="form-row single">
@@ -539,7 +543,7 @@ function switchTab(name) {
 // ── SSE Connection ────────────────────────────────────────────────────────────
 function connectSSE() {
   if (state.eventSource) state.eventSource.close();
-  const es = new EventSource('/api/v1/telemetry/stream');
+  const es = new EventSource('/api/v1/telemetry/stream?token=' + encodeURIComponent(apiToken));
   state.eventSource = es;
 
   es.onopen = () => {
@@ -735,9 +739,10 @@ async function controlAction(action) {
   try {
     const r = await fetch(`/api/v1/control/${action}`, { method: 'POST' });
     const d = await r.json();
-    toast(labels[action] || d.status, action === 'stop' ? 'error' : 'success');
+    if (!r.ok || d.error) throw new Error(d.error || `HTTP ${r.status}`);
+    toast(action === 'stop' ? d.status : (labels[action] || d.status), 'success');
   } catch(e) {
-    toast('Action failed — is the Oracle running?', 'error');
+    toast('Action failed: ' + e.message, 'error');
   }
 }
 
@@ -748,6 +753,12 @@ async function loadWorkers() {
     const workers = await r.json();
     document.getElementById('stat-workers').textContent = workers.length;
     renderWorkers(workers);
+    const tasksResponse = await fetch('/api/v1/swarm/tasks');
+    const tasks = await tasksResponse.json();
+    if (!tasksResponse.ok) throw new Error(tasks.error || 'Failed to load tasks');
+    document.getElementById('swarm-tasks').textContent = tasks.length
+      ? tasks.map(t => `${t.title} — ${typeof t.status === 'string' ? t.status : JSON.stringify(t.status)}${t.result ? '\n' + t.result : ''}`).join('\n\n')
+      : 'No active tasks.';
   } catch(e) {
     document.getElementById('stat-workers').textContent = '—';
   }

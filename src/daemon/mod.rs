@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 pub mod brief_mode;
+pub mod control;
 pub mod daily_log;
 pub mod healing;
 pub mod heartbeat;

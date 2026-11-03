@@ -42,6 +42,7 @@ impl Tool for GrepTool {
         let semantic = input["semantic"].as_bool().unwrap_or(false);
 
         let mut cmd = tokio::process::Command::new("rg");
+        cmd.kill_on_drop(true);
         cmd.arg("-n").arg(pattern);
 
         if semantic {

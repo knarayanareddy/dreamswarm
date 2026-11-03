@@ -36,6 +36,10 @@ impl Tool for FileWriteTool {
         RiskLevel::Moderate
     }
 
+    fn command_signature(&self, input: &Value) -> String {
+        input["path"].as_str().unwrap_or_default().to_string()
+    }
+
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
         let path = input["path"].as_str().unwrap_or_default();
         let content = input["content"].as_str().unwrap_or_default();

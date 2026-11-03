@@ -25,6 +25,7 @@ impl Tool for RustCheckTool {
     }
     async fn execute(&self, _input: &Value) -> anyhow::Result<ToolOutput> {
         let output = Command::new("cargo")
+            .kill_on_drop(true)
             .args(["check", "--message-format=json"])
             .output()
             .await?;
@@ -94,6 +95,7 @@ impl Tool for DebuggerTool {
         let debugger = input["debugger"].as_str().unwrap_or("lldb");
 
         let mut command = Command::new(debugger);
+        command.kill_on_drop(true);
         if debugger == "lldb" {
             command.args(["--batch", "-o", "run", "-o", "bt", "-o", "quit", "--"]);
         } else {

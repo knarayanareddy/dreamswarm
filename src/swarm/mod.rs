@@ -99,6 +99,10 @@ pub enum MessageContent {
         task_id: String,
         result: String,
     },
+    TaskFailed {
+        task_id: String,
+        error: String,
+    },
     StatusUpdate {
         status: WorkerStatus,
     },

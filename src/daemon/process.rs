@@ -58,20 +58,9 @@ impl DaemonProcess {
     }
 
     pub async fn stop(&self) -> anyhow::Result<()> {
-        if !self.is_running().await? {
-            println!("Daemon is not running.");
-            return Ok(());
-        }
-        let session_name = "dreamswarm-daemon";
-        let _ = Command::new("tmux")
-            .args(["send-keys", "-t", session_name, "C-c", "Enter"])
-            .output()
-            .await;
-        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-        let _ = Command::new("tmux")
-            .args(["kill-session", "-t", session_name])
-            .output()
-            .await;
+        crate::daemon::control::request_stop(&self.state_dir)
+            .await
+            .map_err(|e| anyhow::anyhow!("Daemon shutdown not confirmed: {}", e))?;
 
         if let Ok(state_content) = std::fs::read_to_string(self.state_dir.join("daemon_state.json"))
         {

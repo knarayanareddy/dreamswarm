@@ -30,6 +30,7 @@ impl Tool for GitBranchTool {
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
         let action = input["action"].as_str().unwrap_or("list");
         let mut cmd = Command::new("git");
+        cmd.kill_on_drop(true);
         match action {
             "create" => {
                 let name = input["name"]
@@ -84,10 +85,15 @@ impl Tool for GitCommitTool {
             .unwrap_or("Automated commit by DreamSwarm");
 
         // Stage all
-        Command::new("git").args(["add", "."]).output().await?;
+        Command::new("git")
+            .kill_on_drop(true)
+            .args(["add", "."])
+            .output()
+            .await?;
 
         // Commit
         let output = Command::new("git")
+            .kill_on_drop(true)
             .args(["commit", "-m", message])
             .output()
             .await?;

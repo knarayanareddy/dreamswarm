@@ -34,11 +34,37 @@ impl SwarmCoordinator {
     }
 
     pub fn with_app_config(
-        config: TeamConfig,
+        mut config: TeamConfig,
         working_dir: &str,
         state_dir: PathBuf,
         app_config: crate::runtime::config::AppConfig,
     ) -> anyhow::Result<Self> {
+        if !config.worker_directories.is_empty() {
+            if config.spawn_strategy != SpawnStrategy::InProcess {
+                anyhow::bail!("Worker directories are supported only for in-process workers");
+            }
+            if config.worker_directories.len() < config.max_workers {
+                anyhow::bail!("Provide one worker directory per maximum worker");
+            }
+            let mut dirs: Vec<PathBuf> = Vec::new();
+            for path in &config.worker_directories {
+                let dir = std::fs::canonicalize(path)?;
+                if !dir.is_dir() {
+                    anyhow::bail!("Worker directory is not a directory: {}", dir.display());
+                }
+                if dirs
+                    .iter()
+                    .any(|other| dir.starts_with(other) || other.starts_with(&dir))
+                {
+                    anyhow::bail!("Worker directories must not overlap");
+                }
+                dirs.push(dir);
+            }
+            config.worker_directories = dirs
+                .iter()
+                .map(|dir| dir.to_string_lossy().into_owned())
+                .collect();
+        }
         let task_list = SharedTaskList::new(&config.team_name)?;
         let mailbox = Mailbox::new(state_dir.clone(), &config.team_name, "lead")?;
         let executor: Box<dyn TeammateExecutor> = match config.spawn_strategy {
@@ -120,7 +146,11 @@ impl SwarmCoordinator {
             instructions: instructions.to_string(),
             model: self.config.worker_model.clone(),
             permission_mode: self.config.worker_mode.clone(),
-            working_dir: self.working_dir.clone(),
+            working_dir: if self.config.worker_directories.is_empty() {
+                self.working_dir.clone()
+            } else {
+                self.config.worker_directories[self.workers.len()].clone()
+            },
             state_dir: self.state_dir.clone(),
             remote_host,
         };

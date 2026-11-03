@@ -141,3 +141,22 @@ async fn worker_applies_approved_file_edit() {
     executor.force_kill(&worker).await.unwrap();
     server.abort();
 }
+
+#[test]
+fn coordinator_rejects_overlapping_worker_directories() {
+    use dreamswarm::swarm::{coordinator::SwarmCoordinator, TeamConfig};
+    let temp = tempfile::tempdir().unwrap();
+    let first = temp.path().join("one");
+    let nested = first.join("nested");
+    std::fs::create_dir_all(&nested).unwrap();
+    let config = TeamConfig {
+        team_name: format!("directories-{}", uuid::Uuid::new_v4()),
+        max_workers: 2,
+        worker_directories: vec![
+            first.to_string_lossy().into_owned(),
+            nested.to_string_lossy().into_owned(),
+        ],
+        ..Default::default()
+    };
+    assert!(SwarmCoordinator::new(config, ".", temp.path().join("state")).is_err());
+}

@@ -130,7 +130,7 @@ impl AgentRuntime {
     pub async fn run_turn<F, Fut>(
         &mut self,
         user_input: &str,
-        on_tool_approval: F,
+        mut on_tool_approval: F,
     ) -> anyhow::Result<TurnResult>
     where
         F: FnMut(String, serde_json::Value) -> Fut,

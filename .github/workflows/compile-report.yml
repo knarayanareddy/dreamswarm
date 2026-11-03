@@ -22,25 +22,24 @@ jobs:
         run: |
           set +e
           cargo check --all-targets --all-features > check.log 2>&1
-          rc=$?
-          ERRORS=$(grep -cE '^error(\[E[0-9]+\])?:' check.log || true)
-          echo "::notice title=Compile summary::exit=$rc errors=$ERRORS lines=$(wc -l < check.log)"
-          python3 - "$ERRORS" <<'PY'
-          import re, subprocess, sys
-          text = open("check.log", encoding="utf-8", errors="replace").read()
-          blocks = re.split(r"\n(?=error(?:\[E\d+\])?:)", text)
-          errs = [b for b in blocks if re.match(r"error(?:\[E\d+\])?:", b)]
-          for block in errs[:10]:
-              lines = block.splitlines()
-              head = lines[0].strip()
-              loc = next((l.strip().lstrip("--> ") for l in lines if l.strip().startswith("-->")), "")
-              m = re.match(r"(.+?):(\d+):(\d+)", loc)
-              file, line = (m.group(1), m.group(2)) if m else ("",  "1")
-              msg = " | ".join(l.strip() for l in lines[1:6] if l.strip())[:900]
-              subprocess.run(["echo", f"::error file={file},line={line},title={head[:120]}::{msg or head}"])
-          # Also surface the first non-error diagnostics for context.
-          warns = re.findall(r"^warning: .*$", text, re.M)[:5]
-          for w in warns:
-              subprocess.run(["echo", f"::warning::{w[:300]}"])
-          PY
-          exit $rc
+          echo $? > rc.txt
+          echo "::notice title=Compile summary::exit=$(cat rc.txt) lines=$(wc -l < check.log)"
+      - name: Emit log slice 1
+        if: always()
+        shell: bash
+        run: python3 .github/scripts/annotate.py check.log 0 28
+      - name: Emit log slice 2
+        if: always()
+        shell: bash
+        run: python3 .github/scripts/annotate.py check.log 28 28
+      - name: Emit log slice 3
+        if: always()
+        shell: bash
+        run: python3 .github/scripts/annotate.py check.log 56 28
+      - name: Emit log slice 4
+        if: always()
+        shell: bash
+        run: python3 .github/scripts/annotate.py check.log 84 28
+      - name: Fail if check failed
+        shell: bash
+        run: exit $(cat rc.txt)

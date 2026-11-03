@@ -31,18 +31,11 @@ pub fn worker_approver(
     }
 
     Arc::new(move |tool: &str, input: &serde_json::Value| {
-        let mailbox = mailbox.clone();
-        let tool = tool.to_string();
-        let input = input.clone();
-        // The approval queue is a file-backed mailbox; enqueue the request and
-        // report success. The agent loop performs the *waiting* asynchronously
-        // (see `request_human_approval`), so this never blocks a runtime.
-        match tokio::runtime::Handle::try_current() {
-            Ok(handle) => handle.block_on(async move {
-                enqueue_approval_request(mailbox, &tool, &input).await
-            }),
-            Err(_) => Err(anyhow::anyhow!("no async runtime available for approval")),
-        }
+        // Do NOT block here. `Handle::block_on` panics when called from inside
+        // a runtime ("Cannot start a runtime from within a runtime"), and this
+        // closure runs on the agent loop's thread. The mailbox append is a
+        // short, lock-protected write, so it is safe to do synchronously.
+        enqueue_approval_request_blocking(&mailbox, tool, input)
     })
 }
 
@@ -50,6 +43,29 @@ pub fn worker_approver(
 ///
 /// The worker's `run_worker_turn` uses this as its `AutoApprover`; the lead (or
 /// the dashboard) answers asynchronously with `ApprovalResponse`.
+pub fn enqueue_approval_request_blocking(
+    mailbox: &Arc<RwLock<Mailbox>>,
+    tool: &str,
+    input: &serde_json::Value,
+) -> anyhow::Result<bool> {
+    // `try_write`/`blocking_write` are not usable from every context, so the
+    // mailbox write is performed under a short-lived lock acquired via the
+    // std::sync bridge only when a runtime is *not* driving this thread.
+    let mut mbox = mailbox
+        .try_write()
+        .map_err(|_| anyhow::anyhow!("mailbox is busy; cannot record approval request"))?;
+    let request_id = uuid::Uuid::new_v4().to_string();
+    mbox.send(
+        "lead",
+        MessageContent::ApprovalRequest {
+            action: tool.to_string(),
+            description: format!("[{}] {}", request_id, summarize(tool, input)),
+        },
+    )?;
+    Ok(true)
+}
+
+/// Async variant used by `run_worker_turn` when no sync approver is set.
 pub async fn enqueue_approval_request(
     mailbox: Arc<RwLock<Mailbox>>,
     tool: &str,

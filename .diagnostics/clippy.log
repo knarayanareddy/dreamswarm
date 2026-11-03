@@ -10,32 +10,18 @@
 [1m[96mhelp[0m: consider removing `package.homepage`
 [1m[33mwarning[0m: `dreamswarm` (manifest) generated 1 warning
 [1m[92m    Checking[0m dreamswarm v0.1.0 (/home/runner/work/dreamswarm/dreamswarm)
-[1m[91merror[0m[1m: unused import: `crate::swarm::TeamConfig`[0m
-  [1m[94m--> [0msrc/swarm/registry.rs:21:5
+[1m[91merror[0m[1m: field `state_dir` is never read[0m
+  [1m[94m--> [0msrc/swarm/registry.rs:32:5
    [1m[94m|[0m
-[1m[94m21[0m [1m[94m|[0m use crate::swarm::TeamConfig;
-   [1m[94m|[0m     [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m29[0m [1m[94m|[0m struct Team {
+   [1m[94m|[0m        [1m[94m----[0m [1m[94mfield in this struct[0m
+[1m[94m...[0m
+[1m[94m32[0m [1m[94m|[0m     state_dir: PathBuf,
+   [1m[94m|[0m     [1m[91m^^^^^^^^^[0m
    [1m[94m|[0m
-   [1m[94m= [0m[1mnote[0m: `-D unused-imports` implied by `-D warnings`
-   [1m[94m= [0m[1mhelp[0m: to override `-D warnings` add `#[allow(unused_imports)]`
+   [1m[94m= [0m[1mnote[0m: `-D dead-code` implied by `-D warnings`
+   [1m[94m= [0m[1mhelp[0m: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
 
-[1m[91merror[E0560][0m[1m: struct `api::server::ApiState` has no field named `workers`[0m
-   [1m[94m--> [0msrc/daemon/kairos.rs:207:17
-    [1m[94m|[0m
-[1m[94m207[0m [1m[94m|[0m                 workers: std::sync::Arc::new(tokio::sync::RwLock::new(vec![])),
-    [1m[94m|[0m                 [1m[91m^^^^^^^[0m [1m[91m`api::server::ApiState` does not have this field[0m
-    [1m[94m|[0m
-    [1m[94m= [0m[1mnote[0m: available fields are: `teams`
-
-[1m[91merror[E0560][0m[1m: struct `api::server::ApiState` has no field named `coordinator`[0m
-   [1m[94m--> [0msrc/daemon/kairos.rs:208:17
-    [1m[94m|[0m
-[1m[94m208[0m [1m[94m|[0m                 coordinator: std::sync::Arc::new(tokio::sync::Mutex::new(None)),
-    [1m[94m|[0m                 [1m[91m^^^^^^^^^^^[0m [1m[91m`api::server::ApiState` does not have this field[0m
-    [1m[94m|[0m
-    [1m[94m= [0m[1mnote[0m: available fields are: `teams`
-
-[1mFor more information about this error, try `rustc --explain E0560`.[0m
-[1m[91merror[0m: could not compile `dreamswarm` (lib) due to 3 previous errors
+[1m[91merror[0m: could not compile `dreamswarm` (lib) due to 1 previous error
 [1m[33mwarning[0m: build failed, waiting for other jobs to finish...
-[1m[91merror[0m: could not compile `dreamswarm` (lib test) due to 2 previous errors
+[1m[91merror[0m: could not compile `dreamswarm` (lib test) due to 1 previous error

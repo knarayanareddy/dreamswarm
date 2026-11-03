@@ -1,5 +1,4 @@
 update=0
-audit=1
-deny=1
-check=0
-test=0
+check=101
+test=101
+deny=101

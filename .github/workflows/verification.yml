@@ -1,0 +1,34 @@
+name: Focused Rust Verification
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run focused integration tests
+        shell: bash
+        run: |
+          set +e
+          cargo test --locked --test safety_regressions --test control_end_to_end --test in_process_runtime --test provider_tool_roundtrip > /tmp/verification.log 2>&1
+          status=$?
+          tail -200 /tmp/verification.log
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PY'
+          import pathlib
+          lines = pathlib.Path('/tmp/verification.log').read_text(errors='replace').splitlines()
+          positions = [i for i, line in enumerate(lines) if 'error:' in line or line.startswith('error[') or line.startswith('failures:') or 'panicked at' in line]
+          for i in positions[-20:]:
+              message = '\n'.join(lines[i:i + 18])[:5000]
+              message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          if not positions:
+              message = '\n'.join(lines[-40:]).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          PY
+          fi
+          exit "$status"

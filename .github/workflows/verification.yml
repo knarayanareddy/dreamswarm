@@ -115,4 +115,19 @@ jobs:
           fi
           exit "$status"
       - name: Cargo audit
-        run: cargo audit
+        shell: bash
+        run: |
+          set +e
+          cargo audit --color never > /tmp/cargo-audit.log 2>&1
+          status=$?
+          cat /tmp/cargo-audit.log
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PY'
+          import pathlib
+          lines = pathlib.Path('/tmp/cargo-audit.log').read_text(errors='replace').splitlines()
+          for i in range(0, min(len(lines), 180), 18):
+              message = '\n'.join(lines[i:i + 18])[:3800].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error::{message}')
+          PY
+          fi
+          exit "$status"

@@ -185,7 +185,10 @@ mod tests {
         std::fs::write(dir.path().join("notes.txt"), "hello").unwrap();
 
         let resolved = guard.resolve_existing("notes.txt").unwrap();
-        assert_eq!(resolved, dir.path().join("notes.txt"));
+        // The guard returns paths rooted at the canonicalized workspace, which
+        // on macOS differs from the tempdir (`/var` -> `/private/var`).
+        let expected = dir.path().canonicalize().unwrap().join("notes.txt");
+        assert_eq!(resolved, expected);
 
         let absolute = dir.path().join("notes.txt");
         assert!(guard.resolve_existing(absolute.to_str().unwrap()).is_ok());

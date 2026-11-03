@@ -101,28 +101,22 @@ pub async fn request_human_approval(
     loop {
         {
             let mut mbox = mailbox.write().await;
-            let messages = mbox.receive().unwrap_or_default();
+            // Claim *only* approval responses. The previous loop consumed every
+            // unread message, so task assignments arriving during a wait were
+            // dropped (and "requeued" to a non-existent agent).
+            let messages = mbox
+                .receive_matching(|m| matches!(m.content, MessageContent::ApprovalResponse { .. }))
+                .unwrap_or_default();
             for message in messages {
-                match message.content {
-                    MessageContent::ApprovalResponse { approved, reason } => {
-                        // Responses from the lead are attributed to this
-                        // request; the mailbox is per-agent so ordering is
-                        // preserved. A response is only accepted once.
-                        if !approved {
-                            tracing::warn!(
-                                "Approval denied for '{}': {}",
-                                tool,
-                                reason.unwrap_or_else(|| "no reason given".into())
-                            );
-                        }
-                        return approved;
+                if let MessageContent::ApprovalResponse { approved, reason } = message.content {
+                    if !approved {
+                        tracing::warn!(
+                            "Approval denied for '{}': {}",
+                            tool,
+                            reason.unwrap_or_else(|| "no reason given".into())
+                        );
                     }
-                    other => {
-                        // Put non-approval traffic back so it is not lost.
-                        if let Err(e) = mbox.send("self-requeue", other.clone()) {
-                            tracing::debug!("Could not requeue message: {}", e);
-                        }
-                    }
+                    return approved;
                 }
             }
         }

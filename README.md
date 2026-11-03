@@ -176,6 +176,12 @@ DreamSwarm's security-relevant defaults:
   is merged automatically.
 - **No shell interpolation.** Worker launches are argv-based; the only shell
   strings (SSH) quote each untrusted value individually.
+- **Atomic coordination.** Mailbox appends and task claims take a cross-process
+  `flock`, and every JSON file is replaced with a unique-temp + `rename` write,
+  so concurrent workers cannot drop messages or hand out the same task twice.
+- **Valid tool transcripts.** Assistant `tool_use` blocks are recorded with their
+  results, results are grouped into one user message, and legacy sessions with
+  orphaned results are repaired before they are sent to a provider.
 
 ---
 

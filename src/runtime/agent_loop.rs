@@ -158,48 +158,10 @@ impl AgentRuntime {
 
             let system_prompt = SystemPromptBuilder::build(&self.config, None);
 
-            // Map Session messages to simple JSON for the provider
-            let mut messages = Vec::new();
-            for msg in &self.session.messages {
-                let role = match msg.role {
-                    crate::runtime::session::Role::System => "system",
-                    crate::runtime::session::Role::User => "user",
-                    crate::runtime::session::Role::Assistant => "assistant",
-                    crate::runtime::session::Role::ToolResult => "user", // Simplified for Phase 1
-                };
-
-                let content_val = match &msg.content {
-                    crate::runtime::session::MessageContent::Text(t) => {
-                        serde_json::json!([{"type": "text", "text": t}])
-                    }
-                    crate::runtime::session::MessageContent::ToolUse { id, name, input } => {
-                        serde_json::json!([{
-                            "type": "tool_use",
-                            "id": id,
-                            "name": name,
-                            "input": input,
-                        }])
-                    }
-                    crate::runtime::session::MessageContent::ToolResult {
-                        tool_use_id,
-                        content,
-                        is_error,
-                    } => {
-                        serde_json::json!([{
-                            "type": "tool_result",
-                            "tool_use_id": tool_use_id,
-                            "content": content,
-                            "is_error": is_error,
-                        }])
-                    }
-                    _ => serde_json::json!([{"type": "text", "text": "[unsupported content]"}]),
-                };
-
-                messages.push(serde_json::json!({
-                    "role": role,
-                    "content": content_val
-                }));
-            }
+            // Build provider messages from the persisted transcript. This
+            // also repairs legacy sessions (orphaned results) and matches
+            // consecutive tool results into a single user message.
+            let messages = crate::runtime::transcript::to_provider_messages(&self.session);
 
             let tools = self.tool_registry.get_all_schemas();
 
@@ -212,6 +174,9 @@ impl AgentRuntime {
 
             let mut assistant_text = String::new();
             let mut made_tool_call = false;
+            // Tool calls must be persisted *with* their results, otherwise the
+            // next request contains a tool_result with no matching tool_use.
+            let mut assistant_blocks: Vec<crate::runtime::session::ContentBlock> = Vec::new();
             let mut tool_results = Vec::new();
 
             for content in &response.content {
@@ -228,6 +193,11 @@ impl AgentRuntime {
                     let input = content["input"].clone();
 
                     all_tool_calls.push(name.clone());
+                    assistant_blocks.push(crate::runtime::session::ContentBlock::ToolUse {
+                        id: id.clone(),
+                        name: name.clone(),
+                        input: input.clone(),
+                    });
 
                     // Execute tool
                     if let Some(tool) = self.tool_registry.get_tool(&name) {
@@ -298,27 +268,45 @@ impl AgentRuntime {
 
             final_text = assistant_text.clone();
 
-            // Update session with assistant message (including tool calls if any)
-            // For now we simplify by detecting if it's mixed or text
-            if !all_tool_calls.is_empty() {
-                // Actually need a way to store multi-part messages in Session
-                // For Phase 1 simplified: just store as text if no results, otherwise handled below
-            }
-
+            // Persist the assistant turn exactly as the provider produced it.
+            // Dropping the tool_use blocks left the following tool_results
+            // orphaned, which is an invalid conversation on the next request.
+            let assistant_content = if assistant_blocks.is_empty() {
+                crate::runtime::session::MessageContent::Text(assistant_text)
+            } else {
+                let mut blocks = Vec::with_capacity(assistant_blocks.len() + 1);
+                if !assistant_text.is_empty() {
+                    blocks.push(crate::runtime::session::ContentBlock::Text(assistant_text));
+                }
+                blocks.extend(assistant_blocks);
+                crate::runtime::session::MessageContent::Mixed(blocks)
+            };
             self.session.add_assistant_message(
-                crate::runtime::session::MessageContent::Text(assistant_text),
+                assistant_content,
                 response.usage.total_tokens,
                 response.usage.cost_usd,
             );
 
-            // Add tool results to session
-            for (id, _name, _input, content, is_error) in tool_results {
-                self.session.add_tool_result(&id, &content, is_error);
-            }
+            // One user message carrying every tool_result for that call.
+            let results: Vec<(String, String, bool)> = tool_results
+                .into_iter()
+                .map(|(id, _name, _input, content, is_error)| (id, content, is_error))
+                .collect();
+            self.session.add_tool_results(&results);
 
             if !made_tool_call {
                 break;
             }
+        }
+
+        debug_assert!(
+            self.session.tool_pairs_are_consistent(),
+            "session contains orphaned tool_use/tool_result blocks"
+        );
+        if !self.session.tool_pairs_are_consistent() {
+            anyhow::bail!(
+                "refusing to send an inconsistent tool conversation: a tool_result is missing its tool_use"
+            );
         }
 
         self.db.save_session(&self.session)?;

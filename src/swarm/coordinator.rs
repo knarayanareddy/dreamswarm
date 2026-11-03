@@ -25,7 +25,7 @@ pub struct SwarmCoordinator {
 
 impl SwarmCoordinator {
     pub fn new(config: TeamConfig, working_dir: &str, state_dir: PathBuf) -> anyhow::Result<Self> {
-        let task_list = SharedTaskList::new(&config.team_name)?;
+        let task_list = SharedTaskList::with_state_dir(&state_dir, &config.team_name)?;
         let mailbox = Mailbox::new(state_dir.clone(), &config.team_name, "lead")?;
         let executor: Box<dyn TeammateExecutor> = match config.spawn_strategy {
             SpawnStrategy::InProcess => Box::new(InProcessExecutor::new()),

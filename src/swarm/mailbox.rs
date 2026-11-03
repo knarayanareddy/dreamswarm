@@ -1,3 +1,4 @@
+use crate::swarm::file_lock::{append_locked, write_atomic, FileLock};
 use crate::swarm::{AgentMessage, MessageContent};
 use chrono::Utc;
 use std::path::PathBuf;
@@ -63,15 +64,13 @@ impl Mailbox {
         Ok(())
     }
 
+    /// Appends one message under an exclusive lock.
+    ///
+    /// Unlocked appends from several worker processes could interleave partial
+    /// lines, which `receive` then silently discarded as invalid JSON.
     fn write_to_path(path: &PathBuf, msg: &AgentMessage) -> anyhow::Result<()> {
-        use std::io::Write;
-        let mut file = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(path)?;
         let line = serde_json::to_string(msg)?;
-        writeln!(file, "{}", line)?;
-        Ok(())
+        append_locked(path, format!("{}\n", line).as_bytes())
     }
 
     pub fn send_chat(&self, to: &str, text: &str) -> anyhow::Result<()> {
@@ -137,14 +136,27 @@ impl Mailbox {
         )
     }
 
-    pub fn receive(&mut self) -> anyhow::Result<Vec<AgentMessage>> {
+    fn inbox_path(&self) -> PathBuf {
+        self.inboxes_dir
+            .join(format!("{}.jsonl", Self::sanitize(&self.agent_name)))
+    }
+
+    /// Takes messages matching `predicate`, marking only those read.
+    ///
+    /// The read/rewrite cycle holds the mailbox lock: previously a sender could
+    /// append between the read and the rewrite, and the rewrite published from
+    /// the stale snapshot — silently dropping that message.
+    fn take_matching<F>(&mut self, predicate: F) -> anyhow::Result<Vec<AgentMessage>>
+    where
+        F: Fn(&AgentMessage) -> bool,
+    {
         self.poll_count += 1;
-        let inbox_path = self
-            .inboxes_dir
-            .join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
+        let inbox_path = self.inbox_path();
         if !inbox_path.exists() {
             return Ok(vec![]);
         }
+
+        let _lock = FileLock::for_target(&inbox_path)?;
         let content = std::fs::read_to_string(&inbox_path)?;
         let mut all_messages: Vec<AgentMessage> = content
             .lines()
@@ -152,13 +164,15 @@ impl Mailbox {
             .filter_map(|line| serde_json::from_str(line).ok())
             .collect();
 
-        let unread: Vec<AgentMessage> = all_messages.iter().filter(|m| !m.read).cloned().collect();
-        if unread.is_empty() {
-            return Ok(vec![]);
-        }
-
+        let mut claimed = Vec::new();
         for msg in &mut all_messages {
-            msg.read = true;
+            if !msg.read && predicate(msg) {
+                msg.read = true;
+                claimed.push(msg.clone());
+            }
+        }
+        if claimed.is_empty() {
+            return Ok(vec![]);
         }
 
         let mut output = String::new();
@@ -166,14 +180,28 @@ impl Mailbox {
             output.push_str(&serde_json::to_string(msg)?);
             output.push('\n');
         }
-        std::fs::write(&inbox_path, output)?;
-        Ok(unread)
+        write_atomic(&inbox_path, output)?;
+        Ok(claimed)
+    }
+
+    /// Returns unread messages and marks them read.
+    pub fn receive(&mut self) -> anyhow::Result<Vec<AgentMessage>> {
+        self.take_matching(|_| true)
+    }
+
+    /// Claims specific messages by predicate, leaving everything else unread.
+    ///
+    /// `receive` marks the whole inbox read, which loses unrelated traffic when
+    /// a caller only cares about a subset (e.g. approval responses).
+    pub fn receive_matching<F>(&mut self, predicate: F) -> anyhow::Result<Vec<AgentMessage>>
+    where
+        F: Fn(&AgentMessage) -> bool,
+    {
+        self.take_matching(predicate)
     }
 
     pub fn peek(&self) -> anyhow::Result<Vec<AgentMessage>> {
-        let inbox_path = self
-            .inboxes_dir
-            .join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
+        let inbox_path = self.inbox_path();
         if !inbox_path.exists() {
             return Ok(vec![]);
         }
@@ -187,9 +215,7 @@ impl Mailbox {
     }
 
     pub fn clear(&self) -> anyhow::Result<()> {
-        let inbox_path = self
-            .inboxes_dir
-            .join(format!("{}.jsonl", Self::sanitize(&self.agent_name)));
+        let inbox_path = self.inbox_path();
         if inbox_path.exists() {
             std::fs::remove_file(&inbox_path)?;
         }
@@ -212,5 +238,99 @@ impl Mailbox {
             .chars()
             .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '_')
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    fn mailbox(dir: &std::path::Path, agent: &str) -> Mailbox {
+        Mailbox::new(dir.to_path_buf(), "atomic-team", agent).unwrap()
+    }
+
+    #[test]
+    fn concurrent_sends_are_all_delivered() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().to_path_buf();
+
+        std::thread::scope(|scope| {
+            for sender in 0..4 {
+                let base = base.clone();
+                scope.spawn(move || {
+                    let mbox = Mailbox::new(base, "atomic-team", &format!("w{}", sender)).unwrap();
+                    for n in 0..25 {
+                        mbox.send_chat("lead", &format!("{}-{}", sender, n)).unwrap();
+                    }
+                });
+            }
+        });
+
+        let mut lead = mailbox(&base, "lead");
+        let messages = lead.receive().unwrap();
+        assert_eq!(messages.len(), 100, "no message may be lost or corrupted");
+    }
+
+    #[test]
+    fn receive_marks_messages_read_once() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().to_path_buf();
+        mailbox(&base, "worker").send_chat("lead", "hello").unwrap();
+
+        let mut lead = mailbox(&base, "lead");
+        assert_eq!(lead.receive().unwrap().len(), 1);
+        assert!(lead.receive().unwrap().is_empty());
+    }
+
+    #[test]
+    fn receive_matching_leaves_other_traffic_unread() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().to_path_buf();
+        {
+            let sender = mailbox(&base, "worker");
+            sender
+                .send(
+                    "lead",
+                    MessageContent::ApprovalResponse {
+                        approved: true,
+                        reason: None,
+                    },
+                )
+                .unwrap();
+            sender.send_chat("lead", "unrelated task assignment").unwrap();
+        }
+
+        let mut lead = mailbox(&base, "lead");
+        let approvals = lead
+            .receive_matching(|m| matches!(m.content, MessageContent::ApprovalResponse { .. }))
+            .unwrap();
+        assert_eq!(approvals.len(), 1);
+
+        // The unrelated message is still available.
+        let remaining = lead.receive().unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert!(matches!(remaining[0].content, MessageContent::Chat { .. }));
+    }
+
+    #[test]
+    fn a_send_during_a_read_is_not_lost() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().to_path_buf();
+        let mut lead = mailbox(&base, "lead");
+        mailbox(&base, "worker").send_chat("lead", "first").unwrap();
+
+        let first = lead.receive().unwrap();
+        assert_eq!(first.len(), 1);
+
+        mailbox(&base, "worker")
+            .send_chat("lead", "second")
+            .unwrap();
+        let second = lead.receive().unwrap();
+        assert_eq!(second.len(), 1);
+        match &second[0].content {
+            MessageContent::Chat { text } => assert_eq!(text, "second"),
+            other => panic!("unexpected content: {:?}", other),
+        }
     }
 }

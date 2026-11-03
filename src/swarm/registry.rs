@@ -18,7 +18,6 @@
 
 use crate::swarm::coordinator::SwarmCoordinator;
 use crate::swarm::executors::command::is_safe_identifier;
-use crate::swarm::TeamConfig;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -216,7 +215,7 @@ impl TeamRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::swarm::{SpawnStrategy, TeamStatus};
+    use crate::swarm::{SpawnStrategy, TeamConfig, TeamStatus};
 
     fn coordinator(name: &str, state_dir: &std::path::Path) -> SwarmCoordinator {
         let config = TeamConfig {

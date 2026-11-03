@@ -204,8 +204,9 @@ impl KairosDaemon {
                 memory: self.memory.clone(),
                 telemetry: self.telemetry.clone(),
                 config: std::sync::Arc::new(tokio::sync::RwLock::new(self.app_config.clone())),
-                workers: std::sync::Arc::new(tokio::sync::RwLock::new(vec![])),
-                coordinator: std::sync::Arc::new(tokio::sync::Mutex::new(None)),
+                teams: std::sync::Arc::new(
+                    crate::swarm::registry::TeamRegistry::new(),
+                ),
             };
             let port = self.config.api_port;
             tokio::spawn(async move {

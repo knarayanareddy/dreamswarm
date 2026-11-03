@@ -305,8 +305,7 @@ async fn main() -> anyhow::Result<()> {
                     memory,
                     telemetry,
                     config: Arc::new(RwLock::new(config)),
-                    workers: Arc::new(RwLock::new(vec![])),
-                    coordinator: Arc::new(tokio::sync::Mutex::new(None)),
+                    teams: Arc::new(dreamswarm::swarm::registry::TeamRegistry::new()),
                 };
                 println!("🐝 The Oracle is starting on http://localhost:{}", port);
                 println!("   Dashboard → http://localhost:{}", port);

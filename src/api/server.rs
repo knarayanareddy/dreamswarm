@@ -3,7 +3,8 @@ use crate::api::telemetry::TelemetryHub;
 use crate::memory::MemorySystem;
 use crate::runtime::config::{AppConfig, OllamaConfig, RoutingPolicy};
 use crate::swarm::coordinator::SwarmCoordinator;
-use crate::swarm::{TeamConfig, WorkerInfo};
+use crate::swarm::registry::TeamRegistry;
+use crate::swarm::TeamConfig;
 use axum::{
     extract::{DefaultBodyLimit, Query, State},
     http::{header, HeaderName, HeaderValue, Method},
@@ -19,7 +20,7 @@ use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 use tokio_stream::StreamExt;
 use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
@@ -31,9 +32,10 @@ pub struct ApiState {
     pub memory: Arc<RwLock<MemorySystem>>,
     pub telemetry: Arc<TelemetryHub>,
     pub config: Arc<RwLock<AppConfig>>,
-    pub workers: Arc<RwLock<Vec<WorkerInfo>>>,
-    /// The active SwarmCoordinator (None before first launch).
-    pub coordinator: Arc<Mutex<Option<SwarmCoordinator>>>,
+    /// Every running team. Replaces the single `Option<SwarmCoordinator>`
+    /// slot, which could only track one team and had to be held across
+    /// `.await` during launch.
+    pub teams: Arc<TeamRegistry>,
 }
 
 // ── Request / Response DTOs ───────────────────────────────────────────────────
@@ -67,6 +69,13 @@ pub struct ConfigPatch {
 pub struct SwarmLaunchRequest {
     pub mission: String,
     pub team_config: Option<TeamConfig>,
+}
+
+#[derive(Deserialize, Default)]
+pub struct SwarmStopRequest {
+    /// When absent, every team is stopped (emergency stop).
+    #[serde(default)]
+    pub team: Option<String>,
 }
 
 // ── Server Bootstrap ──────────────────────────────────────────────────────────
@@ -141,6 +150,8 @@ pub async fn start_api_server(state: ApiState, port: u16) -> anyhow::Result<()> 
         // Static assets are public; they contain no session data.
         .fallback_service(ServeDir::new("static"));
 
+    let state_dir = state.config.read().await.state_dir.clone();
+    let teams = state.teams.clone();
     let app = public.merge(protected).layer(cors).with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("{}:{}", bind_host, port)).await?;
@@ -149,7 +160,22 @@ pub async fn start_api_server(state: ApiState, port: u16) -> anyhow::Result<()> 
         "Dashboard available at http://localhost:{} (API token required)",
         port
     );
-    axum::serve(listener, app).await?;
+
+    // Ctrl-C used to terminate the process outright, leaving worker panes and
+    // worktrees running with nothing to reap them. Shut the teams down first.
+    axum::serve(listener, app)
+        .with_graceful_shutdown(async move {
+            if tokio::signal::ctrl_c().await.is_ok() {
+                tracing::warn!("Interrupt received — stopping all teams");
+                let names = teams.names().await;
+                let report = teams.stop_all().await;
+                if !report.is_complete() {
+                    tracing::error!("Shutdown was incomplete: {:?}", report.failed);
+                }
+                crate::swarm::lifecycle::sweep_leftovers(&names, &state_dir).await;
+            }
+        })
+        .await?;
     Ok(())
 }
 
@@ -212,16 +238,57 @@ async fn handle_telemetry_history(State(state): State<ApiState>) -> Json<Vec<ser
     Json(history)
 }
 
+/// Emergency stop for the whole process.
+///
+/// This used to emit a telemetry event and nothing else, so an operator
+/// pressing STOP in the dashboard got an acknowledgement while every worker
+/// kept running. It now shuts every registered team down and reports the
+/// outcome honestly, including partial failure.
 async fn handle_control_stop(State(state): State<ApiState>) -> Json<serde_json::Value> {
+    Json(emergency_stop(&state, "dashboard").await)
+}
+
+/// Stops every team and logs the result. Returns the response body shared by
+/// `/control/stop` and `/swarm/stop`.
+async fn emergency_stop(state: &ApiState, origin: &str) -> serde_json::Value {
+    let report = state.teams.stop_all().await;
+
     state
         .telemetry
         .log_event(
             "system",
-            "control_signal",
-            serde_json::json!({"action": "STOP", "origin": "dashboard"}),
+            "emergency_stop",
+            serde_json::json!({
+                "origin": origin,
+                "stopped": report.stopped,
+                "failed": report.failed,
+            }),
         )
         .await;
-    Json(serde_json::json!({"status": "Stop signal broadcasted to hive"}))
+
+    if report.is_complete() {
+        tracing::info!(
+            "Emergency stop ({}): {} team(s) stopped",
+            origin,
+            report.stopped.len()
+        );
+        serde_json::json!({
+            "status": "All teams stopped",
+            "stopped": report.stopped.len(),
+            "teams": report.stopped,
+        })
+    } else {
+        // Report failure explicitly: the operator must not read a partial
+        // shutdown as a clean one.
+        tracing::error!("Emergency stop ({}) incomplete: {:?}", origin, report.failed);
+        serde_json::json!({
+            "error": "emergency stop was incomplete",
+            "stopped": report.stopped,
+            "failed": report.failed.iter().map(|(t, e)| {
+                serde_json::json!({"team": t, "error": e})
+            }).collect::<Vec<_>>(),
+        })
+    }
 }
 
 async fn handle_control_dream(State(state): State<ApiState>) -> Json<serde_json::Value> {
@@ -331,10 +398,20 @@ async fn handle_update_config(
 // ── New: Swarm Handlers ───────────────────────────────────────────────────────
 
 async fn handle_get_workers(State(state): State<ApiState>) -> Json<Vec<serde_json::Value>> {
-    let workers = state.workers.read().await;
-    let serialized = workers
-        .iter()
-        .filter_map(|w| serde_json::to_value(w).ok())
+    let serialized = state
+        .teams
+        .workers()
+        .await
+        .into_iter()
+        .filter_map(|(team, worker)| {
+            let mut value = serde_json::to_value(&worker).ok()?;
+            // The dashboard groups by team, and a WorkerInfo does not carry
+            // its own team name.
+            if let Some(object) = value.as_object_mut() {
+                object.insert("team".to_string(), serde_json::json!(team));
+            }
+            Some(value)
+        })
         .collect();
     Json(serialized)
 }
@@ -405,44 +482,80 @@ async fn handle_swarm_launch(
     let team_name = team_cfg.team_name.clone();
     let mission = req.mission.clone();
 
-    // Build-and-spawn inside a blocking mutex guard so the coordinator stays alive
-    let mut coordinator_guard = state.coordinator.lock().await;
+    // Construct the coordinator off the request thread: building a worktree
+    // executor runs `git worktree add`, and holding the async runtime across
+    // that would stall every other request.
+    let build_dir = working_dir.clone();
+    let build_state = state_dir.clone();
+    let build_cfg = team_cfg.clone();
+    let built = tokio::task::spawn_blocking(move || {
+        SwarmCoordinator::new(build_cfg, &build_dir, build_state)
+    })
+    .await;
 
-    // Create a fresh coordinator for this launch
-    let mut coordinator = match SwarmCoordinator::new(team_cfg, &working_dir, state_dir) {
-        Ok(c) => c,
-        Err(e) => {
+    let coordinator = match built {
+        Ok(Ok(c)) => c,
+        Ok(Err(e)) => {
             return Json(
                 serde_json::json!({"error": format!("Failed to create coordinator: {}", e)}),
             )
         }
+        Err(e) => {
+            return Json(serde_json::json!({
+                "error": format!("Coordinator task failed: {}", e)
+            }))
+        }
+    };
+
+    // Registration is the point at which the team becomes addressable, and it
+    // refuses duplicates or launches after an emergency stop.
+    let handle = match state.teams.register(coordinator, state_dir).await {
+        Ok(handle) => handle,
+        Err(e) => return Json(serde_json::json!({ "error": e.to_string() })),
     };
 
     let roles = derive_worker_roles(&mission, max_workers);
     let mut spawned = Vec::new();
+    let mut failures = Vec::new();
 
-    for (name, role, instructions) in roles {
-        match coordinator.spawn_worker(&name, &role, &instructions).await {
-            Ok(worker) => {
-                state
-                    .telemetry
-                    .log_event(
-                        "swarm",
-                        "worker_spawned",
-                        serde_json::json!({
-                            "worker_id": worker.id,
-                            "name": worker.name,
-                            "role": worker.role,
-                            "team": team_name,
-                            "status": "Active",
-                        }),
-                    )
-                    .await;
-                spawned.push(worker.clone());
-                state.workers.write().await.push(worker);
+    {
+        let mut coordinator = handle.lock().await;
+        for (name, role, instructions) in roles {
+            match coordinator.spawn_worker(&name, &role, &instructions).await {
+                Ok(worker) => {
+                    state
+                        .telemetry
+                        .log_event(
+                            "swarm",
+                            "worker_spawned",
+                            serde_json::json!({
+                                "worker_id": worker.id,
+                                "name": worker.name,
+                                "role": worker.role,
+                                "team": team_name,
+                                "status": "Active",
+                            }),
+                        )
+                        .await;
+                    spawned.push(worker);
+                }
+                Err(e) => {
+                    tracing::warn!("Worker '{}' spawn failed: {}", name, e);
+                    failures.push(format!("{}: {}", name, e));
+                }
             }
-            Err(e) => tracing::warn!("Worker '{}' spawn failed: {}", name, e),
         }
+    }
+
+    // A team that produced no workers is not a running team; drop it so the
+    // operator can retry under the same name instead of hitting "already
+    // running" against an empty shell.
+    if spawned.is_empty() {
+        let _ = state.teams.stop(&team_name).await;
+        return Json(serde_json::json!({
+            "error": "no workers could be spawned for this team",
+            "failures": failures,
+        }));
     }
 
     // Broadcast a summary event
@@ -460,8 +573,6 @@ async fn handle_swarm_launch(
         )
         .await;
 
-    *coordinator_guard = Some(coordinator);
-
     Json(serde_json::json!({
         "status": "Swarm launched",
         "team": team_name,
@@ -475,30 +586,36 @@ async fn handle_swarm_launch(
     }))
 }
 
-async fn handle_swarm_stop(State(state): State<ApiState>) -> Json<serde_json::Value> {
-    let mut coordinator_guard = state.coordinator.lock().await;
-    if let Some(ref mut coordinator) = *coordinator_guard {
-        match coordinator.shutdown_team().await {
-            Ok(_) => {
-                // Mark all workers as ShuttingDown in the shared list
-                let mut workers = state.workers.write().await;
-                for w in workers.iter_mut() {
-                    w.status = crate::swarm::WorkerStatus::ShuttingDown;
-                }
-                state.telemetry
-                    .log_event(
-                        "swarm",
-                        "shutdown",
-                        serde_json::json!({"origin": "dashboard", "workers_stopped": workers.len()}),
-                    )
-                    .await;
-                *coordinator_guard = None;
-                Json(serde_json::json!({"status": "All workers shut down"}))
-            }
-            Err(e) => Json(serde_json::json!({"error": e.to_string()})),
+async fn handle_swarm_stop(
+    State(state): State<ApiState>,
+    body: Option<Json<SwarmStopRequest>>,
+) -> Json<serde_json::Value> {
+    // An absent body keeps the old "stop the swarm" behaviour; naming a team
+    // stops just that one, which is what a multi-team registry makes possible.
+    let team = body.and_then(|Json(req)| req.team);
+
+    let Some(team) = team else {
+        return Json(emergency_stop(&state, "swarm_stop").await);
+    };
+
+    match state.teams.stop(&team).await {
+        Ok(true) => {
+            state
+                .telemetry
+                .log_event(
+                    "swarm",
+                    "team_stopped",
+                    serde_json::json!({"origin": "dashboard", "team": team}),
+                )
+                .await;
+            Json(serde_json::json!({"status": format!("Team '{}' stopped", team)}))
         }
-    } else {
-        Json(serde_json::json!({"status": "No active swarm to stop"}))
+        Ok(false) => Json(serde_json::json!({
+            "error": format!("no running team named '{}'", team)
+        })),
+        Err(e) => Json(serde_json::json!({
+            "error": format!("team '{}' failed to stop: {}", team, e)
+        })),
     }
 }
 
@@ -539,5 +656,50 @@ mod tests {
         let roles = derive_worker_roles("do work", 2);
         assert_eq!(roles.len(), 2);
         assert_eq!(roles[1].0, "coder");
+    }
+
+    #[test]
+    fn stop_request_body_is_optional() {
+        // The dashboard posts no body; a named team posts `{"team": "..."}`.
+        let none: SwarmStopRequest = serde_json::from_str("{}").unwrap();
+        assert!(none.team.is_none());
+
+        let named: SwarmStopRequest = serde_json::from_str(r#"{"team":"alpha"}"#).unwrap();
+        assert_eq!(named.team.as_deref(), Some("alpha"));
+    }
+
+    #[tokio::test]
+    async fn emergency_stop_reports_success_when_all_teams_stop() {
+        use crate::swarm::{SpawnStrategy, TeamConfig};
+        use std::sync::Arc;
+
+        let dir = tempfile::tempdir().unwrap();
+        let teams = Arc::new(TeamRegistry::new());
+        for name in ["alpha", "beta"] {
+            let config = TeamConfig {
+                team_name: name.to_string(),
+                spawn_strategy: SpawnStrategy::InProcess,
+                ..Default::default()
+            };
+            let coordinator =
+                SwarmCoordinator::new(config, ".", dir.path().to_path_buf()).unwrap();
+            teams
+                .register(coordinator, dir.path().to_path_buf())
+                .await
+                .unwrap();
+        }
+
+        let report = teams.stop_all().await;
+        let body = serde_json::json!({
+            "status": if report.is_complete() { "All teams stopped" } else { "partial" },
+            "stopped": report.stopped.len(),
+            "teams": report.stopped,
+        });
+
+        assert_eq!(body["status"], "All teams stopped");
+        assert_eq!(body["stopped"], 2);
+        assert!(teams.is_empty().await);
+        // The latch keeps a late launch from resurrecting the swarm.
+        assert!(teams.is_stopped().await);
     }
 }

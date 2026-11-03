@@ -2,3 +2,4 @@
 .fastembed_cache/
 .dreamswarm-worktrees/
 .dreamswarm-test-state*/
+.diagnostics/

@@ -1,118 +1,139 @@
-use crate::swarm::mailbox::Mailbox;
-use std::collections::HashSet;
+//! Process-level teardown for teams that outlive the request that started them.
+//!
+//! `register_team_for_cleanup` and its friends used to be the only cleanup
+//! path, but nothing ever called them, and `cleanup_all_teams` guessed at the
+//! state directory (`~/.dreamswarm`) instead of using the configured one. A
+//! Ctrl-C therefore left tmux panes, worktrees and inboxes behind.
+//!
+//! The registry owns the real handles, so shutdown now goes through it. What
+//! remains here is the parts the registry deliberately does not do: sweeping
+//! tmux panes and worktrees that belong to teams whose coordinator is already
+//! gone.
+
 use std::path::PathBuf;
-use std::sync::Mutex;
 use tokio::process::Command;
 
-static REGISTERED_TEAMS: Mutex<Option<HashSet<String>>> = Mutex::new(None);
-
-pub fn register_team_for_cleanup(team_name: &str) {
-    let mut teams = REGISTERED_TEAMS.lock().unwrap();
-    if teams.is_none() {
-        *teams = Some(HashSet::new());
-        register_signal_handlers();
+/// Best-effort removal of worktrees and panes left behind by finished teams.
+///
+/// `teams` are the names that were running before shutdown. It is
+/// intentionally forgiving: every step logs and continues, because this runs
+/// during process exit and a panic here would skip the remaining cleanup.
+pub async fn sweep_leftovers(teams: &[String], state_dir: &PathBuf) {
+    for team in teams {
+        tracing::info!("Sweeping leftovers for team '{}'", team);
+        remove_team_inboxes(state_dir, team);
+        remove_team_state(state_dir, team);
     }
-    teams.as_mut().unwrap().insert(team_name.to_string());
-    tracing::info!("Registered team '{}' for session cleanup", team_name);
+    prune_worktrees().await;
+    kill_orphan_panes().await;
 }
 
-pub fn unregister_team(team_name: &str) {
-    let mut teams = REGISTERED_TEAMS.lock().unwrap();
-    if let Some(ref mut set) = *teams {
-        set.remove(team_name);
-    }
-}
-
-fn register_signal_handlers() {
-    let _ = ctrlc::set_handler(move || {
-        eprintln!("\nReceived interrupt signal — cleaning up teams...");
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            cleanup_all_teams().await;
-        });
-        std::process::exit(0);
-    });
-}
-
-pub async fn cleanup_all_teams() {
-    let teams: Vec<String> = {
-        let guard = REGISTERED_TEAMS.lock().unwrap();
-        match &*guard {
-            Some(set) => set.iter().cloned().collect(),
-            None => vec![],
+fn remove_team_inboxes(state_dir: &PathBuf, team_name: &str) {
+    let inboxes = state_dir.join("teams").join(team_name).join("inboxes");
+    if inboxes.exists() {
+        if let Err(e) = std::fs::remove_dir_all(&inboxes) {
+            tracing::warn!("Could not remove inboxes for '{}': {}", team_name, e);
         }
-    };
-
-    for team_name in &teams {
-        tracing::info!("Cleaning up team '{}'", team_name);
-        kill_team_tmux_panes(team_name).await;
-        cleanup_team_worktrees(team_name).await;
-        // Note: global signal cleanup uses the default state directory
-        // unless we refactor REGISTERED_TEAMS to store paths.
-        let default_state = dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(".dreamswarm");
-        cleanup_team_directory(default_state.clone(), team_name);
-        let _ = Mailbox::cleanup_team(default_state, team_name);
     }
 }
 
-async fn kill_team_tmux_panes(_team_name: &str) {
-    let output = Command::new("tmux")
+fn remove_team_state(state_dir: &PathBuf, team_name: &str) {
+    let team_dir = state_dir.join("teams").join(team_name);
+    if team_dir.exists() {
+        if let Err(e) = std::fs::remove_dir_all(&team_dir) {
+            tracing::warn!("Could not remove state for '{}': {}", team_name, e);
+        }
+    }
+}
+
+/// Prunes worktree metadata, then removes the worktrees directory itself.
+async fn prune_worktrees() {
+    let worktrees_dir = std::env::current_dir()
+        .unwrap_or_default()
+        .join(".dreamswarm-worktrees");
+    if !worktrees_dir.exists() {
+        return;
+    }
+
+    let pruned = Command::new("git")
+        .args(["worktree", "prune"])
+        .output()
+        .await;
+    match pruned {
+        Ok(output) if !output.status.success() => tracing::warn!(
+            "git worktree prune failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ),
+        Err(e) => tracing::warn!("Could not run git worktree prune: {}", e),
+        _ => {}
+    }
+
+    if let Err(e) = std::fs::remove_dir_all(&worktrees_dir) {
+        tracing::warn!("Could not remove worktree directory: {}", e);
+    }
+}
+
+/// Kills the tmux panes worker spawns create.
+///
+/// Only panes whose title marks them as workers are touched; the operator's own
+/// panes in the same session are left alone.
+async fn kill_orphan_panes() {
+    let listed = Command::new("tmux")
         .args(["list-panes", "-a", "-F", "#{pane_id} #{pane_title}"])
         .output()
         .await;
-    if let Ok(output) = output {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        for line in stdout.lines() {
-            if line.contains("Worker:") || line.contains("dreamswarm") {
-                if let Some(pane_id) = line.split_whitespace().next() {
-                    let _ = Command::new("tmux")
-                        .args(["kill-pane", "-t", pane_id])
-                        .output()
-                        .await;
-                }
+
+    let Ok(listed) = listed else {
+        // No tmux, or not inside a session: nothing to sweep.
+        return;
+    };
+
+    for line in String::from_utf8_lossy(&listed.stdout).lines() {
+        let is_worker_pane = line.starts_with("Worker:") || line.contains(" Worker:");
+        if !is_worker_pane && !line.contains("dreamswarm") {
+            continue;
+        }
+        if let Some(pane_id) = line.split_whitespace().next() {
+            let killed = Command::new("tmux")
+                .args(["kill-pane", "-t", pane_id])
+                .output()
+                .await;
+            match killed {
+                Ok(output) if !output.status.success() => tracing::warn!(
+                    "Could not kill pane {}: {}",
+                    pane_id,
+                    String::from_utf8_lossy(&output.stderr).trim()
+                ),
+                Err(e) => tracing::warn!("Could not kill pane {}: {}", pane_id, e),
+                _ => tracing::debug!("Killed leftover pane {}", pane_id),
             }
         }
     }
 }
 
-async fn cleanup_team_worktrees(_team_name: &str) {
-    let worktrees_dir = std::env::current_dir()
-        .unwrap_or_default()
-        .join(".dreamswarm-worktrees");
-    if worktrees_dir.exists() {
-        let _ = Command::new("git")
-            .args(["worktree", "prune"])
-            .output()
-            .await;
-        let _ = std::fs::remove_dir_all(&worktrees_dir);
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-fn cleanup_team_directory(base_dir: PathBuf, team_name: &str) {
-    let team_dir = base_dir.join("teams").join(team_name);
-    if team_dir.exists() {
-        let _ = std::fs::remove_dir_all(&team_dir);
+    #[tokio::test]
+    async fn sweep_is_safe_when_nothing_exists() {
+        let dir = tempfile::tempdir().unwrap();
+        // A missing state dir and no tmux panes must not panic or hang.
+        sweep_leftovers(&["ghost-team".to_string()], &dir.path().to_path_buf()).await;
     }
-}
 
-pub fn list_active_teams() -> Vec<String> {
-    let teams_dir = dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".dreamswarm")
-        .join("teams");
-    if !teams_dir.exists() {
-        return vec![];
+    #[tokio::test]
+    async fn sweep_removes_team_state_under_the_given_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let team_dir = dir.path().join("teams").join("alpha");
+        std::fs::create_dir_all(team_dir.join("inboxes")).unwrap();
+        std::fs::write(team_dir.join("state.json"), "{}").unwrap();
+
+        sweep_leftovers(&["alpha".to_string()], &dir.path().to_path_buf()).await;
+
+        assert!(
+            !team_dir.exists(),
+            "leftover state should be removed for the configured directory"
+        );
     }
-    std::fs::read_dir(&teams_dir)
-        .ok()
-        .map(|entries| {
-            entries
-                .filter_map(|e| e.ok())
-                .filter(|e| e.path().is_dir())
-                .filter_map(|e| e.file_name().into_string().ok())
-                .collect()
-        })
-        .unwrap_or_default()
 }

@@ -868,10 +868,19 @@ async function launchSwarm() {
 }
 
 async function stopSwarm() {
+  // Emergency stop: kills every team, not just the one this page launched.
+  // Reported explicitly when partial, because a half-dead swarm is the worst
+  // outcome to mistake for a clean one.
+  if (!confirm('Stop ALL running teams and kill every worker?')) return;
   try {
-    const r = await apiFetch('/api/v1/swarm/stop', { method: 'POST' });
+    const r = await apiFetch('/api/v1/control/stop', { method: 'POST' });
     const d = await r.json();
-    toast(d.status || 'Swarm stopped', d.error ? 'error' : 'success');
+    if (d.error) {
+      const stranded = (d.failed || []).map(f => f.team).join(', ');
+      toast(`${d.error}${stranded ? ' — still running: ' + stranded : ''}`, 'error');
+    } else {
+      toast(d.status + (d.stopped ? ` (${d.stopped} team${d.stopped === 1 ? '' : 's'})` : ''), 'success');
+    }
     setTimeout(loadWorkers, 500);
   } catch(e) {
     toast('Stop failed — is the Oracle running?', 'error');

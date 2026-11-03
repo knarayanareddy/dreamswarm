@@ -151,6 +151,7 @@ pub mod executors;
 pub mod file_lock;
 pub mod lifecycle;
 pub mod mailbox;
+pub mod registry;
 pub mod result_merger;
 pub mod subagent;
 pub mod task_list;

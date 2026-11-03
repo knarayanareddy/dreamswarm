@@ -316,26 +316,96 @@ impl SwarmCoordinator {
             .await
     }
 
+    /// Shuts the team down and releases everything it owns.
+    ///
+    /// This is the emergency-stop path, so it is written to make a second call
+    /// safe and to leave nothing behind:
+    ///
+    /// * every worker is cleaned up, including ones that already reported
+    ///   `Completed` — they still own tmux panes and worktrees;
+    /// * the team's on-disk state is kept (marked `Completed`), not deleted, so
+    ///   the swarm can still be inspected or resumed afterwards;
+    /// * a failure to persist state does not abort the shutdown, because the
+    ///   workers have already been stopped by then.
     pub async fn shutdown_team(&mut self) -> anyhow::Result<()> {
         tracing::info!("Shutting down team '{}'", self.config.team_name);
+
         for worker in &self.workers {
             if worker.status != WorkerStatus::Completed {
                 let _ = self.mailbox.send_shutdown(&worker.id);
             }
         }
-        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+
+        // Give live workers a moment to exit on their own before force-killing.
+        if self
+            .workers
+            .iter()
+            .any(|w| w.status != WorkerStatus::Completed)
+        {
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        }
+
+        let mut failures = Vec::new();
         for worker in &self.workers {
             if self.executor.is_alive(worker).await {
                 tracing::warn!("Force-killing worker '{}'", worker.name);
-                let _ = self.executor.force_kill(worker).await;
+                if let Err(e) = self.executor.force_kill(worker).await {
+                    failures.push(format!("{}: {}", worker.name, e));
+                }
             }
-            let _ = self.executor.cleanup(worker).await;
+            // Always clean up: a Completed worker may still hold a pane or a
+            // worktree. Skipping this used to leak both.
+            if let Err(e) = self.executor.cleanup(worker).await {
+                failures.push(format!("{}: cleanup failed: {}", worker.name, e));
+            }
         }
-        let _ = Mailbox::cleanup_team(self.state_dir.clone(), &self.config.team_name);
+
+        // The inboxes are transient and safe to drop; `state.json` is not.
+        if let Err(e) = Mailbox::cleanup_team(self.state_dir.clone(), &self.config.team_name) {
+            tracing::warn!("Could not remove team inboxes: {}", e);
+        }
+
+        for worker in &mut self.workers {
+            worker.status = WorkerStatus::Completed;
+            worker.updated_at = Utc::now();
+        }
+        for worker in &mut self.state.workers {
+            worker.status = WorkerStatus::Completed;
+            worker.updated_at = Utc::now();
+        }
+
         self.state.status = TeamStatus::Completed;
         self.state.updated_at = Utc::now();
-        self.persist_state()?;
+        if let Err(e) = self.persist_state() {
+            tracing::error!(
+                "Team '{}' shut down but its state could not be saved: {}",
+                self.config.team_name,
+                e
+            );
+        }
+
+        if !failures.is_empty() {
+            anyhow::bail!(
+                "team '{}' shut down with {} worker error(s): {}",
+                self.config.team_name,
+                failures.len(),
+                failures.join("; ")
+            );
+        }
         Ok(())
+    }
+
+    /// Team name, used as the registry key.
+    pub fn team_name(&self) -> &str {
+        &self.config.team_name
+    }
+
+    pub fn status(&self) -> &TeamStatus {
+        &self.state.status
+    }
+
+    pub fn workers(&self) -> &[WorkerInfo] {
+        &self.workers
     }
 
     fn update_worker_status(&mut self, worker_id: &str, status: WorkerStatus) {
@@ -387,6 +457,8 @@ impl SwarmCoordinator {
 
         let mut coordinator = Self::new(
             state.config.clone(),
+            // The team's working directory is where the lead operates; a
+            // worker's worktree is not a substitute for it.
             state
                 .workers
                 .first()
@@ -394,12 +466,12 @@ impl SwarmCoordinator {
             state_dir,
         )?;
 
-        coordinator.state = state.clone();
-        coordinator.workers = state.workers;
+        coordinator.workers = state.workers.clone();
+        coordinator.state = state;
 
         tracing::info!(
             "Halt & Resume: Successfully restored swarm '{}' from snapshot",
-            state.config.team_name
+            coordinator.config.team_name
         );
         Ok(coordinator)
     }

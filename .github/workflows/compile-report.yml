@@ -1,7 +1,6 @@
 name: Compile Report
 
-# TEMPORARY (removed before merge). Runs the real Dockerfile build and captures
-# the build log so the musl failure can be read.
+# TEMPORARY (removed before merge).
 on:
   workflow_dispatch:
   push:
@@ -26,8 +25,6 @@ jobs:
           set +e
           docker build -f Dockerfile -t ds-probe . > .diagnostics/docker.log 2>&1
           echo "docker=$?" | tee .diagnostics/rc.txt
-          grep -E "^(error|error\[)" .diagnostics/docker.log | head -30
-          tail -30 .diagnostics/docker.log
       - name: Publish
         if: always()
         shell: bash

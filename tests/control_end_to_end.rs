@@ -127,8 +127,10 @@ async fn origin_auth_launch_and_cross_process_stop() {
     );
 
     let launch = format!("{}/api/v1/swarm/launch", base);
-    let mut team = dreamswarm::swarm::TeamConfig::default();
-    team.max_workers = 1;
+    let team = dreamswarm::swarm::TeamConfig {
+        max_workers: 1,
+        ..Default::default()
+    };
     let first: serde_json::Value = client
         .post(&launch)
         .bearer_auth(token)

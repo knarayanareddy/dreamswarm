@@ -67,13 +67,15 @@ fn permission_modes_and_pattern_literals() {
 #[test]
 fn config_roundtrip_does_not_save_secrets() {
     let tmp = tempfile::tempdir().unwrap();
-    let mut config = AppConfig::default();
-    config.state_dir = tmp.path().to_path_buf();
-    config.model = "test-model".into();
-    config.deepseek_config = Some(DeepSeekConfig {
-        api_key: "super-secret".into(),
-        model: "deepseek".into(),
-    });
+    let config = AppConfig {
+        state_dir: tmp.path().to_path_buf(),
+        model: "test-model".into(),
+        deepseek_config: Some(DeepSeekConfig {
+            api_key: "super-secret".into(),
+            model: "deepseek".into(),
+        }),
+        ..Default::default()
+    };
     config.save_to_toml().unwrap();
     let contents = std::fs::read_to_string(tmp.path().join("config.toml")).unwrap();
     assert!(!contents.contains("super-secret"));
@@ -88,8 +90,10 @@ fn config_roundtrip_does_not_save_secrets() {
 #[tokio::test]
 async fn tool_use_is_preserved_before_result() {
     let tmp = tempfile::tempdir().unwrap();
-    let mut config = AppConfig::default();
-    config.state_dir = tmp.path().to_path_buf();
+    let config = AppConfig {
+        state_dir: tmp.path().to_path_buf(),
+        ..Default::default()
+    };
     let db = Database::new(&config.state_dir).unwrap();
     db.migrate().unwrap();
     let engine = QueryEngine::new("mock", &config.model, &config).unwrap();

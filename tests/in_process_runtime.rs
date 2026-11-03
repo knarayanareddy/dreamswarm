@@ -7,9 +7,11 @@ use std::time::Duration;
 #[tokio::test]
 async fn assigned_task_runs_agent_and_reports_result() {
     let tmp = tempfile::tempdir().unwrap();
-    let mut app = AppConfig::default();
-    app.provider = "mock".into();
-    app.state_dir = tmp.path().to_path_buf();
+    let app = AppConfig {
+        provider: "mock".into(),
+        state_dir: tmp.path().to_path_buf(),
+        ..Default::default()
+    };
     let executor = InProcessExecutor::with_config(app);
     let config = WorkerConfig {
         id: "worker-1".into(),
@@ -93,9 +95,11 @@ async fn worker_applies_approved_file_edit() {
         format!("http://{}", listener.local_addr().unwrap()),
     );
     let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
-    let mut app_config = AppConfig::default();
-    app_config.state_dir = tmp.path().to_path_buf();
-    app_config.permission_mode = dreamswarm::runtime::permissions::AgentMode::AcceptEdits;
+    let app_config = AppConfig {
+        state_dir: tmp.path().to_path_buf(),
+        permission_mode: dreamswarm::runtime::permissions::AgentMode::AcceptEdits,
+        ..Default::default()
+    };
     let executor = InProcessExecutor::with_config(app_config);
     let config = WorkerConfig {
         id: "editor".into(),

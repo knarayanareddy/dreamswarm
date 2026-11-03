@@ -71,8 +71,10 @@ async fn anthropic_and_openai_receive_grouped_tool_calls_and_results() {
         std::env::set_var("ANTHROPIC_BASE_URL", &base);
         std::env::set_var("OPENAI_API_KEY", "test");
         std::env::set_var("OPENAI_BASE_URL", format!("{base}/v1"));
-        let mut config = AppConfig::default();
-        config.state_dir = tmp.path().join(provider);
+        let config = AppConfig {
+            state_dir: tmp.path().join(provider),
+            ..Default::default()
+        };
         let db = Database::new(&config.state_dir).unwrap();
         db.migrate().unwrap();
         let engine = QueryEngine::new(provider, &config.model, &config).unwrap();

@@ -1,7 +1,8 @@
 name: Compile Report
 
-# Temporary diagnostic workflow: surfaces rustc/fmt/clippy output as check-run
-# annotations, which are readable without access to the job log download API.
+# TEMPORARY diagnostic workflow. Runs the same fmt/clippy/check commands as CI
+# and commits the captured output back to the branch under .diagnostics/ so it
+# can be read through the contents API. Slated for deletion before merge.
 on:
   workflow_dispatch:
   push:
@@ -9,46 +10,46 @@ on:
       - 'src/**'
       - 'Cargo.toml'
       - '.github/workflows/compile-report.yml'
-      - '.github/scripts/annotate_chunks.py'
+
+permissions:
+  contents: write
 
 jobs:
-  fmt:
-    name: fmt diagnostics
+  report:
+    name: Diagnostics
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
       - uses: ./.github/actions/setup-rust
         with:
           toolchain: nightly
-          components: rustfmt
-      - name: rustfmt
-        shell: bash
-        run: |
-          set +e
-          cargo +nightly fmt --all -- --check > fmt.log 2>&1
-          echo $? > fmt.rc
-          echo "rc=$(cat fmt.rc) bytes=$(wc -c < fmt.log)"
-      - name: Emit fmt log
-        if: always()
-        shell: bash
-        run: python3 .github/scripts/annotate_chunks.py fmt.log FMT 4 || true
+          components: rustfmt, clippy
 
-  clippy:
-    name: clippy diagnostics
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-rust
-        with:
-          components: clippy
-      - name: clippy
+      - name: Run checks
         shell: bash
         run: |
+          mkdir -p .diagnostics
           set +e
-          cargo clippy --all-targets --all-features -- -D warnings > clippy.log 2>&1
-          echo $? > clippy.rc
-          echo "rc=$(cat clippy.rc) bytes=$(wc -c < clippy.log)"
-      - name: Emit clippy log
+          cargo +nightly fmt --all -- --check > .diagnostics/fmt.log 2>&1
+          echo "fmt=$?" | tee .diagnostics/rc.txt
+          cargo clippy --all-targets --all-features -- -D warnings > .diagnostics/clippy.log 2>&1
+          echo "clippy=$?" | tee -a .diagnostics/rc.txt
+          git checkout -- . 2>/dev/null
+          git clean -fd src 2>/dev/null
+          cargo check --all-targets --all-features > .diagnostics/check.log 2>&1
+          echo "check=$?" | tee -a .diagnostics/rc.txt
+          wc -l .diagnostics/*.log
+
+      - name: Publish diagnostics
         if: always()
         shell: bash
-        run: python3 .github/scripts/annotate_chunks.py clippy.log CLIPPY 3 || true
+        run: |
+          git config user.name "Diagnostics Bot"
+          git config user.email "diagnostics@example.invalid"
+          git add -f .diagnostics
+          git commit -m "chore(diagnostics): publish check logs" || exit 0
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}"

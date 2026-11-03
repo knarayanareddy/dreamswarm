@@ -85,7 +85,7 @@ graph TD
 
 ### Installation
 
-OpenDAL requires Rust 1.91 or newer; the complete dependency graph is tested on current stable Rust, not against a specific minimum toolchain.
+The minimum supported Rust version is 1.91.1; CI checks all features and targets on Linux with this toolchain.
 
 ```bash
 # Clone the repository

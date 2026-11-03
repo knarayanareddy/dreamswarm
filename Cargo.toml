@@ -2,6 +2,7 @@
 name = "dreamswarm"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.91.1"
 license = "MIT OR Apache-2.0"
 description = "An autonomous multi-agent AI coding assistant with swarm intelligence, role-based personas, and a persistent knowledge graph"
 repository = "https://github.com/knarayanareddy/dreamswarm"

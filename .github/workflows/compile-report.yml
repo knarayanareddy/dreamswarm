@@ -1,0 +1,54 @@
+name: Compile Report
+
+# TEMPORARY diagnostic workflow (removed before merge). Mirrors the CI lint job
+# exactly and publishes the captured log back to the branch.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/compile-report.yml'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: "-D warnings"
+  MSRV: "1.88.0"
+
+jobs:
+  report:
+    name: clippy diagnostics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: ./.github/actions/setup-rust
+        with:
+          components: clippy
+
+      - name: Run Clippy
+        shell: bash
+        run: |
+          mkdir -p .diagnostics
+          set +e
+          cargo clippy --all-targets --all-features -- -D warnings > .diagnostics/clippy.log 2>&1
+          echo "clippy=$?" | tee -a .diagnostics/rc.txt
+          cargo check --all-targets --all-features > .diagnostics/check.log 2>&1
+          echo "check=$?" | tee -a .diagnostics/rc.txt
+          cargo --version >> .diagnostics/rc.txt
+          cargo clippy --version >> .diagnostics/rc.txt
+
+      - name: Publish results
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "Diagnostics Bot"
+          git config user.email "diagnostics@example.invalid"
+          git add -f .diagnostics
+          git commit -m "chore(diagnostics): clippy log" || exit 0
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}"

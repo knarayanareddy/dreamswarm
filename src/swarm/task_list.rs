@@ -1,6 +1,7 @@
+use crate::swarm::file_lock::{write_atomic, FileLock};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
@@ -44,14 +45,28 @@ pub struct TaskStats {
 
 impl SharedTaskList {
     pub fn new(team_name: &str) -> anyhow::Result<Self> {
-        let base_dir = dirs::home_dir()
+        let root = dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join(".dreamswarm")
+            .join(".dreamswarm");
+        Self::with_state_dir(&root, team_name)
+    }
+
+    /// Creates a task list under an explicit state directory.
+    ///
+    /// The daemon honours `--directory`/config state paths, so tasks must not
+    /// always land in `~/.dreamswarm`.
+    pub fn with_state_dir(state_dir: impl AsRef<Path>, team_name: &str) -> anyhow::Result<Self> {
+        let base_dir = state_dir
+            .as_ref()
             .join("teams")
             .join(Self::sanitize_name(team_name))
             .join("tasks");
         std::fs::create_dir_all(&base_dir)?;
         Ok(Self { base_dir })
+    }
+
+    pub fn base_dir(&self) -> &Path {
+        &self.base_dir
     }
 
     pub fn create_task(
@@ -80,35 +95,7 @@ impl SharedTaskList {
     }
 
     pub fn claim_task(&self, task_id: &str, worker_id: &str) -> anyhow::Result<Task> {
-        let mut task = self.read_task(task_id)?;
-        match &task.status {
-            TaskStatus::Pending => {
-                // Check dependencies
-                for dep_id in &task.dependencies {
-                    let dep = self.read_task(dep_id)?;
-                    if dep.status != TaskStatus::Completed {
-                        anyhow::bail!(
-                            "Cannot claim task '{}': dependency '{}' not completed",
-                            task_id,
-                            dep_id
-                        );
-                    }
-                }
-                task.status = TaskStatus::Claimed {
-                    by: worker_id.to_string(),
-                };
-                task.assigned_to = Some(worker_id.to_string());
-                task.updated_at = Utc::now();
-                self.write_task(&task)?;
-                Ok(task)
-            }
-            TaskStatus::Claimed { by } => {
-                anyhow::bail!("Task '{}' already claimed by '{}'", task_id, by);
-            }
-            other => {
-                anyhow::bail!("Task '{}' cannot be claimed (status: {:?})", task_id, other);
-            }
-        }
+        self.try_claim_task(task_id, worker_id)
     }
 
     pub fn update_task(
@@ -117,6 +104,8 @@ impl SharedTaskList {
         status: TaskStatus,
         result: Option<String>,
     ) -> anyhow::Result<Task> {
+        let path = self.base_dir.join(format!("{}.json", task_id));
+        let _lock = FileLock::for_target(&path)?;
         let mut task = self.read_task(task_id)?;
         task.status = status.clone();
         task.updated_at = Utc::now();
@@ -201,13 +190,50 @@ impl SharedTaskList {
         Ok(serde_json::from_str(&content)?)
     }
 
+    /// Writes a task atomically.
+    ///
+    /// The previous fixed `<id>.json.tmp` name meant two claimants could
+    /// truncate each other's temp file and publish a half-written task.
     fn write_task(&self, task: &Task) -> anyhow::Result<()> {
         let path = self.base_dir.join(format!("{}.json", task.id));
-        let temp_path = path.with_extension("json.tmp");
         let content = serde_json::to_string_pretty(task)?;
-        std::fs::write(&temp_path, &content)?;
-        std::fs::rename(&temp_path, &path)?;
-        Ok(())
+        write_atomic(&path, content.as_bytes())
+    }
+
+    /// Claims a pending task under an exclusive per-task lock.
+    ///
+    /// `claim_task` is a read/check/write cycle; without the lock two workers
+    /// polling at the same time could both observe `Pending` and both write a
+    /// `Claimed` record, so the same task was handed out twice.
+    pub fn try_claim_task(&self, task_id: &str, worker_id: &str) -> anyhow::Result<Task> {
+        let path = self.base_dir.join(format!("{}.json", task_id));
+        let _lock = FileLock::for_target(&path)?;
+
+        let mut task = self.read_task(task_id)?;
+        if !matches!(task.status, TaskStatus::Pending) {
+            anyhow::bail!(
+                "Task '{}' cannot be claimed (status: {:?})",
+                task_id,
+                task.status
+            );
+        }
+        for dep_id in &task.dependencies {
+            let dep = self.read_task(dep_id)?;
+            if dep.status != TaskStatus::Completed {
+                anyhow::bail!(
+                    "Cannot claim task '{}': dependency '{}' not completed",
+                    task_id,
+                    dep_id
+                );
+            }
+        }
+        task.status = TaskStatus::Claimed {
+            by: worker_id.to_string(),
+        };
+        task.assigned_to = Some(worker_id.to_string());
+        task.updated_at = Utc::now();
+        self.write_task(&task)?;
+        Ok(task)
     }
 
     fn sanitize_name(name: &str) -> String {
@@ -226,5 +252,103 @@ impl std::fmt::Display for TaskStats {
             "Tasks: {} total | {} pending | {} in-progress | {} completed | {} failed | {} blocked",
             self.total, self.pending, self.in_progress, self.completed, self.failed, self.blocked
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    fn list(dir: &Path) -> SharedTaskList {
+        SharedTaskList::with_state_dir(dir, "atomic-team").unwrap()
+    }
+
+    #[test]
+    fn state_directory_is_honoured() {
+        let dir = tempdir().unwrap();
+        let tasks = list(dir.path());
+        assert!(tasks.base_dir().starts_with(dir.path()));
+    }
+
+    #[test]
+    fn task_round_trips_atomically() {
+        let dir = tempdir().unwrap();
+        let tasks = list(dir.path());
+        let task = tasks
+            .create_task("write docs", "detail", vec![], 1)
+            .unwrap();
+        let loaded = tasks.list_tasks().unwrap();
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].id, task.id);
+    }
+
+    #[test]
+    fn one_of_two_claimants_wins() {
+        let dir = tempdir().unwrap();
+        let tasks = list(dir.path());
+        let task = tasks.create_task("only once", "detail", vec![], 1).unwrap();
+
+        let first = tasks.try_claim_task(&task.id, "worker-a");
+        let second = tasks.try_claim_task(&task.id, "worker-b");
+
+        assert!(first.is_ok());
+        assert!(
+            second.is_err(),
+            "a claimed task must not be claimable again"
+        );
+        let stored = tasks.list_tasks().unwrap();
+        assert_eq!(stored[0].assigned_to.as_deref(), Some("worker-a"));
+    }
+
+    #[test]
+    fn concurrent_claims_never_duplicate() {
+        let dir = tempdir().unwrap();
+        let tasks = list(dir.path());
+        let task = tasks.create_task("race", "detail", vec![], 1).unwrap();
+        let task_id = task.id.clone();
+        let base = tasks.base_dir().to_path_buf();
+        let successes = std::sync::atomic::AtomicUsize::new(0);
+
+        std::thread::scope(|scope| {
+            for worker in 0..8 {
+                let base = base.clone();
+                let task_id = task_id.clone();
+                let successes = &successes;
+                scope.spawn(move || {
+                    let list = SharedTaskList {
+                        base_dir: base.clone(),
+                    };
+                    if list
+                        .try_claim_task(&task_id, &format!("w{}", worker))
+                        .is_ok()
+                    {
+                        successes.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    }
+                });
+            }
+        });
+
+        assert_eq!(
+            successes.load(std::sync::atomic::Ordering::SeqCst),
+            1,
+            "exactly one worker may claim the task"
+        );
+    }
+
+    #[test]
+    fn dependency_must_complete_first() {
+        let dir = tempdir().unwrap();
+        let tasks = list(dir.path());
+        let first = tasks.create_task("first", "detail", vec![], 1).unwrap();
+        let second = tasks
+            .create_task("second", "detail", vec![first.id.clone()], 1)
+            .unwrap();
+
+        assert!(tasks.try_claim_task(&second.id, "worker").is_err());
+        tasks
+            .update_task(&first.id, TaskStatus::Completed, None)
+            .unwrap();
+        assert!(tasks.try_claim_task(&second.id, "worker").is_ok());
     }
 }

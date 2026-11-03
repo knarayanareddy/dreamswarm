@@ -114,6 +114,71 @@ impl OpenAIProvider {
             model: self.model.clone(),
         })
     }
+
+    /// Converts Anthropic-shaped messages into OpenAI chat messages.
+    ///
+    /// Kept separate from the request so the shape can be unit tested without
+    /// network access.
+    fn convert_messages(messages: &[Value]) -> Vec<Value> {
+        let mut oai_messages: Vec<Value> = Vec::new();
+        for msg in messages {
+            let role = msg["role"].as_str().unwrap_or("user");
+            let blocks = match &msg["content"] {
+                Value::String(text) => vec![serde_json::json!({ "type": "text", "text": text })],
+                Value::Array(blocks) => blocks.clone(),
+                _ => continue,
+            };
+
+            let mut text = String::new();
+            let mut tool_calls = Vec::new();
+            let mut tool_results = Vec::new();
+
+            for block in &blocks {
+                match block["type"].as_str() {
+                    Some("text") => {
+                        if let Some(t) = block["text"].as_str() {
+                            text.push_str(t);
+                        }
+                    }
+                    Some("tool_use") => tool_calls.push(serde_json::json!({
+                        "id": block["id"],
+                        "type": "function",
+                        "function": {
+                            "name": block["name"],
+                            "arguments": block["input"].to_string(),
+                        }
+                    })),
+                    Some("tool_result") => tool_results.push(serde_json::json!({
+                        "role": "tool",
+                        "tool_call_id": block["tool_use_id"],
+                        "content": block["content"],
+                    })),
+                    _ => {}
+                }
+            }
+
+            if role == "assistant" {
+                let mut message = serde_json::json!({ "role": "assistant" });
+                if !text.is_empty() || tool_calls.is_empty() {
+                    message["content"] = serde_json::json!(text);
+                } else {
+                    message["content"] = Value::Null;
+                }
+                if !tool_calls.is_empty() {
+                    message["tool_calls"] = Value::Array(tool_calls);
+                }
+                oai_messages.push(message);
+            } else if !tool_results.is_empty() {
+                oai_messages.extend(tool_results);
+                if !text.is_empty() {
+                    oai_messages.push(serde_json::json!({ "role": role, "content": text }));
+                }
+            } else if !text.is_empty() {
+                oai_messages.push(serde_json::json!({ "role": role, "content": text }));
+            }
+        }
+        oai_messages
+    }
 }
 
 #[async_trait]
@@ -124,56 +189,12 @@ impl LLMProvider for OpenAIProvider {
         messages: &[Value],
         tools: &[Value],
     ) -> anyhow::Result<CompletionResponse> {
-        // Build system message
+        // Keep the system prompt first, then the converted conversation.
         let mut oai_messages: Vec<Value> = vec![serde_json::json!({
             "role": "system",
             "content": system_prompt
         })];
-
-        // Convert Anthropic-format messages to OpenAI format
-        for msg in messages {
-            let role = msg["role"].as_str().unwrap_or("user");
-            match msg["content"].clone() {
-                Value::String(text) => {
-                    oai_messages.push(serde_json::json!({ "role": role, "content": text }));
-                }
-                Value::Array(blocks) => {
-                    // Flatten content blocks into OpenAI format
-                    for block in &blocks {
-                        match block["type"].as_str() {
-                            Some("text") => {
-                                oai_messages.push(serde_json::json!({
-                                    "role": role,
-                                    "content": block["text"]
-                                }));
-                            }
-                            Some("tool_use") => {
-                                oai_messages.push(serde_json::json!({
-                                    "role": "assistant",
-                                    "tool_calls": [{
-                                        "id": block["id"],
-                                        "type": "function",
-                                        "function": {
-                                            "name": block["name"],
-                                            "arguments": block["input"].to_string()
-                                        }
-                                    }]
-                                }));
-                            }
-                            Some("tool_result") => {
-                                oai_messages.push(serde_json::json!({
-                                    "role": "tool",
-                                    "tool_call_id": block["tool_use_id"],
-                                    "content": block["content"]
-                                }));
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
+        oai_messages.extend(Self::convert_messages(messages));
 
         let mut body = serde_json::json!({
             "model": self.model,
@@ -207,5 +228,57 @@ impl LLMProvider for OpenAIProvider {
 
     fn model_name(&self) -> &str {
         &self.model
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assistant_with_tool() -> Value {
+        serde_json::json!({
+            "role": "assistant",
+            "content": [
+                { "type": "text", "text": "Listing files." },
+                { "type": "tool_use", "id": "call-1", "name": "Bash", "input": { "command": "ls" } }
+            ]
+        })
+    }
+
+    #[test]
+    fn mixed_assistant_message_becomes_one_message() {
+        let converted = OpenAIProvider::convert_messages(&[assistant_with_tool()]);
+        assert_eq!(converted.len(), 1, "text and tool calls must not be split");
+        assert_eq!(converted[0]["role"], "assistant");
+        assert_eq!(converted[0]["content"], "Listing files.");
+        assert_eq!(converted[0]["tool_calls"][0]["id"], "call-1");
+    }
+
+    #[test]
+    fn tool_results_follow_the_assistant_message() {
+        let messages = vec![
+            assistant_with_tool(),
+            serde_json::json!({
+                "role": "user",
+                "content": [
+                    { "type": "tool_result", "tool_use_id": "call-1", "content": "a.txt", "is_error": false }
+                ]
+            }),
+        ];
+        let converted = OpenAIProvider::convert_messages(&messages);
+        assert_eq!(converted.len(), 2);
+        assert_eq!(converted[1]["role"], "tool");
+        assert_eq!(converted[1]["tool_call_id"], "call-1");
+        assert_eq!(converted[1]["content"], "a.txt");
+    }
+
+    #[test]
+    fn plain_text_messages_are_preserved() {
+        let converted = OpenAIProvider::convert_messages(&[serde_json::json!({
+            "role": "user",
+            "content": [{ "type": "text", "text": "hello" }]
+        })]);
+        assert_eq!(converted.len(), 1);
+        assert_eq!(converted[0]["content"], "hello");
     }
 }

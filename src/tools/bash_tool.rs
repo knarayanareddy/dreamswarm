@@ -97,13 +97,14 @@ impl Tool for BashTool {
     }
 
     fn command_signature(&self, input: &Value) -> String {
-        let command = input["command"].as_str().unwrap_or_default();
-        // Return the first word (the command itself) for signature matching
-        command
-            .split_whitespace()
-            .next()
-            .unwrap_or("unknown")
-            .to_string()
+        let command = input["command"].as_str().unwrap_or_default().trim();
+        if command.is_empty() {
+            return "unknown".to_string();
+        }
+        // The *whole* command is the signature. Returning only the first word
+        // made rules like `Bash(git status)` unmatchable and let `Bash(ls*)`
+        // approve `ls -la && rm -rf .`.
+        command.to_string()
     }
 
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
@@ -158,5 +159,21 @@ mod tests {
             BashSecurityChain::validate("ls -la"),
             SecurityVerdict::Allow
         ));
+    }
+
+    #[test]
+    fn signature_is_the_whole_command() {
+        let input = serde_json::json!({"command": "git status"});
+        assert_eq!(BashTool.command_signature(&input), "git status");
+
+        let chained = serde_json::json!({"command": "ls -la && rm -rf ."});
+        assert_eq!(
+            BashTool.command_signature(&chained),
+            "ls -la && rm -rf .",
+            "chained commands must not collapse to their first word"
+        );
+
+        let empty = serde_json::json!({});
+        assert_eq!(BashTool.command_signature(&empty), "unknown");
     }
 }

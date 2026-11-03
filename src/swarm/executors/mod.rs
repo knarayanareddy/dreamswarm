@@ -34,6 +34,7 @@ pub trait TeammateExecutor: Send + Sync {
     fn strategy(&self) -> SpawnStrategy;
 }
 
+pub mod command;
 pub mod in_process;
 pub mod ssh;
 pub mod tmux;

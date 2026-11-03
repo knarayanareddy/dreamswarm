@@ -1,3 +1,4 @@
+use super::command::{is_safe_identifier, percent_encode};
 use super::{TeammateExecutor, WorkerConfig};
 use crate::swarm::{SpawnStrategy, WorkerInfo, WorkerStatus};
 use async_trait::async_trait;
@@ -46,15 +47,72 @@ impl WorktreeExecutor {
             .await?;
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     }
+
+    /// Builds the worker argv for an already-created worktree.
+    ///
+    /// The previous version produced `cd <path> && dreamswarm ... --prompt
+    /// '<mission>'` and handed it to a shell. Besides the injection risk, it
+    /// omitted the `worker` subcommand, so every "worker" started the
+    /// interactive TUI instead of the delegated agent.
+    fn build_worker_args(
+        &self,
+        config: &WorkerConfig,
+        working_dir: &std::path::Path,
+    ) -> anyhow::Result<Vec<String>> {
+        if !is_safe_identifier(&config.team_name) {
+            anyhow::bail!("invalid team name '{}'", config.team_name);
+        }
+        if !is_safe_identifier(&config.role) {
+            anyhow::bail!("invalid role '{}'", config.role);
+        }
+
+        let working_dir = working_dir
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("worktree path is not valid UTF-8"))?;
+
+        let mut args = vec![
+            "dreamswarm".to_string(),
+            "--mode".to_string(),
+            percent_encode(&config.permission_mode),
+            "--model".to_string(),
+            percent_encode(
+                config
+                    .model
+                    .as_deref()
+                    .unwrap_or("claude-sonnet-4-20250514"),
+            ),
+            "--directory".to_string(),
+            percent_encode(working_dir),
+            "worker".to_string(),
+            "--team".to_string(),
+            percent_encode(&config.team_name),
+            "--role".to_string(),
+            percent_encode(&config.role),
+        ];
+
+        if !config.instructions.is_empty() {
+            args.push("--prompt".to_string());
+            args.push(percent_encode(&config.instructions));
+        }
+
+        Ok(args)
+    }
 }
 
 #[async_trait]
 impl TeammateExecutor for WorktreeExecutor {
     async fn spawn(&self, config: &WorkerConfig) -> anyhow::Result<WorkerInfo> {
+        if !is_safe_identifier(&config.team_name) {
+            anyhow::bail!("invalid team name '{}'", config.team_name);
+        }
+        if !is_safe_identifier(&self.tmux_session) {
+            anyhow::bail!("invalid tmux session name '{}'", self.tmux_session);
+        }
+        // A branch is a git ref: derive it from validated identifiers only.
         let branch_name = format!(
             "dreamswarm/{}/{}",
             config.team_name,
-            config.name.to_lowercase().replace(' ', "-")
+            crate::tools::path_guard::sanitize_filename(&config.name)
         );
         let mega_workspace = self.worktrees_dir.join(&config.id);
         std::fs::create_dir_all(&mega_workspace)?;
@@ -62,20 +120,22 @@ impl TeammateExecutor for WorktreeExecutor {
         let primary_repo_name = self
             .repo_root
             .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
+            .map(|n| crate::tools::path_guard::sanitize_filename(&n.to_string_lossy()))
+            .unwrap_or_else(|| "repo".to_string());
         let worktree_path = mega_workspace.join(&primary_repo_name);
         let base_branch = self.current_branch().await?;
 
+        let worktree_path_str = worktree_path
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("worktree path is not valid UTF-8"))?;
         let output = Command::new("git")
             .args([
                 "worktree",
                 "add",
                 "-b",
-                &branch_name,
-                worktree_path.to_str().unwrap(),
-                &base_branch,
+                branch_name.as_str(),
+                worktree_path_str,
+                base_branch.as_str(),
             ])
             .current_dir(&self.repo_root)
             .output()
@@ -99,6 +159,9 @@ impl TeammateExecutor for WorktreeExecutor {
                 .to_string();
             let linked_wt_path = mega_workspace.join(&repo_name);
 
+            let linked_wt_str = linked_wt_path
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("linked worktree path is not valid UTF-8"))?;
             let branch_cmd = Command::new("git")
                 .args(["branch", "--show-current"])
                 .current_dir(&repo_path)
@@ -113,35 +176,30 @@ impl TeammateExecutor for WorktreeExecutor {
                     "worktree",
                     "add",
                     "-b",
-                    &branch_name,
-                    linked_wt_path.to_str().unwrap(),
-                    &linked_base_branch,
+                    branch_name.as_str(),
+                    linked_wt_str,
+                    linked_base_branch.as_str(),
                 ])
                 .current_dir(&repo_path)
                 .output()
                 .await?;
         }
 
-        let worker_cmd = format!(
-            "cd {} && dreamswarm --mode {} --directory {} --prompt '{}'",
-            mega_workspace.to_string_lossy(),
-            config.permission_mode,
-            mega_workspace.to_string_lossy(),
-            config.instructions.replace('\'', "'\\''"),
-        );
+        // Launch the worker as argv (no shell), inside its worktree.
+        let worker_args = self.build_worker_args(config, &mega_workspace)?;
 
         let pane_output = Command::new("tmux")
-            .args([
-                "split-window",
-                "-d",
-                "-h",
-                "-t",
-                &self.tmux_session,
-                "-P",
-                "-F",
-                "#{pane_id}",
-                &worker_cmd,
-            ])
+            .arg("split-window")
+            .arg("-d")
+            .arg("-h")
+            .arg("-t")
+            .arg(&self.tmux_session)
+            .arg("-P")
+            .arg("-F")
+            .arg("#{pane_id}")
+            .arg("-c")
+            .arg(&mega_workspace)
+            .args(&worker_args)
             .output()
             .await?;
 

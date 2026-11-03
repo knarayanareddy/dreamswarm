@@ -1,3 +1,4 @@
+use super::command::{is_safe_identifier, percent_encode};
 use super::{TeammateExecutor, WorkerConfig};
 use crate::swarm::{SpawnStrategy, WorkerInfo, WorkerStatus};
 use async_trait::async_trait;
@@ -41,51 +42,70 @@ impl TmuxExecutor {
         })
     }
 
-    fn build_worker_command(&self, config: &WorkerConfig) -> String {
-        let mut cmd = format!(
-            "dreamswarm --mode {} --model {} --directory {} ",
-            config.permission_mode,
-            config
-                .model
-                .as_deref()
-                .unwrap_or("claude-sonnet-4-20250514"),
-            config.working_dir
-        );
+    /// Builds the worker argv.
+    ///
+    /// Values are passed as separate arguments; none of them is concatenated
+    /// into a shell string. Every value that tmux will re-parse is
+    /// percent-encoded so a mission containing spaces, quotes or `;` cannot
+    /// smuggle additional tmux commands.
+    fn build_worker_args(&self, config: &WorkerConfig) -> anyhow::Result<Vec<String>> {
+        if !is_safe_identifier(&config.team_name) {
+            anyhow::bail!("invalid team name '{}'", config.team_name);
+        }
+        if !is_safe_identifier(&config.role) {
+            anyhow::bail!("invalid role '{}'", config.role);
+        }
 
-        cmd.push_str(&format!("worker --team '{}' ", config.team_name));
+        let mut args = vec![
+            "dreamswarm".to_string(),
+            "--mode".to_string(),
+            percent_encode(&config.permission_mode),
+            "--model".to_string(),
+            percent_encode(
+                config
+                    .model
+                    .as_deref()
+                    .unwrap_or("claude-sonnet-4-20250514"),
+            ),
+            "--directory".to_string(),
+            percent_encode(&config.working_dir),
+            "worker".to_string(),
+            "--team".to_string(),
+            percent_encode(&config.team_name),
+        ];
 
-        // Note: prompt is passed to the engine as initial context in Worker logic later
-        // For now we use the global prompt flag
         if !config.instructions.is_empty() {
-            cmd.push_str(&format!(
-                "--prompt '{}' ",
-                config.instructions.replace('\'', "'\\''")
-            ));
+            args.push("--prompt".to_string());
+            args.push(percent_encode(&config.instructions));
         }
         if !config.role.is_empty() {
-            cmd.push_str(&format!("--role '{}' ", config.role.replace('\'', "'\\''")));
+            args.push("--role".to_string());
+            args.push(percent_encode(&config.role));
         }
 
-        cmd
+        Ok(args)
     }
 }
 
 #[async_trait]
 impl TeammateExecutor for TmuxExecutor {
     async fn spawn(&self, config: &WorkerConfig) -> anyhow::Result<WorkerInfo> {
-        let worker_cmd = self.build_worker_command(config);
+        if !is_safe_identifier(&self.session_name) {
+            anyhow::bail!("invalid tmux session name '{}'", self.session_name);
+        }
+        let worker_args = self.build_worker_args(config)?;
+
+        // No shell is involved: tmux execs the argv directly.
         let output = Command::new("tmux")
-            .args([
-                "split-window",
-                "-d",
-                "-h",
-                "-t",
-                &self.session_name,
-                "-P",
-                "-F",
-                "#{pane_id}",
-                &worker_cmd,
-            ])
+            .arg("split-window")
+            .arg("-d")
+            .arg("-h")
+            .arg("-t")
+            .arg(&self.session_name)
+            .arg("-P")
+            .arg("-F")
+            .arg("#{pane_id}")
+            .args(&worker_args)
             .output()
             .await?;
 
@@ -95,14 +115,9 @@ impl TeammateExecutor for TmuxExecutor {
         }
 
         let pane_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let title = format!("Worker: {}", config.name);
         Command::new("tmux")
-            .args([
-                "select-pane",
-                "-t",
-                &pane_id,
-                "-T",
-                &format!("Worker: {}", config.name),
-            ])
+            .args(["select-pane", "-t", pane_id.as_str(), "-T", title.as_str()])
             .output()
             .await?;
 
@@ -139,7 +154,7 @@ impl TeammateExecutor for TmuxExecutor {
     async fn send_input(&self, worker: &WorkerInfo, input: &str) -> anyhow::Result<()> {
         if let Some(ref pane_id) = worker.tmux_pane_id {
             Command::new("tmux")
-                .args(["send-keys", "-t", pane_id, input, "Enter"])
+                .args(["send-keys", "-t", pane_id, "--", input, "Enter"])
                 .output()
                 .await?;
             Ok(())
@@ -178,5 +193,61 @@ impl TeammateExecutor for TmuxExecutor {
 
     fn strategy(&self) -> SpawnStrategy {
         SpawnStrategy::TmuxPane
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config(instructions: &str) -> WorkerConfig {
+        WorkerConfig {
+            id: "w-1".into(),
+            name: "coder".into(),
+            role: "coder".into(),
+            team_name: "team-1".into(),
+            instructions: instructions.into(),
+            model: Some("claude-sonnet-4-20250514".into()),
+            permission_mode: "default".into(),
+            working_dir: "/tmp/project".into(),
+            state_dir: std::path::PathBuf::from("/tmp/state"),
+            remote_host: None,
+        }
+    }
+
+    #[test]
+    fn mission_text_cannot_inject_tmux_commands() {
+        let executor = TmuxExecutor::new("dreamswarm");
+        let args = executor
+            .build_worker_args(&config("fix bug; kill-server # $(reboot)"))
+            .unwrap();
+        let joined = args.join(" ");
+        assert!(!joined.contains(';'));
+        assert!(!joined.contains('#'));
+        assert!(!joined.contains("$("));
+        // The prompt survives as one opaque argument.
+        let prompt_index = args.iter().position(|a| a == "--prompt").unwrap();
+        assert!(args[prompt_index + 1].contains("%3B"));
+    }
+
+    #[test]
+    fn rejects_unsafe_team_and_role() {
+        let executor = TmuxExecutor::new("dreamswarm");
+        let mut cfg = config("");
+        cfg.team_name = "team;kill-server".into();
+        assert!(executor.build_worker_args(&cfg).is_err());
+
+        let mut cfg = config("");
+        cfg.role = "coder $(id)".into();
+        assert!(executor.build_worker_args(&cfg).is_err());
+    }
+
+    #[test]
+    fn command_uses_worker_subcommand() {
+        let executor = TmuxExecutor::new("dreamswarm");
+        let args = executor.build_worker_args(&config("do work")).unwrap();
+        assert_eq!(args[0], "dreamswarm");
+        assert!(args.contains(&"worker".to_string()));
+        assert!(args.contains(&"--team".to_string()));
     }
 }

@@ -2,7 +2,10 @@
     clippy::ptr_arg,
     clippy::manual_strip,
     clippy::vec_init_then_push,
-    clippy::field_reassign_with_default
+    clippy::field_reassign_with_default,
+    // `async_trait` emits `#[must_use]` on traits whose futures already carry
+    // it, which trips this lint on every async trait in the crate.
+    clippy::double_must_use
 )]
 pub mod api;
 pub mod context;

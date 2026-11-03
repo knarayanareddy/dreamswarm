@@ -511,7 +511,32 @@ const state = {
   activeFilter: 'all',
   eventSource: null,
   maxEvents: 500,
+  // Bearer token for the Oracle API. The server prints a per-session token on
+  // start-up (or DREAMSWARM_API_TOKEN pins one); it is kept in sessionStorage.
+  token: sessionStorage.getItem('dreamswarm-api-token') || '',
 };
+
+function apiHeaders(extra = {}) {
+  const headers = Object.assign({}, extra);
+  if (state.token) headers['x-dreamswarm-token'] = state.token;
+  return headers;
+}
+
+// Wraps fetch so every API call carries the token and a 401 prompts for one.
+async function apiFetch(url, options = {}) {
+  const opts = Object.assign({}, options);
+  opts.headers = apiHeaders(opts.headers || {});
+  const response = await fetch(url, opts);
+  if (response.status === 401) {
+    const entered = prompt('Oracle API token (printed by `dreamswarm api start`):');
+    if (entered) {
+      state.token = entered.trim();
+      sessionStorage.setItem('dreamswarm-api-token', state.token);
+      return apiFetch(url, options);
+    }
+  }
+  return response;
+}
 
 // ── Init ───────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -539,7 +564,7 @@ function switchTab(name) {
 // ── SSE Connection ────────────────────────────────────────────────────────────
 function connectSSE() {
   if (state.eventSource) state.eventSource.close();
-  const es = new EventSource('/api/v1/telemetry/stream');
+  const es = new EventSource('/api/v1/telemetry/stream?token=' + encodeURIComponent(state.token));
   state.eventSource = es;
 
   es.onopen = () => {
@@ -557,12 +582,22 @@ function connectSSE() {
 
   es.onerror = () => {
     setStatus(false);
+    // A rejected token shows up as an error event; prompt once, then retry.
+    if (!state.token) {
+      const entered = prompt('Oracle API token (printed by `dreamswarm api start`):');
+      if (entered) {
+        state.token = entered.trim();
+        sessionStorage.setItem('dreamswarm-api-token', state.token);
+        setTimeout(connectSSE, 100);
+        return;
+      }
+    }
     setTimeout(connectSSE, 3000); // reconnect
   };
 }
 
 function loadHistory() {
-  fetch('/api/v1/telemetry/history')
+  apiFetch('/api/v1/telemetry/history')
     .then(r => r.json())
     .then(events => {
       if (Array.isArray(events)) {
@@ -659,7 +694,7 @@ function clearFeed() {
 // ── Consensus / Status ────────────────────────────────────────────────────────
 async function loadConsensus() {
   try {
-    const r = await fetch('/consensus');
+    const r = await fetch('/consensus'); // public liveness probe
     const d = await r.json();
     document.getElementById('stat-trust').textContent = d.trust_index !== undefined ? (d.trust_index * 100).toFixed(1) + '%' : '—';
     document.getElementById('stat-status').innerHTML = `<span class="badge badge-green">${d.status || 'Online'}</span>`;
@@ -674,7 +709,7 @@ async function loadConsensus() {
 // ── Config ────────────────────────────────────────────────────────────────────
 async function loadConfig() {
   try {
-    const r = await fetch('/api/v1/config');
+    const r = await apiFetch('/api/v1/config');
     const cfg = await r.json();
     if (cfg.error) return;
     document.getElementById('cfg-model').value = cfg.model || '';
@@ -716,7 +751,7 @@ async function saveConfig() {
   const status = document.getElementById('cfg-save-status');
   status.textContent = 'Saving…'; status.className = 'save-status';
   try {
-    const r = await fetch('/api/v1/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(patch) });
+    const r = await apiFetch('/api/v1/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(patch) });
     const d = await r.json();
     status.textContent = d.status || 'Saved ✓';
     status.className = 'save-status success';
@@ -733,7 +768,7 @@ async function saveConfig() {
 async function controlAction(action) {
   const labels = { stop: '⏹ Stop All broadcast', dream: '💤 Deep Dream triggered', 'war-room': '⚠️ War Room activated' };
   try {
-    const r = await fetch(`/api/v1/control/${action}`, { method: 'POST' });
+    const r = await apiFetch(`/api/v1/control/${action}`, { method: 'POST' });
     const d = await r.json();
     toast(labels[action] || d.status, action === 'stop' ? 'error' : 'success');
   } catch(e) {
@@ -744,7 +779,7 @@ async function controlAction(action) {
 // ── Workers ───────────────────────────────────────────────────────────────────
 async function loadWorkers() {
   try {
-    const r = await fetch('/api/v1/swarm/workers');
+    const r = await apiFetch('/api/v1/swarm/workers');
     const workers = await r.json();
     document.getElementById('stat-workers').textContent = workers.length;
     renderWorkers(workers);
@@ -814,7 +849,7 @@ async function launchSwarm() {
   const status = document.getElementById('swarm-status');
   status.textContent = 'Launching…'; status.className = 'save-status';
   try {
-    const r = await fetch('/api/v1/swarm/launch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const r = await apiFetch('/api/v1/swarm/launch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
     const d = await r.json();
     if (d.error) throw new Error(d.error);
     const n = d.workers_spawned || '?';
@@ -833,10 +868,19 @@ async function launchSwarm() {
 }
 
 async function stopSwarm() {
+  // Emergency stop: kills every team, not just the one this page launched.
+  // Reported explicitly when partial, because a half-dead swarm is the worst
+  // outcome to mistake for a clean one.
+  if (!confirm('Stop ALL running teams and kill every worker?')) return;
   try {
-    const r = await fetch('/api/v1/swarm/stop', { method: 'POST' });
+    const r = await apiFetch('/api/v1/control/stop', { method: 'POST' });
     const d = await r.json();
-    toast(d.status || 'Swarm stopped', d.error ? 'error' : 'success');
+    if (d.error) {
+      const stranded = (d.failed || []).map(f => f.team).join(', ');
+      toast(`${d.error}${stranded ? ' — still running: ' + stranded : ''}`, 'error');
+    } else {
+      toast(d.status + (d.stopped ? ` (${d.stopped} team${d.stopped === 1 ? '' : 's'})` : ''), 'success');
+    }
     setTimeout(loadWorkers, 500);
   } catch(e) {
     toast('Stop failed — is the Oracle running?', 'error');
@@ -851,7 +895,7 @@ async function searchMemory() {
   const results = document.getElementById('memory-results');
   results.innerHTML = '<div class="memory-empty">Searching…</div>';
   try {
-    const r = await fetch(`/query?q=${encodeURIComponent(q)}`);
+    const r = await apiFetch(`/query?q=${encodeURIComponent(q)}`);
     const data = await r.json();
     if (!data || data.length === 0) {
       results.innerHTML = '<div class="memory-empty">No results found for "' + escHtml(q) + '"</div>';

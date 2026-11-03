@@ -120,21 +120,92 @@ dreamswarm daemon start
 
 ## 📡 The Oracle API
 
-DreamSwarm exposes a high-performance REST API (default port `8080`) for external monitoring and control:
+DreamSwarm exposes a REST API (default `127.0.0.1:8080`) for monitoring and control:
 
-- **GET `/consensus`**: View the current hive state and trust index.
+- **GET `/consensus`**: Public liveness probe (no data).
 - **GET `/api/v1/telemetry/stream`**: Real-time SSE stream of swarm activity.
+- **GET `/api/v1/config`**: Read configuration (secrets redacted to `*_configured` flags).
 - **POST `/api/v1/control/war-room`**: Initiate high-intensity stress diagnostics.
-- **POST `/api/v1/control/stop`**: Emergency broadcast to stop all active swarms.
+- **POST `/api/v1/control/stop`**: Emergency stop. Shuts down **every** registered team and reports what stopped and what did not.
+- **GET `/api/v1/swarm/workers`**: Every worker across all teams, each tagged with its `team`.
+- **POST `/api/v1/swarm/launch`**: Launch a team. Names must be lowercase letters, digits, `-` or `_`.
+- **POST `/api/v1/swarm/stop`**: Stop one team (`{"team": "alpha"}`), or every team when the body is empty.
+
+### Teams and emergency stop
+
+A process can run several teams at once. Each is registered under its name in a
+`TeamRegistry`, so it can be addressed individually without holding a lock
+across an `await`.
+
+Emergency stop is reachable three ways — `POST /api/v1/control/stop`, the
+dashboard's **Stop Swarm** button, and Ctrl-C — and all three go through the
+same path: every team is shut down, worker panes and worktrees are released
+(including for workers that already reported `Completed`), inboxes are swept,
+and each team's `state.json` is kept and marked `Completed` so the swarm stays
+inspectable.
+
+Two behaviours worth knowing:
+
+- The stop is **latched**. A team launch that arrives after an emergency stop is
+  refused rather than quietly resurrecting the swarm.
+- A partial shutdown returns an error naming the stranded teams. The call does
+  not stop at the first failure, because stopping as much as possible matters
+  more than stopping cleanly.
+
+### Authentication
+
+Every `/api/v1` route (and `/query`) requires a bearer token. On start-up the
+server prints a per-session token:
+
+```text
+🔑 Oracle API token (this session): <64 hex characters>
+```
+
+Send it as the `x-dreamswarm-token` header. To pin a stable token, export
+`DREAMSWARM_API_TOKEN` before starting the daemon or `dreamswarm api start`.
+The dashboard prompts for the token once and keeps it in `sessionStorage`.
+
+| Variable | Purpose |
+| :--- | :--- |
+| `DREAMSWARM_API_TOKEN` | Fixed API token instead of a generated one. |
+| `DREAMSWARM_API_BIND` | Interface to bind (default `127.0.0.1`). Only change this deliberately. |
+| `DREAMSWARM_API_ORIGIN` | Additional allowed browser origin for CORS. |
+| `DREAMSWARM_API_HOSTS` | Extra accepted `Host` headers (comma separated), e.g. when proxied. |
+
+Requests are rejected when the `Host` header is not an expected local host
+(DNS-rebinding protection) or when an `Origin` header names a foreign site.
 
 ---
 
 ## 🛡 Security & Safety
 
-DreamSwarm is built on a **Security-First** foundation:
-- **5-Layer Permission Gate**: Tool execution is evaluated based on Mode, Deny-lists, Allow-lists, Risk Scoring, and final User Approval.
-- **Sandboxed Consolidation**: Memory pruning and background analysis never touch source files directly; they operate in restricted buffers.
-- **Immutable Audit Logs**: Every autonomous action is signed and recorded in an immutable JSONL log.
+DreamSwarm's security-relevant defaults:
+
+- **Fail-closed permission matching.** Allow/deny rules are matched against the
+  *complete* tool signature (for `Bash`, the whole command line). Malformed
+  rules never match, deny rules take precedence over bypass mode, and unknown
+  glob characters are treated literally.
+- **No worker self-approval.** Unattended workers relay `Ask` decisions to the
+  team lead over the mailbox and deny on timeout. Auto-approval requires the
+  explicit `BypassPermissions` mode.
+- **Workspace confinement.** `FileRead`/`FileWrite` resolve paths through a
+  single guard that rejects `..`, absolute paths outside the workspace and
+  symlink escapes, and refuses credential files such as `.env`, `.ssh/*` and
+  `.git-credentials`. Memory and dream operations use the same discipline.
+- **Authenticated control plane.** The API binds to loopback, requires a token,
+  rejects foreign origins/hosts, caps request bodies, and never returns stored
+  secrets.
+- **Guarded self-healing.** Repairs are staged in a disposable git worktree,
+  every command's exit status is checked, the test suite must pass, and nothing
+  is merged automatically.
+- **No shell interpolation.** Worker launches are argv-based; the only shell
+  strings (SSH) quote each untrusted value individually.
+- **Atomic coordination.** Mailbox appends and task claims take a cross-process
+  `flock`, and every JSON file is replaced with a unique-temp + `rename` write,
+  so concurrent workers cannot drop messages or hand out the same task twice.
+- **Valid tool transcripts.** Assistant `tool_use` blocks are recorded with their
+  results, results are grouped into one user message, and legacy sessions with
+  orphaned results are repaired before they are sent to a provider.
 
 ---
 

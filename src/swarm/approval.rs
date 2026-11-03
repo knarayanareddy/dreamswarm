@@ -51,7 +51,7 @@ pub fn enqueue_approval_request_blocking(
     // `try_write`/`blocking_write` are not usable from every context, so the
     // mailbox write is performed under a short-lived lock acquired via the
     // std::sync bridge only when a runtime is *not* driving this thread.
-    let mut mbox = mailbox
+    let mbox = mailbox
         .try_write()
         .map_err(|_| anyhow::anyhow!("mailbox is busy; cannot record approval request"))?;
     let request_id = uuid::Uuid::new_v4().to_string();

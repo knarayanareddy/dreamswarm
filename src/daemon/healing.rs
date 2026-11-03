@@ -64,7 +64,7 @@ impl HealingManager {
             error_signal
         );
 
-        if !Self::is_git_repo(&self.working_dir).await {
+        if !HealingManager::is_git_repo(&self.working_dir).await {
             return Ok(HealOutcome::Unsuccessful {
                 reason: "working directory is not a git repository".to_string(),
             });

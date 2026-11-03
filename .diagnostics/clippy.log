@@ -26,4 +26,4 @@
    [1m[94m|[0m
 [1m[96mhelp[0m: consider removing the dependency on `ctrlc`
 [1m[33mwarning[0m: `dreamswarm` (manifest) generated 2 warnings
-[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 5.28s
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 5.22s

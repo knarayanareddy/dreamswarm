@@ -17,7 +17,6 @@
 //! even if one of them is wedged, misbehaving, or already gone.
 
 use crate::swarm::coordinator::SwarmCoordinator;
-use crate::swarm::executors::command::is_safe_identifier;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
@@ -58,15 +57,27 @@ impl TeamRegistry {
         Self::default()
     }
 
+    /// Rejects team names that are not safe as a directory key.
+    ///
+    /// Being a valid *identifier* is not enough here. The mailbox and task list
+    /// each reduce the team name to `[a-z0-9_-]` before building paths, so a
+    /// name like `a.b` and `ab` would share one directory, and `../escape`
+    /// would land outside `teams/`. Requiring the name to already be in that
+    /// reduced form keeps the registry key and the on-disk name identical.
     fn validate_name(team_name: &str) -> anyhow::Result<()> {
-        if is_safe_identifier(team_name) {
-            Ok(())
-        } else {
+        let ok = !team_name.is_empty()
+            && team_name.len() <= 128
+            && team_name
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '-' | '_'));
+
+        if !ok {
             anyhow::bail!(
-                "invalid team name '{}': only letters, digits, '-', '_', '.', ':' and '/' are allowed",
+                "invalid team name '{}': use lowercase letters, digits, '-' or '_' (max 128)",
                 team_name
-            )
+            );
         }
+        Ok(())
     }
 
     /// Registers an already-built coordinator.
@@ -279,7 +290,7 @@ mod tests {
     async fn rejects_path_traversal_team_names() {
         let dir = tempfile::tempdir().unwrap();
         let registry = TeamRegistry::new();
-        for name in ["../escape", "a/b", "", "team name"] {
+        for name in ["../escape", "a/b", "", "team name", "a.b", "Team", ".."] {
             let result = registry.register(coordinator(name, dir.path())).await;
             assert!(result.is_err(), "team name '{}' should be refused", name);
         }

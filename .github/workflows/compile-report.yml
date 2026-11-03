@@ -1,7 +1,8 @@
 name: Compile Report
 
-# Temporary diagnostic workflow: surfaces rustc output as check-run annotations,
-# which are readable without access to the job log/artifact download APIs.
+# Temporary diagnostic workflow: surfaces rustc/fmt/clippy output as check-run
+# annotations and a small artifact, which are readable without access to the
+# job log download API.
 on:
   workflow_dispatch:
   push:
@@ -11,31 +12,46 @@ on:
       - '.github/workflows/compile-report.yml'
 
 jobs:
-  report:
-    name: Compile diagnostics
+  fmt:
+    name: fmt diagnostics
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-rust
-      - name: cargo check
+        with:
+          toolchain: nightly
+      - name: rustfmt
         shell: bash
         run: |
           set +e
-          cargo check --all-targets --all-features > check.log 2>&1
-          echo $? > rc.txt
-          echo "::notice title=Compile summary::exit=$(cat rc.txt) lines=$(wc -l < check.log)"
-      - name: Emit log slice 1
+          cargo +nightly fmt --all -- --check > fmt.log 2>&1
+          echo $? > fmt.rc
+          wc -c fmt.log
+      - uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: fmt-report
+          path: |
+            fmt.log
+            fmt.rc
+
+  clippy:
+    name: clippy diagnostics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-rust
+      - name: clippy
         shell: bash
-        run: python3 .github/scripts/annotate.py check.log 0 15
-      - name: Emit log slice 2
+        run: |
+          set +e
+          cargo clippy --all-targets --all-features > clippy.log 2>&1
+          echo $? > clippy.rc
+          wc -c clippy.log
+      - uses: actions/upload-artifact@v4
         if: always()
-        shell: bash
-        run: python3 .github/scripts/annotate.py check.log 15 15
-      - name: Emit log slice 3
-        if: always()
-        shell: bash
-        run: python3 .github/scripts/annotate.py check.log 30 15
-      - name: Fail if check failed
-        shell: bash
-        run: exit $(cat rc.txt)
+        with:
+          name: clippy-report
+          path: |
+            clippy.log
+            clippy.rc

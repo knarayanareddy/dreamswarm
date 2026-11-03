@@ -1,3 +1,0 @@
-fmt=0
-clippy=0
-check=0

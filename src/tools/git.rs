@@ -48,7 +48,7 @@ impl Tool for GitBranchTool {
                 cmd.arg("branch");
             }
         }
-        let output = cmd.output().await?;
+        let output = super::process::output(&mut cmd).await?;
         Ok(ToolOutput {
             content: String::from_utf8_lossy(&output.stdout).to_string()
                 + &String::from_utf8_lossy(&output.stderr),
@@ -85,18 +85,14 @@ impl Tool for GitCommitTool {
             .unwrap_or("Automated commit by DreamSwarm");
 
         // Stage all
-        Command::new("git")
-            .kill_on_drop(true)
-            .args(["add", "."])
-            .output()
-            .await?;
+        let mut stage = Command::new("git");
+        stage.args(["add", "."]);
+        super::process::output(&mut stage).await?;
 
         // Commit
-        let output = Command::new("git")
-            .kill_on_drop(true)
-            .args(["commit", "-m", message])
-            .output()
-            .await?;
+        let mut commit = Command::new("git");
+        commit.args(["commit", "-m", message]);
+        let output = super::process::output(&mut commit).await?;
 
         Ok(ToolOutput {
             content: String::from_utf8_lossy(&output.stdout).to_string()

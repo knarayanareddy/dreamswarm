@@ -14,6 +14,7 @@ pub mod grep_tool;
 pub mod js_tool;
 pub mod memory_tools;
 pub mod monitor_tool;
+mod process;
 pub mod push_notification;
 pub mod python_tool;
 pub mod rust_debug;

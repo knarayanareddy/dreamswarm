@@ -111,12 +111,9 @@ impl Tool for BashTool {
             });
         }
 
-        let output = tokio::process::Command::new("bash")
-            .kill_on_drop(true)
-            .arg("-c")
-            .arg(command)
-            .output()
-            .await?;
+        let mut child = tokio::process::Command::new("bash");
+        child.arg("-c").arg(command);
+        let output = super::process::output(&mut child).await?;
 
         let is_error = !output.status.success();
         let mut content = String::from_utf8_lossy(&output.stdout).to_string();

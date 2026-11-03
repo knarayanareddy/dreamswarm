@@ -132,7 +132,7 @@ permission mode or rule permits them.
 - **GET `/api/v1/swarm/tasks`**: Poll task status, results and failures for the active swarm.
 - **GET `/api/v1/telemetry/stream`**: Real-time SSE stream of swarm activity.
 - **POST `/api/v1/control/war-room`**: Initiate high-intensity stress diagnostics.
-- **POST `/api/v1/control/stop`**: Stop the API-managed swarm and request the daemon to stop over an authenticated local control channel. Success acknowledges that the daemon loop stopped and coordinator cleanup returned successfully; a timeout or failure is reported as unconfirmed. This does not guarantee termination of subprocess descendants or verify external executor cleanup, and is not an OS sandbox.
+- **POST `/api/v1/control/stop`**: Stop the API-managed swarm and request the daemon to stop over an authenticated local control channel. Success acknowledges that the daemon loop stopped and coordinator cleanup returned successfully; a timeout or failure is reported as unconfirmed. On Unix, cancelling supported tool commands kills their process group; processes that escape that group and Windows descendants may survive. External executor cleanup is not verified, and this is not an OS sandbox.
 
 ---
 

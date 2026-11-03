@@ -59,7 +59,7 @@ impl Tool for GrepTool {
             cmd.arg(path);
         }
 
-        let output = cmd.output().await?;
+        let output = super::process::output(&mut cmd).await?;
 
         let is_error = !output.status.success() && output.status.code() != Some(1); // 1 = no matches
         let content = String::from_utf8_lossy(if is_error {

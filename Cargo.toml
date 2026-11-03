@@ -60,5 +60,8 @@ r2d2_sqlite = "0.24.0"
 rand = "0.10.0"
 toml = "0.8"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 filetime = "0.2"

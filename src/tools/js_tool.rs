@@ -28,11 +28,9 @@ impl Tool for JSExecuteTool {
     }
     async fn execute(&self, input: &Value) -> anyhow::Result<ToolOutput> {
         let script = input["script"].as_str().unwrap_or_default();
-        let output = Command::new("node")
-            .kill_on_drop(true)
-            .args(["-e", script])
-            .output()
-            .await?;
+        let mut child = Command::new("node");
+        child.args(["-e", script]);
+        let output = super::process::output(&mut child).await?;
 
         Ok(ToolOutput {
             content: String::from_utf8_lossy(&output.stdout).to_string()

@@ -1,8 +1,7 @@
 name: Compile Report
 
 # Temporary diagnostic workflow: surfaces rustc/fmt/clippy output as check-run
-# annotations and a small artifact, which are readable without access to the
-# job log download API.
+# annotations, which are readable without access to the job log download API.
 on:
   workflow_dispatch:
   push:
@@ -10,6 +9,7 @@ on:
       - 'src/**'
       - 'Cargo.toml'
       - '.github/workflows/compile-report.yml'
+      - '.github/scripts/annotate_chunks.py'
 
 jobs:
   fmt:
@@ -20,20 +20,18 @@ jobs:
       - uses: ./.github/actions/setup-rust
         with:
           toolchain: nightly
+          components: rustfmt
       - name: rustfmt
         shell: bash
         run: |
           set +e
           cargo +nightly fmt --all -- --check > fmt.log 2>&1
           echo $? > fmt.rc
-          wc -c fmt.log
-      - uses: actions/upload-artifact@v4
+          echo "rc=$(cat fmt.rc) bytes=$(wc -c < fmt.log)"
+      - name: Emit fmt log
         if: always()
-        with:
-          name: fmt-report
-          path: |
-            fmt.log
-            fmt.rc
+        shell: bash
+        run: python3 .github/scripts/annotate_chunks.py fmt.log FMT 4 || true
 
   clippy:
     name: clippy diagnostics
@@ -41,17 +39,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-rust
+        with:
+          components: clippy
       - name: clippy
         shell: bash
         run: |
           set +e
-          cargo clippy --all-targets --all-features > clippy.log 2>&1
+          cargo clippy --all-targets --all-features -- -D warnings > clippy.log 2>&1
           echo $? > clippy.rc
-          wc -c clippy.log
-      - uses: actions/upload-artifact@v4
+          echo "rc=$(cat clippy.rc) bytes=$(wc -c < clippy.log)"
+      - name: Emit clippy log
         if: always()
-        with:
-          name: clippy-report
-          path: |
-            clippy.log
-            clippy.rc
+        shell: bash
+        run: python3 .github/scripts/annotate_chunks.py clippy.log CLIPPY 3 || true

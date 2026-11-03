@@ -20,6 +20,8 @@ pub struct Usage {
     pub cache_creation_tokens: u64,
 }
 
+// async_trait emits #[must_use] on boxed futures; recent Clippy flags that expansion.
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait LLMProvider: Send + Sync {
     async fn complete(
